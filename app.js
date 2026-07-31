@@ -395,15 +395,19 @@ async function pullCentralCloudDB() {
     const currentDelReqs = JSON.parse(localStorage.getItem(DELETED_REQUESTS_KEY) || '[]');
     const currentDelUsers = JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]');
 
-    if (Array.isArray(data.requests)) {
-      const filteredRequests = data.requests.filter(r => r && r.noSurat && !currentDelReqs.includes(r.noSurat));
-      localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(filteredRequests));
+    const targetRequests = Array.isArray(data.requests) ? data.requests.filter(r => r && r.noSurat && !currentDelReqs.includes(r.noSurat)) : [];
+    const prevReqHash = localStorage.getItem(REQUESTS_DB_KEY) || '[]';
+    const newReqHash = JSON.stringify(targetRequests);
+    if (prevReqHash !== newReqHash) {
+      localStorage.setItem(REQUESTS_DB_KEY, newReqHash);
       needUIRefresh = true;
     }
 
-    if (Array.isArray(data.users) && data.users.length > 0) {
-      const filteredUsers = data.users.filter(u => u && u.id && !currentDelUsers.includes(u.id));
-      localStorage.setItem(USERS_DB_KEY, JSON.stringify(filteredUsers));
+    const targetUsers = Array.isArray(data.users) && data.users.length > 0 ? data.users.filter(u => u && u.id && !currentDelUsers.includes(u.id)) : [...SEED_USERS];
+    const prevUserHash = localStorage.getItem(USERS_DB_KEY) || '[]';
+    const newUserHash = JSON.stringify(targetUsers);
+    if (prevUserHash !== newUserHash) {
+      localStorage.setItem(USERS_DB_KEY, newUserHash);
       needUIRefresh = true;
     }
 
