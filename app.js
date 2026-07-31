@@ -333,12 +333,8 @@ function initPullToRefresh() {
   container.addEventListener('touchend', async () => {
     if (!isAtTop) return;
     const dist = moveY - startY;
-    if (dist > 90 && container.scrollTop <= 5) {
-      showNotif('TARIK KEBAWAH: REFRESH DATA SINKRONISASI...', 'info');
+    if (dist > 80 && container.scrollTop <= 5) {
       await pullCentralCloudDB();
-      setTimeout(() => {
-        showNotif('DATA BERHASIL DIPERBARUI!', 'info');
-      }, 300);
     }
     startY = 0;
     moveY = 0;
@@ -366,6 +362,7 @@ function toggleAdminReminderFeature() {
     checkAndTriggerPendingReminders();
   }
 }
+window.toggleAdminReminderFeature = toggleAdminReminderFeature;
 
 function updateAdminReminderUI() {
   const statusText = document.getElementById('reminderFeatureStatusText');
@@ -430,6 +427,7 @@ function simpanAdminScriptUrl() {
     showNotif('URL SCRIPT DIKEMBALIKAN KE DEFAULT!', 'info');
   }
 }
+window.simpanAdminScriptUrl = simpanAdminScriptUrl;
 
 function loadAdminScriptUrlInput() {
   const input = document.getElementById('adminScriptUrlInput');
@@ -437,6 +435,7 @@ function loadAdminScriptUrlInput() {
     input.value = getGoogleSheetUrl();
   }
 }
+window.loadAdminScriptUrlInput = loadAdminScriptUrlInput;
 
 const PUBLIC_CLOUD_DB_URL = getGoogleSheetUrl();
 let cloudSyncInterval = null;
