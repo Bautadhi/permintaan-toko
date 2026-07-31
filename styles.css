@@ -1092,6 +1092,24 @@ input:focus, select:focus, textarea:focus {
 
 .box h3 { margin-bottom: 18px; font-size: 18px; color: var(--text-main); }
 
+/* AUTOMATIC SMOOTH 2D HORIZONTAL SCROLL FOR DATA CARDS WHEN DATA EXCEEDS CARD WIDTH */
+.box-data,
+.tableWrap,
+.popupTableScroll,
+#lastData,
+#historyTableWrap,
+#masterDbTableWrap,
+#userTableWrap,
+.daftarTokoWrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: block !important;
+  box-sizing: border-box !important;
+}
+
 /* RECENT DATA LIST ON DASHBOARD (AUTO FIT & FILL CONTAINER BOX EVENLY) */
 .lastHeader, .lastItem {
   display: grid;
@@ -1518,13 +1536,20 @@ input:focus, select:focus, textarea:focus {
   }
 }
 
-/* 7MM PADDING FOR ALL CARDS IN INPUT FORM MENU & USER MANAGEMENT (#userManagementPage / #buatPage / #inputPage) */
+/* 3MM PADDING FOR CARDS IN INPUT FORM MENU (#buatPage / #inputPage / .box-form) */
 #buatPage .box,
 #inputPage .box,
-#userManagementPage .box,
-#userManagementPage .box-setting,
 .box-form,
 #formPermintaanCard {
+  padding: 3mm !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+/* 7MM PADDING FOR USER MANAGEMENT CARDS */
+#userManagementPage .box,
+#userManagementPage .box-setting {
   padding: 7mm !important;
   margin-left: auto !important;
   margin-right: auto !important;
