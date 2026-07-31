@@ -408,10 +408,10 @@ function checkAndTriggerPendingReminders() {
 /* ======================================================
    CENTRAL ONLINE CLOUD DATABASE SYNC ENGINE (MULTI-DEVICE & WORLDWIDE)
    ====================================================== */
-const SCRIPT_URL_STORAGE_KEY = 'STORE_SCRIPT_URL_V7';
+const SCRIPT_URL_STORAGE_KEY = 'STORE_SCRIPT_URL_V8';
 
 function getGoogleSheetUrl() {
-  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbw-xUcnvyzBRPkuYoiVDMQtMq5Comyh-F7tjmz7bnQkEskGb1-YL9wTxTrLtuXKRp0klQ/exec';
+  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbyc5ZXMmfR5lPX3Xbp7yAcHuN4x4Dl3OWwOiTKx9ydSgh40wPq_bhwDu9YQ7a5frcJebQ/exec';
 }
 
 function simpanAdminScriptUrl() {
