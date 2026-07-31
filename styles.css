@@ -1609,9 +1609,25 @@ input:focus, select:focus, textarea:focus {
 /* RESPONSIVE & PRINT MEDIA QUERY */
 @media(max-width: 768px) {
   html, body {
-    overflow-x: hidden !important;
-    overscroll-behavior-y: none !important;
-    max-width: 100vw !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    height: -webkit-fill-available !important;
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #app {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: contain !important;
   }
 
   .detailTable2 td {
@@ -1620,7 +1636,7 @@ input:focus, select:focus, textarea:focus {
   }
 
   .page {
-    padding: 12px 6px 95px 6px !important;
+    padding: 10px 8px 75px 8px !important;
   }
 
   .header {
