@@ -206,20 +206,38 @@ function generateStoreCode(namaToko) {
 function getStoresFromDB() {
   const localStores = JSON.parse(localStorage.getItem(STORES_DB_KEY) || '[]');
   const deletedStoreKeys = JSON.parse(localStorage.getItem(DELETED_STORES_KEY) || '[]');
+  const safeDeletedKeys = Array.isArray(deletedStoreKeys) ? deletedStoreKeys : [];
   const users = getUsersFromDB();
-  const userStores = users.filter(u => u.category === 'TOKO').map(u => ({
+  const userStores = users.filter(u => u && u.category === 'TOKO').map(u => ({
     id: u.id,
-    fullName: u.fullName,
-    area: u.area,
-    storeCode: u.storeCode || generateStoreCode(u.fullName)
+    fullName: u.fullName || 'TOKO',
+    area: u.area || '',
+    storeCode: u.storeCode || generateStoreCode(u.fullName || '')
   }));
 
   const map = new Map();
-  userStores.forEach(s => map.set(`${s.fullName.toUpperCase()}_${s.area}`, s));
-  localStores.forEach(s => map.set(`${s.fullName.toUpperCase()}_${s.area}`, s));
+  userStores.forEach(s => {
+    if (s && s.fullName) {
+      const key = `${String(s.fullName).toUpperCase()}_${String(s.area || '').toUpperCase()}`;
+      map.set(key, s);
+    }
+  });
+
+  if (Array.isArray(localStores)) {
+    localStores.forEach(s => {
+      if (s && s.fullName) {
+        const key = `${String(s.fullName).toUpperCase()}_${String(s.area || '').toUpperCase()}`;
+        map.set(key, s);
+      }
+    });
+  }
 
   const allStores = Array.from(map.values());
-  return allStores.filter(s => !deletedStoreKeys.includes(`${s.fullName.toUpperCase()}_${s.area}`));
+  return allStores.filter(s => {
+    if (!s || !s.fullName) return false;
+    const key = `${String(s.fullName).toUpperCase()}_${String(s.area || '').toUpperCase()}`;
+    return !safeDeletedKeys.includes(key);
+  });
 }
 
 // 10 THEME MODES
@@ -1921,8 +1939,8 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
         requests[idx].items = items;
         requests[idx].photos = [...currentPhotos];
         saveRequestsToDB(requests);
-        bersihkanForm();
         showNotif(`PERMINTAAN #${editNoSurat} BERHASIL DIPERBARUI!`, 'success');
+        bersihkanForm();
       }
     } else {
       const now = new Date();
@@ -1931,8 +1949,9 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
       const codeDay = String(now.getDate()).padStart(2, '0');
 
       const allStores = getStoresFromDB();
-      const matchedStore = allStores.find(s => s.fullName.toUpperCase() === toko.toUpperCase());
-      let storeCode = matchedStore ? (matchedStore.storeCode || generateStoreCode(matchedStore.fullName)) : generateStoreCode(toko);
+      const safeToko = String(toko || '').trim().toUpperCase();
+      const matchedStore = allStores.find(s => s && s.fullName && String(s.fullName).trim().toUpperCase() === safeToko);
+      let storeCode = matchedStore ? (matchedStore.storeCode || generateStoreCode(matchedStore.fullName)) : generateStoreCode(safeToko);
 
       const seqNo = String(requests.length + 1).padStart(2, '0');
       const noSurat = `PRMT/${currentUser.area}-${storeCode}/${codeYear}${codeMonth}${codeDay}${seqNo}`;
@@ -1955,8 +1974,8 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
       };
       requests.unshift(newRecord);
       saveRequestsToDB(requests);
-      bersihkanForm();
       showNotif(`PERMINTAAN #${noSurat} BERHASIL DISIMPAN!`, 'success');
+      bersihkanForm();
 
       // WA AUTOMATION TRIGGER 1: NEW REQUEST CREATED -> NOTIFY SERVICE IN AREA
       tambahNotifikasiSistem(['SERVICE'], currentUser.area, `PERMINTAAN BARU #${noSurat} DARI ${toko} (${currentUser.area}). MOHON SEGERA DIPERIKSA DI APLIKASI.`, noSurat);
@@ -1969,7 +1988,8 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
       });
     }
 
-    pindahHalaman('riwayatPage');
+    // STAY ON INPUT FORM PAGE AFTER SAVING SUCCESSFUL
+    pindahHalaman('inputPage');
   }, 400);
 }
 
@@ -3953,7 +3973,12 @@ function showNotif(msg, type = 'info') {
 }
 
 function closePopup() {
-  document.getElementById('popupNotif').style.display = 'none';
+  const notifOverlay = document.getElementById('popupNotif');
+  if (notifOverlay) notifOverlay.style.display = 'none';
+  const inputPage = document.getElementById('inputPage');
+  if (inputPage && inputPage.classList.contains('active')) {
+    bersihkanForm();
+  }
 }
 
 function showLoading(text) {
