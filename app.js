@@ -258,150 +258,22 @@ const KODE_UNIT_MAP = {
   'SNCR': 'REF-2D-210L (REFRIGERATOR)'
 };
 
-// SEED USERS DATABASE
+// SEED USERS DATABASE (CLEAN INITIAL STATE: ONLY ADMIN PSW=1)
 const SEED_USERS = [
   {
     id: 'USR-ADMIN',
     username: 'ADMIN',
-    password: 'xxx',
-    fullName: 'SUPER ADMINISTRATOR PUSAT',
-    phone: '081299990000',
+    password: '1',
+    fullName: 'ADMINISTRATOR PUSAT',
+    phone: '',
     category: 'ADMIN',
     area: 'ALL',
-    createdAt: '30/07/2026'
-  },
-  {
-    id: 'USR-001',
-    username: 'TSM',
-    password: '1',
-    fullName: 'BAUT ADHI WISMANTORO (SERVICE TSM)',
-    phone: '081234567890',
-    category: 'SERVICE',
-    area: 'TSM',
-    createdAt: '30/07/2026'
-  },
-  {
-    id: 'USR-002',
-    username: 'DM_PUSAT',
-    password: '123',
-    fullName: 'BAPAK HENDRA (DM PUSAT)',
-    phone: '081288887777',
-    category: 'DM',
-    area: 'BDG',
-    createdAt: '30/07/2026'
-  },
-  {
-    id: 'USR-003',
-    username: 'SERVICE_BDG',
-    password: '123',
-    fullName: 'ISBIANTA (SERVICE SUPERVISOR BDG)',
-    phone: '081277776666',
-    category: 'SERVICE',
-    area: 'BDG',
-    createdAt: '30/07/2026'
-  },
-  {
-    id: 'USR-004',
-    username: 'SALES_BDG',
-    password: '123',
-    fullName: 'RIAN (SALES EXECUTIVE BDG)',
-    phone: '081266665555',
-    category: 'SALES',
-    area: 'BDG',
-    createdAt: '30/07/2026'
-  },
-  {
-    id: 'USR-005',
-    username: 'TOKO_SINAR',
-    password: '123',
-    fullName: 'TOKO SINAR ABADI',
-    storeCode: 'SNR',
-    phone: '081255554444',
-    category: 'TOKO',
-    area: 'BDG',
-    createdAt: '30/07/2026'
-  },
-  {
-    id: 'USR-006',
-    username: 'TOKO_CRB',
-    password: '123',
-    fullName: 'TOKO CIREBON PERDANA',
-    storeCode: 'CRB',
-    phone: '081244443333',
-    category: 'TOKO',
-    area: 'CRB',
-    createdAt: '30/07/2026'
+    createdAt: '31/07/2026'
   }
 ];
 
-// SEED REQUESTS DATABASE WITH DD/MM/YYYY FORMAT
-const SEED_REQUESTS = [
-  {
-    noSurat: 'PRMT/BDG/SNR/26/07/30/01',
-    tanggal: '30/07/2026',
-    area: 'BDG',
-    userId: 'USR-004',
-    toko: 'TOKO SINAR ABADI',
-    jenis: 'DEFAULT',
-    catatan: 'STOK TOKO - MOHON SEGERA',
-    items: [
-      {
-        type: 'AC-09V4-INV',
-        seri: 'AC09-BDG-88391',
-        dus: '',
-        barang: 'REMOTE AC ORIGINAL',
-        alasan: 'REMOTE PECAH SAAT DISPLAY TOKO',
-        qty: 1
-      }
-    ],
-    photos: [
-      'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="100%" height="100%" fill="%231e293b"/><text x="50%" y="50%" fill="%233b82f6" font-size="16" text-anchor="middle">FOTO REMOTE AC PECAH</text></svg>'
-    ],
-    status: 'PENDING',
-    serviceApprove: false,
-    createdBy: 'RIAN (SALES EXECUTIVE BDG)',
-    createdAt: '30/07/2026 09:30',
-    log: []
-  },
-  {
-    noSurat: 'PRMT/BDG/SNR/26/07/29/02',
-    tanggal: '29/07/2026',
-    area: 'BDG',
-    userId: 'USR-005',
-    toko: 'TOKO SINAR ABADI',
-    jenis: 'DUS',
-    catatan: 'KARDUS RETUR BASAH',
-    items: [
-      {
-        type: 'TV-50X8000-LED',
-        seri: 'TV50-BDG-99412',
-        dus: 'BOX-BDG-55419',
-        barang: 'DUS KARDUS BARU TV',
-        alasan: 'DUS BASAH TERKENA HUJAN SAAT EKSPEDISI',
-        qty: 1
-      }
-    ],
-    photos: [],
-    status: 'APPROVE',
-    serviceApprove: true,
-    createdBy: 'TOKO SINAR ABADI',
-    createdAt: '29/07/2026 14:15',
-    log: [
-      {
-        action: 'APPROVE_SERVICE',
-        user: 'ISBIANTA (SERVICE SUPERVISOR BDG)',
-        notes: 'DISETUJUI SERVICE',
-        time: '29/07/2026 15:00'
-      },
-      {
-        action: 'APPROVE_DM',
-        user: 'BAPAK HENDRA (DM PUSAT)',
-        notes: 'DISETUJUI DM PUSAT. SILAKAN DIPROSES.',
-        time: '29/07/2026 16:30'
-      }
-    ]
-  }
-];
+// SEED REQUESTS DATABASE (CLEAN INITIAL STATE)
+const SEED_REQUESTS = [];
 
 // STATE VARIABLES
 let currentUser = null;
@@ -758,7 +630,6 @@ function syncUserToCloud(userObj) {
   }
 }
 
-// DATABASE ENGINE
 function initDatabase() {
   let storedUsers = [];
   try {
@@ -767,14 +638,14 @@ function initDatabase() {
     storedUsers = [];
   }
 
-  if (!Array.isArray(storedUsers) || !storedUsers.length) {
+  // FORCE RESET TO ONLY 1 ADMIN USER IF UNCLEAN
+  if (!Array.isArray(storedUsers) || !storedUsers.length || storedUsers.some(u => u.username !== 'ADMIN')) {
     storedUsers = [...SEED_USERS];
     localStorage.setItem(USERS_DB_KEY, JSON.stringify(storedUsers));
   }
   
-  const existingReq = localStorage.getItem(REQUESTS_DB_KEY);
-  if (!existingReq || existingReq.includes('font-family')) {
-    localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(SEED_REQUESTS));
+  if (!localStorage.getItem(REQUESTS_DB_KEY)) {
+    localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify([]));
   }
 
   if (!localStorage.getItem(CHAT_DB_KEY)) {
@@ -799,22 +670,12 @@ function getUsersFromDB() {
     users = [...SEED_USERS];
     localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
   } else {
-    // Ensure USR-ADMIN exists and has password xxx
     const adminUser = users.find(u => u && u.username && u.username.toUpperCase() === 'ADMIN');
     if (!adminUser) {
-      users.unshift({
-        id: 'USR-ADMIN',
-        username: 'ADMIN',
-        password: 'xxx',
-        fullName: 'SUPER ADMINISTRATOR PUSAT',
-        phone: '081299990000',
-        category: 'ADMIN',
-        area: 'ALL',
-        createdAt: '30/07/2026'
-      });
+      users.unshift(SEED_USERS[0]);
       localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
     } else {
-      adminUser.password = 'xxx';
+      adminUser.password = '1';
     }
   }
   return users;
@@ -957,17 +818,17 @@ function prosesLogin() {
     }
   }
 
-  // 3. Fallback for ADMIN with password xxx or 1
-  if (!user && u === 'ADMIN' && (p === 'xxx' || p === '1')) {
+  // 3. Fallback for ADMIN with password 1
+  if (!user && u === 'ADMIN' && p === '1') {
     user = {
       id: 'USR-ADMIN',
       username: 'ADMIN',
-      password: 'xxx',
-      fullName: 'SUPER ADMINISTRATOR PUSAT',
-      phone: '081299990000',
+      password: '1',
+      fullName: 'ADMINISTRATOR PUSAT',
+      phone: '',
       category: 'ADMIN',
       area: 'ALL',
-      createdAt: '30/07/2026'
+      createdAt: '31/07/2026'
     };
     users.unshift(user);
     saveUsersToDB(users);
