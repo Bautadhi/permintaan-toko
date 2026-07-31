@@ -411,8 +411,34 @@ function checkAndTriggerPendingReminders() {
 /* ======================================================
    CENTRAL ONLINE CLOUD DATABASE SYNC ENGINE (MULTI-DEVICE & WORLDWIDE)
    ====================================================== */
-const GOOGLE_SHEET_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbw-xUcnvyzBRPkuYoiVDMQtMq5Comyh-F7tjmz7bnQkEskGb1-YL9wTxTrLtuXKRp0klQ/exec';
-const PUBLIC_CLOUD_DB_URL = GOOGLE_SHEET_WEBAPP_URL;
+const SCRIPT_URL_STORAGE_KEY = 'STORE_SCRIPT_URL_V7';
+
+function getGoogleSheetUrl() {
+  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbw-xUcnvyzBRPkuYoiVDMQtMq5Comyh-F7tjmz7bnQkEskGb1-YL9wTxTrLtuXKRp0klQ/exec';
+}
+
+function simpanAdminScriptUrl() {
+  const input = document.getElementById('adminScriptUrlInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val) {
+    localStorage.setItem(SCRIPT_URL_STORAGE_KEY, val);
+    showNotif('URL GOOGLE APPS SCRIPT BERHASIL DISIMPAN & DIPERBARUI!', 'info');
+    pushCentralCloudDB();
+  } else {
+    localStorage.removeItem(SCRIPT_URL_STORAGE_KEY);
+    showNotif('URL SCRIPT DIKEMBALIKAN KE DEFAULT!', 'info');
+  }
+}
+
+function loadAdminScriptUrlInput() {
+  const input = document.getElementById('adminScriptUrlInput');
+  if (input) {
+    input.value = getGoogleSheetUrl();
+  }
+}
+
+const PUBLIC_CLOUD_DB_URL = getGoogleSheetUrl();
 let cloudSyncInterval = null;
 let lastCloudSyncHash = '';
 let isPushingCloud = false;
@@ -461,7 +487,7 @@ function startCentralCloudSyncEngine() {
 }
 
 async function pullCentralCloudDB() {
-  const targetUrl = GOOGLE_SHEET_WEBAPP_URL || PUBLIC_CLOUD_DB_URL;
+  const targetUrl = getGoogleSheetUrl();
 
   try {
     const res = await fetch(targetUrl, {
@@ -604,8 +630,8 @@ async function pushCentralCloudDB() {
     notifications: JSON.parse(localStorage.getItem(NOTIFICATIONS_DB_KEY) || '[]')
   };
 
-  const targetUrl = GOOGLE_SHEET_WEBAPP_URL || PUBLIC_CLOUD_DB_URL;
-  const isGoogle = !!GOOGLE_SHEET_WEBAPP_URL;
+  const targetUrl = getGoogleSheetUrl();
+  const isGoogle = targetUrl.includes('script.google.com');
 
   try {
     const res = await fetch(targetUrl, {
@@ -2906,6 +2932,7 @@ function cekUnreadNotif() {
 
 // USER MANAGEMENT ENGINE
 function loadUsersManagement() {
+  loadAdminScriptUrlInput();
   const tbody = document.getElementById('userTableBody');
   if (!tbody) return;
 
