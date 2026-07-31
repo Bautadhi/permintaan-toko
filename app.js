@@ -532,7 +532,9 @@ async function pullCentralCloudDB() {
       needUIRefresh = true;
     }
 
-    const targetUsers = Array.isArray(data.users) && data.users.length > 0 ? data.users.filter(u => u && u.id && !currentDelUsers.includes(u.id)) : [...SEED_USERS];
+    const targetUsers = (Array.isArray(data.users) && data.users.length > 0) 
+      ? data.users.filter(u => u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username)) 
+      : [...SEED_USERS];
     const prevUserHash = localStorage.getItem(USERS_DB_KEY) || '[]';
     const newUserHash = JSON.stringify(targetUsers);
     if (prevUserHash !== newUserHash) {
@@ -545,11 +547,22 @@ async function pullCentralCloudDB() {
     }
 
     if (Array.isArray(data.stores)) {
-      localStorage.setItem(STORES_DB_KEY, JSON.stringify(data.stores));
+      const prevStoreHash = localStorage.getItem(STORES_DB_KEY) || '[]';
+      const newStoreHash = JSON.stringify(data.stores);
+      if (prevStoreHash !== newStoreHash) {
+        localStorage.setItem(STORES_DB_KEY, newStoreHash);
+        loadTokoDropdown();
+        needUIRefresh = true;
+      }
     }
 
     if (data.lookup && typeof data.lookup === 'object') {
-      localStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify(data.lookup));
+      const prevLookupHash = localStorage.getItem(KODE_UNIT_MAP_KEY) || '{}';
+      const newLookupHash = JSON.stringify(data.lookup);
+      if (prevLookupHash !== newLookupHash) {
+        localStorage.setItem(KODE_UNIT_MAP_KEY, newLookupHash);
+        needUIRefresh = true;
+      }
     }
 
     if (data.featurePhotos !== undefined) {
@@ -592,8 +605,12 @@ async function pullCentralCloudDB() {
     }
 
     if (Array.isArray(data.notifications)) {
-      localStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(data.notifications));
-      updateNotifBellCounter();
+      const prevNotifHash = localStorage.getItem(NOTIFICATIONS_DB_KEY) || '[]';
+      const newNotifHash = JSON.stringify(data.notifications);
+      if (prevNotifHash !== newNotifHash) {
+        localStorage.setItem(NOTIFICATIONS_DB_KEY, newNotifHash);
+        updateNotifBellCounter();
+      }
     }
 
     if (needUIRefresh && currentUser) {
@@ -3030,7 +3047,7 @@ function simpanUserData() {
       return;
     }
     const newUser = {
-      id: `USR-${String(users.length + 1).padStart(3, '0')}`,
+      id: `USR-${Date.now()}`,
       username,
       password,
       fullName,
