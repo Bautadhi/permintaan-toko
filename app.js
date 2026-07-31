@@ -2380,12 +2380,15 @@ function lihatDetail(noSurat, fromDashboard = false) {
   if (req.photos && req.photos.length > 0) {
     photosHtml = `
       <div style="margin-top:14px; padding-top:10px; border-top:1px dashed var(--border-color);">
-        <div style="font-size:11.5px; font-weight:700; margin-bottom:8px; color:var(--primary);">📷 LAMPIRAN FOTO (KLIK UNTUK BUKA FILE DRIVE):</div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="font-size:11.5px; font-weight:700; margin-bottom:8px; color:var(--primary);">📷 LAMPIRAN FOTO DOKUMENTASI (KLIK GAMBAR UNTUK BUKA FILE DRIVE):</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
           ${req.photos.map((pUrl, idx) => `
-            <a href="${pUrl}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:6px; background:var(--bg-header); border:1px solid var(--primary); padding:6px 12px; border-radius:8px; color:var(--primary); font-size:12px; text-decoration:none; font-weight:700; transition:.2s;">
-              <span class="material-symbols-rounded" style="font-size:16px;">open_in_new</span> FOTO #${idx + 1}
-            </a>
+            <div onclick="window.open('${pUrl}', '_blank')" style="position:relative; width:70px; height:70px; border-radius:10px; overflow:hidden; border:2px solid var(--primary); cursor:pointer; box-shadow:0 4px 10px rgba(0,0,0,0.15); transition:transform .2s;" title="KLIK UNTUK BUKA FOTO #${idx+1} DI GOOGLE DRIVE">
+              <img src="${pUrl}" alt="Foto ${idx+1}" style="width:100%; height:100%; object-fit:cover;" onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/3342/3342137.png';">
+              <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.65); color:#ffffff; font-size:9.5px; text-align:center; padding:2px 0; font-weight:700;">
+                FOTO #${idx+1}
+              </div>
+            </div>
           `).join('')}
         </div>
       </div>
