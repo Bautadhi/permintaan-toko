@@ -2295,13 +2295,27 @@ function bukaPdfModal(noSurat) {
   `).join('');
 
   const users = getUsersFromDB();
-  const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area);
-  const serviceName = serviceUser ? serviceUser.fullName : (req.createdBy || 'HODS AREA');
+  const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area) || users.find(u => u.category === 'SERVICE');
+  const dmUser = users.find(u => u.category === 'DM') || users.find(u => u.username === 'ADMIN');
+  const serviceName = req.serviceUserName || (serviceUser ? serviceUser.fullName : 'SERVICE SUPERVISOR');
+  const dmName = req.dmUserName || (dmUser ? dmUser.fullName : 'FERRY EDIYANTO');
 
   const ttdMap = JSON.parse(localStorage.getItem(TTD_DB_KEY) || '{}');
-  const userTTD = ttdMap[req.createdBy] || '';
-  const serviceTTD = (serviceUser && ttdMap[serviceUser.fullName]) || ttdMap['SERVICE_' + req.area] || ttdMap['SERVICE'] || '';
-  const dmTTD = ttdMap['DM'] || '';
+  let serviceTTD = req.serviceTTD || '';
+  if (!serviceTTD && serviceUser) {
+    serviceTTD = ttdMap[serviceUser.id] || ttdMap[serviceUser.username] || ttdMap[serviceUser.fullName] || '';
+  }
+  if (!serviceTTD) {
+    serviceTTD = ttdMap['SERVICE_' + req.area] || ttdMap['SERVICE'] || ttdMap['HODS'] || '';
+  }
+
+  let dmTTD = req.dmTTD || '';
+  if (!dmTTD && dmUser) {
+    dmTTD = ttdMap[dmUser.id] || ttdMap[dmUser.username] || ttdMap[dmUser.fullName] || '';
+  }
+  if (!dmTTD) {
+    dmTTD = ttdMap['DM'] || ttdMap['DM_PUSAT'] || '';
+  }
 
   const nowPrint = new Date();
   const pDay = String(nowPrint.getDate()).padStart(2, '0');
@@ -2540,6 +2554,13 @@ function simpanTTD() {
     const key = currentUser.category === 'DM' ? 'DM' : `SERVICE_${currentUser.area}`;
     ttdMap[key] = png;
     ttdMap[currentUser.fullName] = png;
+    ttdMap[currentUser.username] = png;
+    ttdMap[currentUser.id] = png;
+    if (currentUser.category === 'SERVICE') {
+      ttdMap['SERVICE'] = png;
+      ttdMap[`SERVICE_${currentUser.area}`] = png;
+      ttdMap['HODS'] = png;
+    }
     localStorage.setItem(TTD_DB_KEY, JSON.stringify(ttdMap));
     pushCentralCloudDB();
     showNotif('TANDA TANGAN DIGITAL BERHASIL DISIMPAN!', 'info');
