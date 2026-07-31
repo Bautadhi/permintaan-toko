@@ -208,10 +208,10 @@ body {
 .text-primary { color: var(--primary) !important; }
 .text-muted { color: var(--text-muted) !important; }
 
-/* PAGE CONTAINERS & FADE ANIMATIONS - NORMAL TOP AND BOTTOM PADDING FOR HP & PC */
+/* PAGE CONTAINERS & FADE ANIMATIONS - PERFECT TOP AND BOTTOM FIT FOR HP & PC */
 .page {
   display: none;
-  padding: 16px 12px 90px 12px !important;
+  padding: 14px 12px 75px 12px !important;
   animation: fade .25s ease-out;
   width: 100% !important;
   max-width: 100% !important;
@@ -224,13 +224,13 @@ body {
 }
 
 #app {
-  padding-bottom: 60px !important;
+  padding-bottom: 20px !important;
 }
 
 .box:last-child,
 .tableWrap:last-child,
 #userManagementPage .box:last-child {
-  margin-bottom: 95px !important;
+  margin-bottom: 20px !important;
 }
 
 @keyframes fade {
