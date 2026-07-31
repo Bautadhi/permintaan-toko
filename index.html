@@ -773,7 +773,10 @@
 
   <!-- 10. LIGHTBOX IMAGE VIEWER -->
   <div id="imageViewer" onclick="this.style.display='none'">
-    <img id="viewerImage" src="" alt="Zoom Foto">
+    <div class="imageViewerBox" onclick="event.stopPropagation()">
+      <button type="button" class="btnCloseImageViewer" onclick="document.getElementById('imageViewer').style.display='none'">&times;</button>
+      <img id="viewerImage" src="" alt="Zoom Foto">
+    </div>
   </div>
 
   <!-- 11. GLOBAL LOADING OVERLAY -->
