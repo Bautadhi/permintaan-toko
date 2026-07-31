@@ -1080,7 +1080,7 @@ function initMobileBackButtonEngine() {
       return;
     }
 
-    // 3. IF ALREADY ON DASHBOARD -> COUNT BACKSPACE 5 TIMES BEFORE EXIT
+    // 3. IF ALREADY ON DASHBOARD -> COUNT BACKSPACE 5 TIMES BEFORE EXIT (SILENT)
     if (currentActivePage === 'dashboardPage') {
       mobileBackspaceCount++;
 
@@ -1091,10 +1091,6 @@ function initMobileBackButtonEngine() {
 
       if (mobileBackspaceCount < 5) {
         try { history.pushState({ page: 'dashboardPage' }, '', location.href); } catch(err) {}
-        const sisa = 5 - mobileBackspaceCount;
-        showNotif(`TEKAN KEMBALI ${sisa} KALI LAGI UNTUK KELUAR APLIKASI WEB`, 'info');
-      } else {
-        showNotif('KELUAR DARI APLIKASI WEB...', 'warning');
       }
     }
   });
@@ -1599,6 +1595,37 @@ function pilihFoto() {
   document.getElementById('foto').click();
 }
 
+async function uploadPhotoToDriveCloud(file) {
+  try {
+    const compressedBase64 = await kompresiFoto(file, 480, 0.45);
+    if (!compressedBase64) return '';
+
+    const payload = {
+      action: 'uploadPhoto',
+      base64: compressedBase64,
+      fileName: `FOTO_${Date.now()}.jpg`
+    };
+
+    const targetUrl = GOOGLE_SHEET_WEBAPP_URL || PUBLIC_CLOUD_DB_URL;
+    const res = await fetch(targetUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.status === 'success' && data.url) {
+        return data.url;
+      }
+    }
+    return compressedBase64;
+  } catch (err) {
+    console.warn('Upload Drive Error, fallback base64:', err);
+    return await kompresiFoto(file, 360, 0.25);
+  }
+}
+
 async function previewFoto(event) {
   const files = Array.from(event.target.files);
   if (!files.length) return;
@@ -1608,16 +1635,16 @@ async function previewFoto(event) {
     return;
   }
 
-  showLoading('MENGKOMPRESI UKURAN FOTO...');
+  showLoading('MENGUNGGAH FOTO KE GOOGLE DRIVE...');
   for (const file of files) {
     if (currentPhotos.length < 5) {
       try {
-        const compressedData = await kompresiFoto(file, 360, 0.25);
-        if (compressedData) {
-          currentPhotos.push(compressedData);
+        const driveUrl = await uploadPhotoToDriveCloud(file);
+        if (driveUrl) {
+          currentPhotos.push(driveUrl);
         }
       } catch (err) {
-        console.warn('Foto Compression Error:', err);
+        console.warn('Foto Upload Error:', err);
       }
     }
   }
@@ -1637,6 +1664,8 @@ function renderPhotoGrid() {
   currentPhotos.forEach((src, idx) => {
     const div = document.createElement('div');
     div.className = 'photo-preview-card';
+    div.title = "KLIK UNTUK BUKA FOTO DI GOOGLE DRIVE / TAB BARU";
+    div.onclick = () => window.open(src, '_blank');
     div.innerHTML = `
       <img src="${src}" alt="Foto ${idx + 1}">
       <button class="photo-del-btn" onclick="event.stopPropagation(); hapusFotoItem(${idx})">✕</button>
