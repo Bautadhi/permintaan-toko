@@ -1715,31 +1715,39 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--border-color);
 }
 
-/* TIGHT FLUSH CARD-IN-CARD EDGE FIT (1mm SPACING ~ 3px-4px) */
-.box .box,
-.box-full .box,
-.popupBox .box,
-.popupBoxDetail .box,
-.detailRow,
-.lastItem,
+/* TIGHT FLUSH CARD-IN-CARD EDGE FIT (1mm SPACING ~ 3px-4px, EXCLUDING #inputPage) */
+.box:not(#inputPage .box),
+.box-full:not(#inputPage .box-full),
+.popupBox:not(#inputPage .popupBox),
+.popupBoxDetail,
 .cardStat,
 .preset-box,
 .photo-preview-card {
   margin: 3px 0 !important;
-  padding: 10px 10px !important;
+  padding: 8px 8px !important;
   border-radius: 10px !important;
   box-sizing: border-box !important;
 }
 
-.box, .box-full, .popupBoxDetail, .popupBox {
-  padding: 12px 10px !important;
+.popupBoxDetail .popupContent {
+  padding: 6px 6px !important;
+}
+
+.popupBoxDetail .popupTableScroll {
+  margin-top: 6px !important;
+}
+
+.lastItem {
+  padding: 8px 8px !important;
+  margin-bottom: 4px !important;
+  border-radius: 8px !important;
   box-sizing: border-box !important;
 }
 
 #lastData {
   display: flex;
   flex-direction: column;
-  gap: 4px !important;
+  gap: 3px !important;
   padding: 2px 0 !important;
 }
 
