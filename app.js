@@ -950,10 +950,11 @@ function toggleTheme() {
 }
 
 function updateThemeIcon() {
-  const iconSpan = document.querySelector('.theme-toggle-btn span');
-  if (iconSpan) {
-    iconSpan.textContent = THEME_MODES[currentThemeIndex].icon;
-  }
+  const iconSpans = document.querySelectorAll('.theme-toggle-btn span, .popupThemeToggleBtn span');
+  const currentIcon = THEME_MODES[currentThemeIndex] ? THEME_MODES[currentThemeIndex].icon : 'palette';
+  iconSpans.forEach(el => {
+    if (el) el.textContent = currentIcon;
+  });
 }
 
 // AUTHENTICATION & SESSION
@@ -1078,10 +1079,12 @@ function showPage(pageId) {
   if (modeEdit && pageId !== 'inputPage') {
     showConfirm('KELUAR DARI MENU EDIT?', () => {
       bersihkanForm();
+      closeAllPopups();
       pindahHalaman(pageId);
     });
     return;
   }
+  closeAllPopups();
   pindahHalaman(pageId);
 }
 
@@ -1151,10 +1154,36 @@ function getCurrentActivePageId() {
   return activeEl ? activeEl.id : 'dashboardPage';
 }
 
+function updateBottomMenuHighlight(pageId) {
+  const bottomNav = document.getElementById('bottomMenu');
+  if (!bottomNav) return;
+
+  const btnMap = {
+    'dashboardPage': "showPage('dashboardPage')",
+    'inputPage': "showPage('inputPage')",
+    'riwayatPage': "bukaMenuRiwayat()",
+    'masterDbPage': "showPage('masterDbPage')",
+    'userManagementPage': "showPage('userManagementPage')"
+  };
+
+  const buttons = bottomNav.querySelectorAll('button');
+  buttons.forEach(btn => {
+    btn.classList.remove('active');
+    const onclickAttr = btn.getAttribute('onclick') || '';
+    const targetOnClick = btnMap[pageId];
+
+    if (targetOnClick && onclickAttr.includes(targetOnClick)) {
+      btn.classList.add('active');
+    }
+  });
+}
+
 function pindahHalaman(pageId, pushHistory = true) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById(pageId);
   if (target) target.classList.add('active');
+
+  updateBottomMenuHighlight(pageId);
 
   if (pushHistory && pageId !== 'loginPage') {
     try {
@@ -1173,6 +1202,11 @@ function pindahHalaman(pageId, pushHistory = true) {
   } else if (pageId === 'userManagementPage') {
     loadFonteToken();
     loadUsersManagement();
+    const selectEl = document.getElementById('selectPdfModel');
+    if (selectEl) {
+      selectEl.value = getActivePdfModel();
+      previewSelectedPdfModel(selectEl.value);
+    }
   }
 }
 
@@ -2348,19 +2382,75 @@ function lihatDetail(noSurat, fromDashboard = false) {
   let bottomActionsHtml = '';
 
   let actionButtons = [];
+  const role = currentUser.category;
   const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+
+  // 1. APPROVE & TOLAK BUTTONS FOR PENDING
+  if (req.status === 'PENDING') {
+    if (role === 'SERVICE' || isAdminUser) {
+      if (!req.serviceApprove) {
+        actionButtons.push(`
+          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveService('${req.noSurat}');">
+            <span class="material-symbols-rounded">check_circle</span>
+          </button>
+        `);
+        actionButtons.push(`
+          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'SERVICE');">
+            <span class="material-symbols-rounded">cancel</span>
+          </button>
+        `);
+      } else if (isAdminUser) {
+        actionButtons.push(`
+          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveDM('${req.noSurat}');">
+            <span class="material-symbols-rounded">check_circle</span>
+          </button>
+        `);
+        actionButtons.push(`
+          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
+            <span class="material-symbols-rounded">cancel</span>
+          </button>
+        `);
+      }
+    }
+    
+    if (role === 'DM') {
+      if (req.serviceApprove) {
+        actionButtons.push(`
+          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveDM('${req.noSurat}');">
+            <span class="material-symbols-rounded">check_circle</span>
+          </button>
+        `);
+        actionButtons.push(`
+          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
+            <span class="material-symbols-rounded">cancel</span>
+          </button>
+        `);
+      }
+    }
+  }
+
+  // 2. DONE BUTTON WHEN STATUS IS APPROVE
+  if (req.status === 'APPROVE' && (role === 'SERVICE' || isAdminUser)) {
+    actionButtons.push(`
+      <button type="button" class="btnIcon btnDone btnIconOnly" title="SET DONE" onclick="closeDetail(); doneService('${req.noSurat}');">
+        <span class="material-symbols-rounded">task_alt</span>
+      </button>
+    `);
+  }
+
+  // 3. EDIT & HAPUS BUTTONS
   const isCreator = (req.userId === currentUser.id || req.createdBy === currentUser.fullName);
-  const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') || isCreator || currentUser.category === 'SERVICE' || isAdminUser;
+  const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') || isCreator || role === 'SERVICE' || isAdminUser;
 
   if (canEditDelete) {
     actionButtons.push(`
-      <button type="button" class="btnIcon btnEdit" onclick="closeDetail(); editPermintaan('${req.noSurat}');">
-        <span class="material-symbols-rounded">edit</span> EDIT
+      <button type="button" class="btnIcon btnEdit btnIconOnly" title="EDIT" onclick="closeDetail(); editPermintaan('${req.noSurat}');">
+        <span class="material-symbols-rounded">edit</span>
       </button>
     `);
     actionButtons.push(`
-      <button type="button" class="btnIcon btnDelete" onclick="closeDetail(); hapusData('${req.noSurat}');">
-        <span class="material-symbols-rounded">delete</span> HAPUS
+      <button type="button" class="btnIcon btnDelete btnIconOnly" title="HAPUS" onclick="closeDetail(); hapusData('${req.noSurat}');">
+        <span class="material-symbols-rounded">delete</span>
       </button>
     `);
   }
@@ -2403,6 +2493,114 @@ function closeDetail() {
   document.getElementById('popupDetail').style.display = 'none';
 }
 
+// PDF TEMPLATE MODEL SETTINGS & PREVIEW ENGINE
+const PDF_MODEL_KEY = 'SELECTED_PDF_MODEL';
+
+function getActivePdfModel() {
+  return localStorage.getItem(PDF_MODEL_KEY) || 'MODEL_1';
+}
+
+function simpanPengaturanPdfModel() {
+  const selectEl = document.getElementById('selectPdfModel');
+  if (!selectEl) return;
+  const val = selectEl.value;
+  localStorage.setItem(PDF_MODEL_KEY, val);
+  showNotif(`MODEL TEMPLATE PDF BERHASIL DISIMPAN: ${val.replace('_', ' ')}!`, 'success');
+}
+
+function previewSelectedPdfModel(modelId) {
+  const box = document.getElementById('pdfModelPreviewBox');
+  if (!box) return;
+  
+  const m = modelId || getActivePdfModel();
+  
+  if (m === 'MODEL_2') {
+    // Model 2: Modern Minimalis (Rounded Accent Banner)
+    box.innerHTML = `
+      <div style="font-size: 8px; font-weight: bold; background: #0284c7; color: #fff; padding: 4px; text-align: center; border-radius: 6px; margin-bottom: 6px;">
+        PERMINTAAN TOKO (MODERN MINIMALIS)
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 7px; margin-bottom: 6px; background: #f1f5f9; padding: 4px; border-radius: 4px;">
+        <div><b>NO SURAT:</b> <span style="color:#0284c7;">PRM/2026/001</span></div>
+        <div><b>TOKO:</b> TOKO UTAMA</div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 7px; margin-bottom: 6px;">
+        <tr style="background: #334155; color: #fff;">
+          <th style="padding: 2px;">NO</th>
+          <th style="padding: 2px;">TIPE BARANG</th>
+          <th style="padding: 2px;">QTY</th>
+        </tr>
+        <tr style="border-bottom: 1px solid #cbd5e1;">
+          <td style="text-align:center;">1</td>
+          <td>AC DANGIN 2 PK</td>
+          <td style="text-align:center;">1</td>
+        </tr>
+      </table>
+      <div style="display: flex; justify-content: space-around; font-size: 6.5px; text-align: center; margin-top: 6px;">
+        <div><b>PEMOHON</b><br><br>TOKO</div>
+        <div><b>DIPERIKSA</b><br><br>SERVICE</div>
+        <div><b>DISETUJUI</b><br><br>DM</div>
+      </div>
+    `;
+  } else if (m === 'MODEL_3') {
+    // Model 3: Elegant Corporate (Navy & Gold Frame)
+    box.innerHTML = `
+      <div style="font-size: 8px; font-weight: bold; background: #0f172a; color: #fbbf24; padding: 4px; text-align: center; border-bottom: 2px solid #fbbf24; margin-bottom: 6px;">
+        PERMINTAAN TOKO (ELEGANT CORPORATE)
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 7px; margin-bottom: 6px; background: #fffbebfb; border: 1px solid #fef3c7; padding: 4px; border-radius: 4px;">
+        <div><b>NO SURAT:</b> <span style="color:#b45309;">PRM/2026/001</span></div>
+        <div><b>TOKO:</b> TOKO UTAMA</div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 7px; margin-bottom: 6px;">
+        <tr style="background: #0f172a; color: #fbbf24;">
+          <th style="padding: 2px;">NO</th>
+          <th style="padding: 2px;">TIPE BARANG</th>
+          <th style="padding: 2px;">QTY</th>
+        </tr>
+        <tr style="border-bottom: 1px dashed #cbd5e1;">
+          <td style="text-align:center;">1</td>
+          <td>AC DANGIN 2 PK</td>
+          <td style="text-align:center;">1</td>
+        </tr>
+      </table>
+      <div style="display: flex; justify-content: space-around; font-size: 6.5px; text-align: center; margin-top: 6px;">
+        <div><b>PEMOHON</b><br><br>TOKO</div>
+        <div><b>DIPERIKSA</b><br><br>SERVICE</div>
+        <div><b>DISETUJUI</b><br><br>DM</div>
+      </div>
+    `;
+  } else {
+    // Model 1: Standar Klasik
+    box.innerHTML = `
+      <div style="font-size: 8px; font-weight: bold; border-bottom: 1.5px solid #000; padding-bottom: 2px; text-align: center; margin-bottom: 6px;">
+        PERMINTAAN TOKO (STANDAR KLASIK)
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 7px; margin-bottom: 6px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px;">
+        <div><b>NO SURAT:</b> <span style="color:#0284c7;">PRM/2026/001</span></div>
+        <div><b>TOKO:</b> TOKO UTAMA</div>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; font-size: 7px; margin-bottom: 6px;">
+        <tr style="background: #0284c7; color: #fff;">
+          <th style="padding: 2px;">NO</th>
+          <th style="padding: 2px;">TIPE BARANG</th>
+          <th style="padding: 2px;">QTY</th>
+        </tr>
+        <tr style="border-bottom: 1px solid #cbd5e1;">
+          <td style="text-align:center;">1</td>
+          <td>AC DANGIN 2 PK</td>
+          <td style="text-align:center;">1</td>
+        </tr>
+      </table>
+      <div style="display: flex; justify-content: space-around; font-size: 6.5px; text-align: center; margin-top: 6px;">
+        <div><b>PEMOHON</b><br><br>TOKO</div>
+        <div><b>DIPERIKSA</b><br><br>SERVICE</div>
+        <div><b>DISETUJUI</b><br><br>DM</div>
+      </div>
+    `;
+  }
+}
+
 // PDF DOCUMENT GENERATOR & PRINT
 function bukaPdfModal(noSurat) {
   const requests = getRequestsFromDB();
@@ -2411,6 +2609,8 @@ function bukaPdfModal(noSurat) {
 
   const pdfContainer = document.getElementById('pdfDocumentContent');
   if (!pdfContainer) return;
+
+  const activeModel = getActivePdfModel();
 
   let itemRowsHtml = req.items.map((i, idx) => `
     <tr>
@@ -2482,13 +2682,37 @@ function bukaPdfModal(noSurat) {
   };
   const hodsAreaTitle = `HODS ${areaNameMap[req.area] || req.area}`;
 
+  let headerColor = '#0284c7';
+  let tableHeaderBg = '#0284c7';
+  let headerTitleHtml = `
+    <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 6px; margin-bottom: 14px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
+      PERMINTAAN TOKO
+    </div>
+  `;
+
+  if (activeModel === 'MODEL_2') {
+    // Model 2: Modern Minimalis
+    tableHeaderBg = '#334155';
+    headerTitleHtml = `
+      <div style="background: linear-gradient(135deg, #0284c7, #0284c7); color: #ffffff; padding: 12px 18px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(2,132,199,0.25);">
+        SURAT PERMINTAAN TOKO
+      </div>
+    `;
+  } else if (activeModel === 'MODEL_3') {
+    // Model 3: Elegant Corporate (Navy & Gold)
+    tableHeaderBg = '#0f172a';
+    headerTitleHtml = `
+      <div style="background: #0f172a; color: #fbbf24; padding: 14px 18px; border-radius: 8px; border-bottom: 4px solid #fbbf24; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; text-transform: uppercase;">
+        DOKUMEN RESMI PERMINTAAN TOKO
+      </div>
+    `;
+  }
+
   pdfContainer.innerHTML = `
     <div class="pdf-paper" style="min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; padding: 22px; color: #0f172a; background: #ffffff; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
       <div>
         <!-- HEADER DOCUMENT -->
-        <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 6px; margin-bottom: 14px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
-          PERMINTAAN TOKO
-        </div>
+        ${headerTitleHtml}
 
         <!-- 4 KETERANGAN UTAMA (NO SURAT, TOKO, TANGGAL, JENIS) -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px; border: 1px solid #cbd5e1; background: #f8fafc;">
@@ -2498,7 +2722,7 @@ function bukaPdfModal(noSurat) {
             <td style="padding: 7px 10px; width: 34%; font-weight: 700; color: #0284c7; border-bottom: 1px solid #e2e8f0;">${req.noSurat}</td>
             <td style="padding: 7px 10px; width: 14%; font-weight: bold; border-bottom: 1px solid #e2e8f0;">TANGGAL</td>
             <td style="padding: 7px 4px; width: 2%; border-bottom: 1px solid #e2e8f0;">:</td>
-            <td style="padding: 7px 10px; width: 34%; font-weight: 600; border-bottom: 1px solid #e2e8f0;">${req.tanggal}</td>
+            <td style="padding: 7px 10px; width: 34%; font-weight: 600; border-bottom: 1px solid #e2e8f0;">${formatDateDDMMYYYYString(req.tanggal)}</td>
           </tr>
           <tr>
             <td style="padding: 7px 10px; font-weight: bold;">TOKO</td>
@@ -2514,14 +2738,14 @@ function bukaPdfModal(noSurat) {
         <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px; color: #0f172a;">DETAIL PERMINTAAN:</div>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #cbd5e1;">
           <thead>
-            <tr style="background: #0284c7; color: #ffffff;">
-              <th style="width: 32px; text-align:center; padding:6px 8px; border:1px solid #0284c7;">NO</th>
-              <th style="padding:6px 8px; border:1px solid #0284c7;">TIPE BARANG</th>
-              <th style="padding:6px 8px; border:1px solid #0284c7;">NO. SERI</th>
-              ${(req.jenis === 'DUS' || req.jenisPermintaan === 'DUS') ? '<th style="padding:6px 8px; border:1px solid #0284c7;">NO. SERI DUS</th>' : ''}
-              <th style="padding:6px 8px; border:1px solid #0284c7;">PERMINTAAN BARANG</th>
-              <th style="padding:6px 8px; border:1px solid #0284c7;">ALASAN PERMINTAAN</th>
-              <th style="width: 45px; text-align:center; padding:6px 8px; border:1px solid #0284c7;">QTY</th>
+            <tr style="background: ${tableHeaderBg}; color: #ffffff;">
+              <th style="width: 32px; text-align:center; padding:6px 8px; border:1px solid ${tableHeaderBg};">NO</th>
+              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">TIPE BARANG</th>
+              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">NO. SERI</th>
+              ${(req.jenis === 'DUS' || req.jenisPermintaan === 'DUS') ? `<th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">NO. SERI DUS</th>` : ''}
+              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">PERMINTAAN BARANG</th>
+              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">ALASAN PERMINTAAN</th>
+              <th style="width: 45px; text-align:center; padding:6px 8px; border:1px solid ${tableHeaderBg};">QTY</th>
             </tr>
           </thead>
           <tbody>${itemRowsHtml}</tbody>
@@ -2531,7 +2755,7 @@ function bukaPdfModal(noSurat) {
         ${photoSection}
 
         <!-- CATATAN -->
-        <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid #0284c7; border-radius: 0 8px 8px 0;">
+        <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid ${tableHeaderBg}; border-radius: 0 8px 8px 0;">
           <strong>CATATAN:</strong> ${req.catatan || '-'}
         </div>
       </div>
@@ -3526,6 +3750,17 @@ function downloadExcel() {
 }
 
 // UTILITY DIALOGS & OVERLAYS
+function closeAllPopups() {
+  const allOverlays = document.querySelectorAll('.popupOverlay, #imageViewer, #rejectOverlay, #confirmOverlay, #pdfModal, #popupDetail, #popupAkun, #popupUserForm, #popupTTD, #popupNotifList, #popupBantuan');
+  allOverlays.forEach(el => {
+    if (el) {
+      el.style.display = 'none';
+      el.classList.remove('show');
+    }
+  });
+}
+window.closeAllPopups = closeAllPopups;
+
 function showConfirm(msg, callback) {
   document.getElementById('confirmMessage').innerHTML = msg;
   confirmCallback = callback;
@@ -3538,16 +3773,38 @@ function closeConfirm() {
 }
 
 function confirmYes() {
-  if (typeof confirmCallback === 'function') {
-    confirmCallback();
-  }
+  const cb = confirmCallback;
+  confirmCallback = null;
   closeConfirm();
+  closeAllPopups();
+  if (typeof cb === 'function') {
+    cb();
+  }
 }
 
 function showNotif(msg, type = 'info') {
-  document.getElementById('popupNotifMessage').textContent = msg;
-  document.getElementById('popupNotifTitle').textContent = type.toUpperCase();
-  document.getElementById('popupNotif').style.display = 'flex';
+  const notifOverlay = document.getElementById('popupNotif');
+  const notifMessage = document.getElementById('popupNotifMessage');
+  const notifCard = document.getElementById('popupNotifCard');
+
+  if (!notifOverlay) return;
+
+  if (notifMessage) notifMessage.textContent = msg || 'INFORMASI SISTEM';
+
+  const lowerType = (type || 'info').toLowerCase();
+  if (notifCard) {
+    if (lowerType.includes('error') || lowerType.includes('salah') || lowerType.includes('gagal') || lowerType.includes('danger')) {
+      notifCard.className = 'popupNotifCard notif-error';
+    } else if (lowerType.includes('warning') || lowerType.includes('peringatan')) {
+      notifCard.className = 'popupNotifCard notif-warning';
+    } else if (lowerType.includes('success') || lowerType.includes('berhasil')) {
+      notifCard.className = 'popupNotifCard notif-success';
+    } else {
+      notifCard.className = 'popupNotifCard notif-info';
+    }
+  }
+
+  notifOverlay.style.display = 'flex';
 }
 
 function closePopup() {

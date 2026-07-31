@@ -763,14 +763,148 @@ input:focus, select:focus, textarea:focus {
   font-size: 18px !important;
 }
 
-.btnEdit { background: var(--primary); }
-.btnDelete { background: #ef4444; }
-.btnApprove { background: #16a34a; }
-.btnReject { background: #dc2626; }
-.btnDone { background: #7c3aed; }
-.btnView, .btnInfo { background: #0ea5e9; }
-.btnPdf { background: #ea580c; }
-.btnPdf:hover { background: #c2410c; }
+/* SOFT MODERN NON-GLARING ACTION BUTTON COLORS */
+.btnEdit {
+  background: rgba(37, 99, 235, 0.16) !important;
+  color: #3b82f6 !important;
+  border: 1px solid rgba(59, 130, 246, 0.35) !important;
+}
+.btnEdit:hover {
+  background: rgba(37, 99, 235, 0.28) !important;
+}
+
+.btnDelete {
+  background: rgba(239, 68, 68, 0.16) !important;
+  color: #ef4444 !important;
+  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+}
+.btnDelete:hover {
+  background: rgba(239, 68, 68, 0.28) !important;
+}
+
+.btnApprove {
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #10b981 !important;
+  border: 1px solid rgba(16, 185, 129, 0.35) !important;
+}
+.btnApprove:hover {
+  background: rgba(16, 185, 129, 0.28) !important;
+}
+
+.btnReject {
+  background: rgba(244, 63, 94, 0.16) !important;
+  color: #f43f5e !important;
+  border: 1px solid rgba(244, 63, 94, 0.35) !important;
+}
+.btnReject:hover {
+  background: rgba(244, 63, 94, 0.28) !important;
+}
+
+.btnDone {
+  background: rgba(139, 92, 246, 0.16) !important;
+  color: #8b5cf6 !important;
+  border: 1px solid rgba(139, 92, 246, 0.35) !important;
+}
+.btnDone:hover {
+  background: rgba(139, 92, 246, 0.28) !important;
+}
+
+.btnView, .btnInfo {
+  background: rgba(14, 165, 233, 0.16) !important;
+  color: #0ea5e9 !important;
+  border: 1px solid rgba(14, 165, 233, 0.35) !important;
+}
+.btnView:hover {
+  background: rgba(14, 165, 233, 0.28) !important;
+}
+
+.btnPdf {
+  background: rgba(245, 158, 11, 0.16) !important;
+  color: #f59e0b !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+}
+.btnPdf:hover {
+  background: rgba(245, 158, 11, 0.28) !important;
+}
+
+/* ACTIVE BOTTOM MENU NAVIGATION HIGHLIGHT (DYNAMICALLY MATCHES ACTIVE THEME VAR(--PRIMARY)) */
+#bottomMenu button {
+  position: relative;
+  transition: all 0.25s ease;
+  color: var(--text-muted, #94a3b8);
+  background: transparent;
+  border: none;
+  border-top: 3px solid transparent;
+}
+
+#bottomMenu button.active {
+  color: var(--primary) !important;
+  font-weight: 800 !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-top: 3px solid var(--primary) !important;
+}
+
+#bottomMenu button.active .material-symbols-rounded {
+  color: var(--primary) !important;
+  transform: scale(1.15);
+  transition: transform 0.2s ease;
+}
+
+/* FLOATING THEME TOGGLE BUTTON (ALWAYS ON TOP OF ALL POPUPS - ALWAYS CLICKABLE) */
+.theme-toggle-btn {
+  position: fixed !important;
+  top: 14px !important;
+  right: 14px !important;
+  z-index: 999999999 !important;
+  width: 42px !important;
+  height: 42px !important;
+  border-radius: 50% !important;
+  background: var(--bg-box) !important;
+  color: var(--primary) !important;
+  border: 2px solid var(--border-color) !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+.notif-bell-btn {
+  position: fixed !important;
+  top: 14px !important;
+  right: 64px !important;
+  z-index: 999999999 !important;
+}
+
+/* ICON-ONLY BUTTON STYLING (MATCHING SCREENSHOT) */
+.btnIconOnly {
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
+  transition: transform 0.2s ease, background 0.2s ease !important;
+}
+.btnIconOnly span.material-symbols-rounded {
+  font-size: 22px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
 
 /* DASHBOARD CARDS & STRUCTURE - USER NAME & STAT CARDS BOLD & BESAR */
 .dashboardTop {
@@ -858,20 +992,20 @@ input:focus, select:focus, textarea:focus {
 }
 
 .cardStat .judul {
-  font-size: 10.5px !important;
-  font-weight: 800 !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.95) !important;
-  margin-bottom: 1px;
+  color: rgba(255, 255, 255, 0.98) !important;
+  margin-bottom: 2px;
 }
 
 .cardStat .angka {
-  font-size: 22px !important;
+  font-size: 32px !important;
   font-weight: 900 !important;
   line-height: 1;
   color: #ffffff !important;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
 }
 
 /* WATERMARK ICON IN BACKGROUND RIGHT */
@@ -933,7 +1067,7 @@ input:focus, select:focus, textarea:focus {
   background: var(--bg-box);
   border-radius: 18px !important;
   padding: 22px 18px !important;
-  margin-bottom: 22px;
+  margin-bottom: 28px !important;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   width: 100% !important;
   max-width: 100% !important;
@@ -941,6 +1075,12 @@ input:focus, select:focus, textarea:focus {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+/* 1CM (~28PX) SPACING BETWEEN EACH CARD IN USER MANAGEMENT PAGE */
+#userManagementPage .box,
+#userPage .box {
+  margin-bottom: 28px !important;
 }
 
 .box h3 { margin-bottom: 18px; font-size: 18px; color: var(--text-main); }
@@ -1113,14 +1253,26 @@ input:focus, select:focus, textarea:focus {
 
 .historyTable tr:hover { background: var(--table-hover); }
 
-/* BADGES & STATUS BADGES - PLAIN TEXT WITHOUT COLOR BACKGROUND */
-.badgeStatus {
+/* BADGES & STATUS BADGES - ENLARGED FONT SIZE FOR PENDING, APPROVE, REJECT, DONE */
+.badgeStatus,
+.badge-pending,
+.badge-approve,
+.badge-reject,
+.badge-done {
   display: inline-block;
-  padding: 0;
-  border-radius: 0;
-  font-size: 13px;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
   color: var(--text-main);
   background: none !important;
+}
+
+/* 6CM (~45PX) SPACING BETWEEN TABLE AND ACTION BUTTONS IN POPUP DETAIL MODAL */
+.popupBoxDetail .popupDetailActions {
+  margin-top: 45px !important;
+  padding-top: 16px !important;
+  border-top: 1.5px dashed var(--border-color) !important;
+  width: 100% !important;
 }
 
 /* BOTTOM NAVIGATION BAR */
@@ -1187,6 +1339,147 @@ input:focus, select:focus, textarea:focus {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   animation: fade .25s ease-out;
+}
+
+/* LUXURIOUS & ATTRACTIVE NOTIFICATION POPUP DIALOG */
+.popupNotifCard {
+  width: 400px !important;
+  max-width: 90vw !important;
+  background: var(--bg-box) !important;
+  border-radius: 22px !important;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  overflow: hidden !important;
+  border: 1px solid var(--border-color) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  animation: popupNotifPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  text-align: center !important;
+}
+
+@keyframes popupNotifPop {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.popupNotifHeader {
+  padding: 24px 20px 14px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+}
+
+.popupNotifIconBadge {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+}
+
+.popupNotifIconBadge .material-symbols-rounded {
+  font-size: 32px !important;
+  color: #ffffff !important;
+}
+
+.popupNotifHeader h3 {
+  margin: 0 !important;
+  font-size: 17px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+}
+
+.popupNotifBody {
+  padding: 0 24px 20px 24px !important;
+}
+
+.popupNotifBody p {
+  margin: 0 !important;
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  line-height: 1.5 !important;
+  color: var(--text-main) !important;
+}
+
+.popupNotifFooter {
+  padding: 0 20px 20px 20px !important;
+}
+
+.btnOkNotif {
+  width: 100% !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btnOkNotif:hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.1) !important;
+}
+
+/* ERROR STATE */
+.popupNotifCard.notif-error .popupNotifIconBadge {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+}
+
+.popupNotifCard.notif-error .popupNotifHeader h3 {
+  color: #ef4444 !important;
+}
+
+.popupNotifCard.notif-error .btnOkNotif {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+}
+
+/* WARNING STATE */
+.popupNotifCard.notif-warning .popupNotifIconBadge {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+.popupNotifCard.notif-warning .popupNotifHeader h3 {
+  color: #f59e0b !important;
+}
+
+.popupNotifCard.notif-warning .btnOkNotif {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+
+/* SUCCESS STATE */
+.popupNotifCard.notif-success .popupNotifIconBadge {
+  background: linear-gradient(135deg, #10b981, #047857) !important;
+}
+
+.popupNotifCard.notif-success .popupNotifHeader h3 {
+  color: #10b981 !important;
+}
+
+.popupNotifCard.notif-success .btnOkNotif {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+
+/* INFO STATE */
+.popupNotifCard.notif-info .popupNotifIconBadge {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+}
+
+.popupNotifCard.notif-info .popupNotifHeader h3 {
+  color: var(--primary) !important;
+}
+
+.popupNotifCard.notif-info .btnOkNotif {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
 }
 
 /* COMPACT POPUP DIMENSIONS FOR CONFIRM & REJECT POPUPS */
@@ -1408,17 +1701,81 @@ input:focus, select:focus, textarea:focus {
   color: #fff;
   padding: 12px 18px;
   display: flex;
-  justify-content: space-between;
+  justify-content: center !important;
   align-items: center;
-  font-size: 14px;
+  position: relative;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
 }
 
-.popupHeader button {
-  border: none;
-  background: none;
-  color: #fff;
-  font-size: 22px;
-  cursor: pointer;
+.popupHeader span, #popupTitle {
+  text-align: center !important;
+  width: 100% !important;
+  display: block !important;
+  margin: 0 auto !important;
+}
+
+.popupHeader button, .popupHeader .popupClose {
+  position: absolute !important;
+  right: 12px !important;
+  top: 12px !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+/* BOLD WHITE 'X' IN RED CIRCLE FOR ALL CLOSE BUTTONS (COMPLETELY STATIONARY - ABSOLUTELY NO MOVEMENT) */
+.popupClose,
+.chatClose,
+.btnCloseImageViewer,
+.modalClose,
+.popupHeader button,
+.pdfCloseBtn,
+.closeBtn,
+#popupDetail .popupClose,
+#popupAkun .popupClose,
+#imageViewer .btnCloseImageViewer {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  border-radius: 50% !important;
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 2px solid #ffffff !important;
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4) !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  position: absolute !important;
+  right: 12px !important;
+  top: 12px !important;
+  margin: 0 !important;
+  transform: none !important;
+  transition: background 0.15s ease !important;
+  animation: none !important;
+}
+
+.popupClose:hover,
+.chatClose:hover,
+.btnCloseImageViewer:hover,
+.popupHeader button:hover,
+.popupClose:active,
+.chatClose:active,
+.btnCloseImageViewer:active,
+.popupHeader button:active,
+.popupClose:focus,
+.chatClose:focus {
+  background: #dc2626 !important;
+  transform: none !important;
+  top: 12px !important;
+  right: 12px !important;
+  margin: 0 !important;
 }
 
 .popupContent {
@@ -1646,14 +2003,22 @@ input:focus, select:focus, textarea:focus {
   transform: scale(1.08) !important;
 }
 
-/* Strict 1-line no-wrap rule for popup detail table cells */
+/* Strict 1-line no-wrap rule & CENTER-ALIGNED HEADERS for popup detail table cells */
 .detailTable2 td, .detailTable2 th, #popupMessage table td, #popupMessage table th {
   white-space: nowrap !important;
   word-break: keep-all !important;
 }
 
-/* UNIFORM SYMMETRICAL POPUP BUTTONS (SAME HEIGHT & EQUAL FLEX WIDTH ACROSS ALL MODALS) */
-.confirmButton, .ttdButton, .popupFooter, .rejectBodyPopup .confirmButton, .popupDetailActions {
+.detailTable2 th,
+#popupMessage table th,
+.popupBoxDetail table th,
+#popupDetail table th {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* UNIFORM POPUP BUTTONS & LEFT ALIGNED COMPACT BUTTONS FOR POPUP DETAIL & DASHBOARD */
+.confirmButton, .ttdButton, .popupFooter, .rejectBodyPopup .confirmButton {
   display: flex !important;
   gap: 10px !important;
   justify-content: center !important;
@@ -1672,9 +2037,7 @@ input:focus, select:focus, textarea:focus {
 .confirmButton .btnHapus,
 .confirmButton .btnPrimary,
 .popupBox .confirmButton button,
-.popupBoxDetail .confirmButton button,
-.popupDetailActions button,
-.popupDetailActions .btnIcon {
+.popupBoxDetail .confirmButton button {
   flex: 1 1 0px !important;
   width: 100% !important;
   min-width: 100px !important;
@@ -1693,6 +2056,47 @@ input:focus, select:focus, textarea:focus {
   border: none !important;
   cursor: pointer !important;
   line-height: 1 !important;
+}
+
+/* COMPACT LEFT-ALIGNED BUTTONS FOR EYE ICON DETAIL MODAL & DASHBOARD CARDS */
+.popupDetailActions,
+.dashboardActions,
+.lastItemActions,
+#lastData .btnIconContainer {
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 8px !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+  text-align: left !important;
+}
+
+.popupDetailActions .btnIcon,
+.popupDetailActions button,
+#lastData .btnIcon,
+.lastItem .btnIcon {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 0 12px !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  border-radius: 6px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 4px !important;
+  box-sizing: border-box !important;
+}
+
+.popupDetailActions .btnIcon span.material-symbols-rounded,
+#lastData .btnIcon span.material-symbols-rounded,
+.lastItem .btnIcon span.material-symbols-rounded {
+  font-size: 16px !important;
 }
 
 #popupNotif {
@@ -1749,8 +2153,24 @@ input:focus, select:focus, textarea:focus {
 
 .detailTable2 th,
 .detailTable2 td {
-  padding: 5px 6px !important;
+  padding: 8px 24px !important;
   font-size: 12px !important;
+  min-width: 130px !important;
+  border-right: 1.5px solid var(--border-color) !important;
+  box-sizing: border-box !important;
+}
+
+.detailTable2 th:first-child,
+.detailTable2 td:first-child,
+.detailTable2 th:last-child,
+.detailTable2 td:last-child {
+  min-width: 50px !important;
+  padding: 8px 12px !important;
+}
+
+.detailTable2 th:last-child,
+.detailTable2 td:last-child {
+  border-right: none !important;
 }
 
 .lastItem {
@@ -1991,4 +2411,32 @@ input:focus, select:focus, textarea:focus {
     flex-direction: column !important;
     justify-content: space-between !important;
   }
+}
+
+/* ======================================================
+   GLOBAL NO 90-DEGREE SHARP CORNERS RULE (SEMUA ELEMEN BULAT SMOOTH)
+   ====================================================== */
+button, input, select, textarea, .box, .box-full, .popupBox, .akunBox, .confirmBox, .rejectBoxPopup, .ttdBox, .popupNotif, .cardStat, .preset-box, .photo-preview-card, .tableWrap, .popupTableScroll, table, .input-group, .btnIcon, .btnIconOnly, .badgeStatus, .lastItem, .login-card, .chatBox, .detailTable2 {
+  border-radius: 12px !important;
+}
+
+#bottomMenu {
+  border-radius: 20px 20px 0 0 !important;
+}
+
+#bottomMenu button.active {
+  border-radius: 12px !important;
+}
+
+.popupHeader {
+  border-radius: 18px 18px 0 0 !important;
+}
+
+.popupClose, .chatClose, .btnCloseImageViewer, .modalClose {
+  border-radius: 50% !important;
+}
+
+.tableWrap, .popupTableScroll, table {
+  border-radius: 12px !important;
+  overflow: hidden !important;
 }

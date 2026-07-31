@@ -22,7 +22,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260801_v22">
+  <link rel="stylesheet" href="styles.css?v=20260801_v58">
 </head>
 <body class="dark-mode">
 
@@ -438,6 +438,38 @@
         </div>
       </div>
 
+      <!-- PENGATURAN MODEL TEMPLATE PDF SURAT PERMINTAAN (ADMIN CONTROL WITH LIVE PREVIEW) -->
+      <div class="box" style="border-left: 4px solid #7c3aed; margin-bottom: 28px;">
+        <h3 style="color: #7c3aed; display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-rounded">picture_as_pdf</span> PENGATURAN MODEL TEMPLATE SURAT PDF (DOKUMEN CETAK)
+        </h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+          PILIH MODEL TAMPILAN TEMPLATE SURAT PDF DI BAWAH INI. POSISI DATA UTAMA TETAP SAMA, DENGAN DESAIN VISUAL DOKUMEN YANG DAPAT DISESUAIKAN.
+        </p>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;">
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; display: block;">PILIH MODEL DESAIN PDF:</label>
+            <select id="selectPdfModel" style="width: 100%; padding: 10px; font-size: 13px; font-weight: 700; border-radius: 10px; margin-bottom: 12px; background: var(--bg-header); color: var(--text-main); border: 1px solid var(--border-color);" onchange="previewSelectedPdfModel(this.value)">
+              <option value="MODEL_1">MODEL 1: STANDAR KLASIK (RESMI & FORMAL)</option>
+              <option value="MODEL_2">MODEL 2: MODERN MINIMALIS (ROUNDED ACCENT BANNER)</option>
+              <option value="MODEL_3">MODEL 3: ELEGANT CORPORATE (NAVY & GOLD FRAME)</option>
+            </select>
+            <button type="button" class="btnDownload" style="background: #7c3aed; width: 100%; justify-content: center; height: 42px;" onclick="simpanPengaturanPdfModel()">
+              <span class="material-symbols-rounded">save</span> SIMPAN MODEL TEMPLATE PDF
+            </button>
+          </div>
+
+          <!-- LIVE PREVIEW THUMBNAIL TEMPLATE CONTOH -->
+          <div>
+            <label style="font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 6px; display: block;">CONTOH HASIL TEMPLATE (PREVIEW):</label>
+            <div id="pdfModelPreviewBox" style="width: 100%; height: 165px; border: 2px dashed var(--border-color); border-radius: 12px; background: #ffffff; padding: 8px; box-sizing: border-box; overflow: hidden; position: relative; color: #0f172a;">
+              <!-- Dynamic Live Preview Thumbnail Injected Here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- USER MANAGEMENT TABLE -->
       <div class="box">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
@@ -524,7 +556,8 @@
 
   <!-- 1. POPUP AKUN & PROFILE MODAL -->
   <div id="popupAkun" class="popupAkun">
-    <div class="akunBox">
+    <div class="akunBox" style="position: relative;">
+      <button type="button" class="popupClose" onclick="tutupAkun()" style="position: absolute; top: 12px; right: 12px;" title="TUTUP">&times;</button>
       <h2>PROFIL AKUN</h2>
       <div class="akunGrid">
         <div style="grid-column: span 2;">
@@ -647,13 +680,14 @@
     </div>
   </div>
 
-  <!-- 4. POPUP NOTIFICATION TOAST -->
-  <div id="popupNotif" class="popupOverlay">
-    <div class="popupNotif">
-      <div class="popupTitleNotif" id="popupNotifTitle">INFORMASI</div>
-      <div id="popupNotifMessage">MEMPROSES...</div>
-      <div class="popupFooter">
-        <button class="btnOk" onclick="closePopup()">OK</button>
+  <!-- 4. CLEAN & ATTRACTIVE NOTIFICATION DIALOG MODAL (NO ICON, NO HEADER TITLE) -->
+  <div id="popupNotif" class="popupOverlay" style="z-index: 10000000;">
+    <div class="popupNotifCard" id="popupNotifCard">
+      <div class="popupNotifBody" style="padding: 24px 24px 18px 24px;">
+        <p id="popupNotifMessage" style="font-size: 14px; font-weight: 700; line-height: 1.5; color: var(--text-main); margin: 0;">MEMPROSES...</p>
+      </div>
+      <div class="popupNotifFooter" style="padding: 0 20px 20px 20px;">
+        <button type="button" class="btnOkNotif" id="btnOkNotif" onclick="closePopup()">OK</button>
       </div>
     </div>
   </div>
@@ -683,7 +717,7 @@
     <div class="popupBoxDetail">
       <div class="popupHeader">
         <span id="popupTitle">DETAIL PERMINTAAN</span>
-        <button type="button" onclick="closeDetail()">&times;</button>
+        <button type="button" class="popupClose" onclick="closeDetail()">&times;</button>
       </div>
       <div class="popupContent" id="popupMessage">
         <!-- Content Injected Dynamically -->
@@ -707,7 +741,8 @@
 
   <!-- 8. POPUP USER FORM MODAL (SQUARE, COMPACT & RECTANGULAR BOX WITH KODE TOKO) -->
   <div id="popupUserForm" class="popupOverlay">
-    <div class="popupBox" style="width: 580px; max-width: 94vw; padding: 18px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+    <div class="popupBox" style="width: 580px; max-width: 94vw; padding: 18px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative;">
+      <button type="button" class="popupClose" onclick="tutupUserModal()" style="position: absolute; top: 12px; right: 12px;" title="TUTUP">&times;</button>
       <h3 id="userFormTitle" style="color: var(--primary); margin-bottom: 12px; text-align: center; font-size: 16px;">TAMBAH USER BARU</h3>
       <input type="hidden" id="editUserId">
 
@@ -792,6 +827,6 @@
   </div>
 
   <!-- Master Logic Script -->
-  <script src="app.js?v=20260801_v22"></script>
+  <script src="app.js?v=20260801_v58"></script>
 </body>
 </html>
