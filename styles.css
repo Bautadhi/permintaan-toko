@@ -2681,3 +2681,53 @@ button.helpButton,
   color: #ffffff !important;
   transform: translateY(-1px) !important;
 }
+
+/* ======================================================
+   MASTER OVERRIDE 3: RESPONSIVE MOBILE HP TABLE COLUMNS & ALIGNMENT FIX (PERBAIKAN KOLOM TABEL HP)
+   ====================================================== */
+.tableWrap,
+.popupTableScroll,
+.popupContent,
+#lastData,
+#historyTableWrap,
+#masterDbTableWrap,
+#userTableWrap,
+.daftarTokoWrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: block !important;
+  box-sizing: border-box !important;
+}
+
+table,
+table.historyTable,
+table.detailTable2,
+#popupMessage table,
+#masterDbTable,
+#userTable {
+  width: 100% !important;
+  min-width: 600px !important;
+  border-collapse: collapse !important;
+  table-layout: auto !important;
+}
+
+#lastData .lastHeader,
+#lastData .lastItem {
+  min-width: 620px !important;
+  box-sizing: border-box !important;
+  display: grid !important;
+  grid-template-columns: 1.1fr 1.6fr 2.2fr 1.1fr !important;
+  align-items: center !important;
+}
+
+table th, table td,
+.lastHeader div, .lastItem div {
+  white-space: nowrap !important;
+  word-break: keep-all !important;
+  font-size: 12px !important;
+  padding: 10px 12px !important;
+  vertical-align: middle !important;
+}
