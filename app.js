@@ -364,6 +364,31 @@ function toggleAdminReminderFeature() {
 }
 window.toggleAdminReminderFeature = toggleAdminReminderFeature;
 
+const ADMIN_REMINDER_TIME_KEY = 'STORE_ADMIN_REMINDER_TIME_KEY_V7';
+
+function getAdminReminderTime() {
+  return localStorage.getItem(ADMIN_REMINDER_TIME_KEY) || '09:00';
+}
+
+function simpanAdminReminderTime() {
+  const input = document.getElementById('adminReminderTimeInput');
+  if (!input) return;
+  const val = input.value.trim();
+  if (val) {
+    localStorage.setItem(ADMIN_REMINDER_TIME_KEY, val);
+    showNotif(`JADWAL JAM WA REMINDER DISIMPAN: ${val}!`, 'info');
+  }
+}
+window.simpanAdminReminderTime = simpanAdminReminderTime;
+
+function loadAdminReminderTimeInput() {
+  const input = document.getElementById('adminReminderTimeInput');
+  if (input) {
+    input.value = getAdminReminderTime();
+  }
+}
+window.loadAdminReminderTimeInput = loadAdminReminderTimeInput;
+
 function updateAdminReminderUI() {
   const statusText = document.getElementById('reminderFeatureStatusText');
   const isEnabled = getAdminReminderEnabled();
@@ -371,6 +396,7 @@ function updateAdminReminderUI() {
     statusText.textContent = isEnabled ? 'AKTIF (ON)' : 'NONAKTIF (OFF)';
     statusText.style.color = isEnabled ? '#10b981' : '#ef4444';
   }
+  loadAdminReminderTimeInput();
   const container = document.getElementById('adminReminderControlContainer');
   if (container) {
     container.style.display = (currentUser && currentUser.category === 'ADMIN') ? 'flex' : 'none';
@@ -2531,7 +2557,7 @@ function bukaPdfModal(noSurat) {
             <td style="padding: 7px 10px; font-weight: 700;">${req.toko}</td>
             <td style="padding: 7px 10px; font-weight: bold;">JENIS</td>
             <td style="padding: 7px 4px;">:</td>
-            <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">${req.jenis}</td>
+            <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">${req.jenis || req.jenisPermintaan || 'DEFAULT'}</td>
           </tr>
         </table>
 
@@ -2543,7 +2569,7 @@ function bukaPdfModal(noSurat) {
               <th style="width: 32px; text-align:center; padding:6px 8px; border:1px solid #0284c7;">NO</th>
               <th style="padding:6px 8px; border:1px solid #0284c7;">TIPE BARANG</th>
               <th style="padding:6px 8px; border:1px solid #0284c7;">NO. SERI</th>
-              ${req.jenis === 'DUS' ? '<th style="padding:6px 8px; border:1px solid #0284c7;">NO. SERI DUS</th>' : ''}
+              ${(req.jenis === 'DUS' || req.jenisPermintaan === 'DUS') ? '<th style="padding:6px 8px; border:1px solid #0284c7;">NO. SERI DUS</th>' : ''}
               <th style="padding:6px 8px; border:1px solid #0284c7;">PERMINTAAN BARANG</th>
               <th style="padding:6px 8px; border:1px solid #0284c7;">ALASAN PERMINTAAN</th>
               <th style="width: 45px; text-align:center; padding:6px 8px; border:1px solid #0284c7;">QTY</th>
@@ -2556,8 +2582,8 @@ function bukaPdfModal(noSurat) {
         ${photoSection}
 
         <!-- CATATAN -->
-        <div style="margin-top: 8px; margin-bottom: 16px; font-size: 11.5px; background: #ffffff; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px;">
-          <strong>CATATAN:</strong> ${req.catatan || 'STOK TOKO'}
+        <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid #0284c7; border-radius: 0 8px 8px 0;">
+          <strong>CATATAN:</strong> ${req.catatan || '-'}
         </div>
       </div>
 

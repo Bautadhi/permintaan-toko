@@ -408,7 +408,11 @@
             KIRIM NOTIFIKASI REMINDER OTOMATIS KE SERVICE AREA & DM JIKA ADA PERMINTAAN BARU YANG BELUM DI-APPROVE.
           </p>
         </div>
-        <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <label style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-bottom: 0;">JAM WA:</label>
+            <input type="time" id="adminReminderTimeInput" style="padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color);" onchange="simpanAdminReminderTime()">
+          </div>
           <span id="reminderFeatureStatusText" style="font-size: 13px; font-weight: 800; color: #10b981;">AKTIF (ON)</span>
           <button type="button" class="btnDownload" style="background: #7c3aed; height: 38px; padding: 0 16px;" onclick="toggleAdminReminderFeature()">
             <span class="material-symbols-rounded">toggle_on</span> ON / OFF
@@ -668,7 +672,7 @@
         <textarea id="rejectReason" rows="4" placeholder="CONTOH: STOK DUS TIDAK TERSEDIA / FISIK BARANG TIDAK COCOK..."></textarea>
         <div class="confirmButton">
           <button type="button" class="btnBatal" onclick="closeReject()">BATAL</button>
-          <button type="button" class="btnHapus" onclick="kirimReject()">KIRIM PENOLAKAN</button>
+          <button type="button" class="btnHapus" onclick="kirimReject()">KIRIM</button>
         </div>
       </div>
     </div>

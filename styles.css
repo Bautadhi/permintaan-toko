@@ -1584,26 +1584,29 @@ input:focus, select:focus, textarea:focus {
 
 .imageViewerBox {
   position: relative;
-  width: 90vw;
-  max-width: 580px;
-  height: 52vh;
-  max-height: 480px;
+  width: 92vw;
+  max-width: 720px;
+  height: 65vh;
+  max-height: 600px;
   background: #0f172a;
   border-radius: 16px;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-  border: 1px solid rgba(255,255,255,0.18);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.22);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 14px;
+  padding: 6px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .imageViewerBox img, #viewerImage {
+  width: 100%;
+  height: 100%;
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .btnCloseImageViewer {
@@ -1636,6 +1639,42 @@ input:focus, select:focus, textarea:focus {
 .detailTable2 td, .detailTable2 th, #popupMessage table td, #popupMessage table th {
   white-space: nowrap !important;
   word-break: keep-all !important;
+}
+
+/* UNIFORM SYMMETRICAL POPUP BUTTONS (SAME HEIGHT & EQUAL FLEX WIDTH ACROSS ALL MODALS) */
+.confirmButton, .ttdButton, .popupFooter, .rejectBodyPopup .confirmButton {
+  display: flex !important;
+  gap: 10px !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-top: 14px !important;
+}
+
+.confirmButton button,
+.ttdButton button,
+.popupFooter button,
+.rejectBodyPopup .confirmButton button,
+.confirmButton .btnBatal,
+.confirmButton .btnHapus,
+.confirmButton .btnPrimary {
+  flex: 1 !important;
+  height: 42px !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  border-radius: 8px !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
 }
 
 #popupNotif {
