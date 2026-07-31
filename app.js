@@ -294,6 +294,26 @@ function getFormattedDateDDMMYYYY(dObj = new Date()) {
   return `${day}/${month}/${year}`;
 }
 
+function formatDateDDMMYYYYString(input) {
+  if (!input) return '-';
+  const str = String(input).trim();
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) {
+    return str.split(' ')[0];
+  }
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]}`;
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  return str;
+}
+
 // APP INITIALIZATION
 // APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
@@ -1237,7 +1257,7 @@ function loadDashboard() {
       div.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
       div.onclick = () => bukaDetailDariDashboard(r.noSurat);
       div.innerHTML = `
-        <div class="colTanggal">${r.tanggal}</div>
+        <div class="colTanggal">${formatDateDDMMYYYYString(r.tanggal)}</div>
         <div class="colNo">${r.noSurat}</div>
         <div class="colToko">${r.toko} <small style="color:var(--primary);">(${r.area})</small></div>
         <div class="colStatus">${getBadgeStatus(r)}</div>
@@ -2022,7 +2042,7 @@ function filterRiwayat() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><div style="display:flex; gap:4px; align-items:center;">${aksi}</div></td>
-      <td style="white-space:nowrap;">${r.tanggal}</td>
+      <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
       <td>${r.noSurat}</td>
       <td>${r.toko} <div style="font-size:11px; color:var(--primary);">${r.area}</div></td>
       <td>${getBadgeStatus(r.status)}</td>
@@ -2305,9 +2325,10 @@ function lihatDetail(noSurat, fromDashboard = false) {
   const msgBox = document.getElementById('popupMessage');
 
   let headerInfoHtml = `
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom:10px; margin-bottom:14px; font-size:13px; color:var(--text-main);">
-      <div style="text-align:left;">NO SURAT : <span style="color:var(--primary);">${req.noSurat}</span></div>
-      <div style="text-align:right;">TOKO : <span>${req.toko}</span></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom:10px; margin-bottom:14px; font-size:12.5px; color:var(--text-main); flex-wrap:wrap; gap:8px;">
+      <div style="text-align:left;">NO SURAT : <span style="color:var(--primary); font-weight:bold;">${req.noSurat}</span></div>
+      <div style="text-align:center;">TANGGAL : <span style="font-weight:bold;">${formatDateDDMMYYYYString(req.tanggal)}</span></div>
+      <div style="text-align:right;">TOKO : <span style="font-weight:bold;">${req.toko}</span></div>
     </div>
   `;
 
@@ -3151,7 +3172,7 @@ function loadMasterDbTable() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
-      <td style="white-space:nowrap;">${r.tanggal}</td>
+      <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
       <td>${r.toko} <div style="font-size:11px; color:var(--text-muted);">By: ${r.createdBy}</div></td>
       <td><span style="color:var(--primary);">${r.area}</span></td>
       <td>${r.jenis}</td>
