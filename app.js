@@ -2348,101 +2348,83 @@ function lihatDetail(noSurat, fromDashboard = false) {
 
   let bottomActionsHtml = '';
 
-  if (fromDashboard) {
-    let actionButtons = [];
-    const role = currentUser.category;
+  let actionButtons = [];
+  const role = currentUser.category;
 
-    if (role === 'SERVICE') {
-      if (req.status === 'PENDING' && !req.serviceApprove) {
-        actionButtons.push(`
-          <button type="button" class="btnIcon btnApprove" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="closeDetail(); approveService('${req.noSurat}');">
-            <span class="material-symbols-rounded">check_circle</span> APPROVE SERVICE
-          </button>
-        `);
-        actionButtons.push(`
-          <button type="button" class="btnIcon btnReject" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'SERVICE');">
-            <span class="material-symbols-rounded">cancel</span> REJECT SERVICE
-          </button>
-        `);
-      } else if (req.status === 'APPROVE') {
-        actionButtons.push(`
-          <button type="button" class="btnIcon btnDone" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="closeDetail(); doneService('${req.noSurat}');">
-            <span class="material-symbols-rounded">task_alt</span> SET DONE
-          </button>
-        `);
-      }
-    } else if (role === 'DM') {
-      if (req.status === 'PENDING' && req.serviceApprove) {
-        actionButtons.push(`
-          <button type="button" class="btnIcon btnApprove" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="closeDetail(); approveDM('${req.noSurat}');">
-            <span class="material-symbols-rounded">check_circle</span> APPROVE DM
-          </button>
-        `);
-        actionButtons.push(`
-          <button type="button" class="btnIcon btnReject" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
-            <span class="material-symbols-rounded">cancel</span> REJECT DM
-          </button>
-        `);
-      }
-    }
-
-    const isPhotoHidden = (req.status === 'APPROVE' || req.status === 'DONE' || req.status === 'REJECT');
-    if (req.photos && req.photos.length > 0 && !isPhotoHidden) {
+  if (role === 'SERVICE') {
+    if (req.status === 'PENDING' && !req.serviceApprove) {
       actionButtons.push(`
-        <button type="button" class="btnIcon btnView" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="lihatFotoByNoSurat('${req.noSurat}');">
-          <span class="material-symbols-rounded">image</span> FOTO
-        </button>
-      `);
-    }
-
-    const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
-    if (req.status === 'APPROVE' || req.status === 'DONE' || (isAdminUser && req.status !== 'REJECT')) {
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnPdf" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="bukaPdfModal('${req.noSurat}');">
-          <span class="material-symbols-rounded">picture_as_pdf</span> CETAK PDF
-        </button>
-      `);
-    }
-
-    const isCreator = (req.userId === currentUser.id || req.createdBy === currentUser.fullName);
-    const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') && (isCreator || currentUser.category === 'SERVICE');
-
-    if (canEditDelete) {
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnEdit" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="closeDetail(); editPermintaan('${req.noSurat}');">
-          <span class="material-symbols-rounded">edit</span> EDIT
+        <button type="button" class="btnIcon btnApprove" onclick="closeDetail(); approveService('${req.noSurat}');">
+          <span class="material-symbols-rounded">check_circle</span> APPROVE SERVICE
         </button>
       `);
       actionButtons.push(`
-        <button type="button" class="btnIcon btnDelete" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="closeDetail(); hapusData('${req.noSurat}');">
-          <span class="material-symbols-rounded">delete</span> HAPUS
+        <button type="button" class="btnIcon btnReject" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'SERVICE');">
+          <span class="material-symbols-rounded">cancel</span> REJECT SERVICE
+        </button>
+      `);
+    } else if (req.status === 'APPROVE') {
+      actionButtons.push(`
+        <button type="button" class="btnIcon btnDone" onclick="closeDetail(); doneService('${req.noSurat}');">
+          <span class="material-symbols-rounded">task_alt</span> SET DONE
         </button>
       `);
     }
-
-    if (actionButtons.length > 0) {
-      bottomActionsHtml = `
-        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; border-top:1px solid var(--border-color); padding-top:14px; justify-content:center; align-items:center;">
-          ${actionButtons.join('')}
-        </div>
-      `;
+  } else if (role === 'DM') {
+    if (req.status === 'PENDING' && req.serviceApprove) {
+      actionButtons.push(`
+        <button type="button" class="btnIcon btnApprove" onclick="closeDetail(); approveDM('${req.noSurat}');">
+          <span class="material-symbols-rounded">check_circle</span> APPROVE DM
+        </button>
+      `);
+      actionButtons.push(`
+        <button type="button" class="btnIcon btnReject" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
+          <span class="material-symbols-rounded">cancel</span> REJECT DM
+        </button>
+      `);
     }
-  } else {
-    const isCreator = (req.userId === currentUser.id || req.createdBy === currentUser.fullName);
-    const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') && (isCreator || currentUser.category === 'SERVICE');
+  }
 
-    if (canEditDelete) {
-      bottomActionsHtml = `
-        <div style="display:flex; gap:12px; margin-top:16px; border-top:1px solid var(--border-color); padding-top:14px; justify-content:center; align-items:center;">
-          <button type="button" class="btnIcon btnEdit" style="width:auto; padding:8px 18px; border-radius:8px;" onclick="closeDetail(); editPermintaan('${req.noSurat}');">
-            <span class="material-symbols-rounded">edit</span> EDIT PERMINTAAN
-          </button>
-          <button type="button" class="btnIcon btnDelete" style="width:auto; padding:8px 18px; border-radius:8px;" onclick="closeDetail(); hapusData('${req.noSurat}');">
-            <span class="material-symbols-rounded">delete</span> HAPUS PERMINTAAN
-          </button>
-        </div>
-      `;
-    }
+  const isPhotoHidden = (req.status === 'APPROVE' || req.status === 'DONE' || req.status === 'REJECT');
+  if (req.photos && req.photos.length > 0 && !isPhotoHidden) {
+    actionButtons.push(`
+      <button type="button" class="btnIcon btnView" onclick="lihatFotoByNoSurat('${req.noSurat}');">
+        <span class="material-symbols-rounded">image</span> FOTO
+      </button>
+    `);
+  }
+
+  const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+  if (req.status === 'APPROVE' || req.status === 'DONE' || (isAdminUser && req.status !== 'REJECT')) {
+    actionButtons.push(`
+      <button type="button" class="btnIcon btnPdf" onclick="bukaPdfModal('${req.noSurat}');">
+        <span class="material-symbols-rounded">picture_as_pdf</span> CETAK PDF
+      </button>
+    `);
+  }
+
+  const isCreator = (req.userId === currentUser.id || req.createdBy === currentUser.fullName);
+  const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') && (isCreator || currentUser.category === 'SERVICE' || isAdminUser);
+
+  if (canEditDelete) {
+    actionButtons.push(`
+      <button type="button" class="btnIcon btnEdit" onclick="closeDetail(); editPermintaan('${req.noSurat}');">
+        <span class="material-symbols-rounded">edit</span> EDIT
+      </button>
+    `);
+    actionButtons.push(`
+      <button type="button" class="btnIcon btnDelete" onclick="closeDetail(); hapusData('${req.noSurat}');">
+        <span class="material-symbols-rounded">delete</span> HAPUS
+      </button>
+    `);
+  }
+
+  if (actionButtons.length > 0) {
+    bottomActionsHtml = `
+      <div class="popupDetailActions">
+        ${actionButtons.join('')}
+      </div>
+    `;
   }
 
   msgBox.innerHTML = `

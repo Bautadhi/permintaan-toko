@@ -740,16 +740,27 @@ input:focus, select:focus, textarea:focus {
 .btnDownload:hover { background: #15803d; }
 
 .btnIcon {
-  width: 32px;
-  height: 32px;
-  border: none;
-  border-radius: 8px;
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  margin-right: 4px;
-  color: #fff;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 0 12px !important;
+  border: none !important;
+  border-radius: 8px !important;
+  display: inline-flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  cursor: pointer !important;
+  gap: 4px !important;
+  color: #ffffff !important;
+  font-size: 12.5px !important;
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+.btnIcon span.material-symbols-rounded {
+  font-size: 18px !important;
 }
 
 .btnEdit { background: var(--primary); }
@@ -1642,7 +1653,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* UNIFORM SYMMETRICAL POPUP BUTTONS (SAME HEIGHT & EQUAL FLEX WIDTH ACROSS ALL MODALS) */
-.confirmButton, .ttdButton, .popupFooter, .rejectBodyPopup .confirmButton {
+.confirmButton, .ttdButton, .popupFooter, .rejectBodyPopup .confirmButton, .popupDetailActions {
   display: flex !important;
   gap: 10px !important;
   justify-content: center !important;
@@ -1650,6 +1661,7 @@ input:focus, select:focus, textarea:focus {
   width: 100% !important;
   box-sizing: border-box !important;
   margin-top: 14px !important;
+  flex-wrap: wrap !important;
 }
 
 .confirmButton button,
@@ -1660,9 +1672,12 @@ input:focus, select:focus, textarea:focus {
 .confirmButton .btnHapus,
 .confirmButton .btnPrimary,
 .popupBox .confirmButton button,
-.popupBoxDetail .confirmButton button {
+.popupBoxDetail .confirmButton button,
+.popupDetailActions button,
+.popupDetailActions .btnIcon {
   flex: 1 1 0px !important;
   width: 100% !important;
+  min-width: 100px !important;
   height: 42px !important;
   min-height: 42px !important;
   max-height: 42px !important;
