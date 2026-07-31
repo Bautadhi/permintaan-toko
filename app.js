@@ -1351,25 +1351,29 @@ function lookupTypeRow(el, isFromScanner = false) {
   const rawValue = String(el.value || '').trim().toUpperCase();
   el.value = rawValue;
 
-  if (!rawValue) return;
+  // STRICT RULE: Must be AT LEAST 4 characters long! (1, 2, or 3 digits are ignored)
+  if (!rawValue || rawValue.length < 4) return;
 
+  const first4Chars = rawValue.substring(0, 4);
   const fullMap = getKodeUnitMap();
-  const keys = Object.keys(fullMap).sort((a, b) => b.length - a.length);
+  const keys = Object.keys(fullMap);
 
   let matchedType = null;
 
-  // 1. Exact or Prefix match
+  // 1. Check exact 4-character prefix match
   for (const key of keys) {
-    if (rawValue.startsWith(key) || key.startsWith(rawValue)) {
+    const cleanKey = String(key).trim().toUpperCase();
+    if (cleanKey.substring(0, 4) === first4Chars) {
       matchedType = fullMap[key];
       break;
     }
   }
 
-  // 2. Substring match fallback
+  // 2. Check if rawValue starts with key (if key is 4+ chars)
   if (!matchedType) {
     for (const key of keys) {
-      if (rawValue.includes(key)) {
+      const cleanKey = String(key).trim().toUpperCase();
+      if (cleanKey.length >= 4 && rawValue.startsWith(cleanKey)) {
         matchedType = fullMap[key];
         break;
       }
@@ -1486,7 +1490,12 @@ async function previewFoto(event) {
     return;
   }
 
-  showLoading('MENGUNGGAH FOTO KE GOOGLE DRIVE...');
+  const previewText = document.getElementById('previewText');
+  const originalText = previewText ? previewText.innerHTML : 'TAP / DRAG FOTO DI SINI (MAKSIMAL 5 FOTO)';
+  if (previewText) {
+    previewText.innerHTML = `<span class="material-symbols-rounded" style="font-size:22px; vertical-align:middle; display:inline-block; animation:spin 0.8s linear infinite; color:var(--primary);">sync</span>`;
+  }
+
   for (let i = 0; i < files.length; i++) {
     if (currentPhotos.length < 5) {
       try {
@@ -1502,7 +1511,11 @@ async function previewFoto(event) {
       }
     }
   }
-  hideLoading();
+
+  if (previewText) {
+    previewText.innerHTML = originalText;
+  }
+
   renderPhotoGrid();
   event.target.value = '';
 }
@@ -1819,7 +1832,8 @@ function filterRiwayat() {
       `;
     }
 
-    const isPdfVisible = (r.status === 'APPROVE');
+    const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+    const isPdfVisible = (r.status === 'APPROVE' || r.status === 'DONE' || (isAdminUser && r.status !== 'REJECT'));
     if (isPdfVisible) {
       aksi += `
         <button class="btnIcon btnPdf" onclick="bukaPdfModal('${r.noSurat}')" title="CETAK PDF"><span class="material-symbols-rounded">picture_as_pdf</span></button>
@@ -2181,7 +2195,8 @@ function lihatDetail(noSurat, fromDashboard = false) {
       `);
     }
 
-    if (req.status === 'APPROVE') {
+    const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+    if (req.status === 'APPROVE' || req.status === 'DONE' || (isAdminUser && req.status !== 'REJECT')) {
       actionButtons.push(`
         <button type="button" class="btnIcon btnPdf" style="width:auto; padding:8px 16px; border-radius:8px;" onclick="bukaPdfModal('${req.noSurat}');">
           <span class="material-symbols-rounded">picture_as_pdf</span> CETAK PDF
