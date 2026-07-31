@@ -2627,7 +2627,13 @@ button, input, select, textarea, .box, .box-full, .popupBox, .akunBox, .confirmB
   border-radius: 50% !important;
 }
 
-.tableWrap, .popupTableScroll, table {
+.tableWrap, .popupTableScroll {
   border-radius: 12px !important;
-  overflow: hidden !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+table {
+  border-radius: 12px !important;
 }

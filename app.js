@@ -563,8 +563,11 @@ async function pullCentralCloudDB() {
       return;
     }
 
-    const data = await res.json();
-    if (!data) return;
+    const rawData = await res.json();
+    if (!rawData) return;
+
+    // MERGE BOTH ROOT KEYS & NESTED .DATA WRAPPER FOR 100% RELIABLE JSON SYNC ON HP & PC
+    const data = (rawData && rawData.data && typeof rawData.data === 'object') ? { ...rawData, ...rawData.data } : rawData;
 
     if (data.scriptUrl && typeof data.scriptUrl === 'string' && data.scriptUrl.startsWith('http')) {
       localStorage.setItem(SCRIPT_URL_STORAGE_KEY, data.scriptUrl);
