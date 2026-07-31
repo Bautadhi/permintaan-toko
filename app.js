@@ -295,6 +295,7 @@ function getFormattedDateDDMMYYYY(dObj = new Date()) {
 }
 
 // APP INITIALIZATION
+// APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', () => {
   initDatabase();
   initFirebaseCloudDB();
@@ -302,7 +303,110 @@ document.addEventListener('DOMContentLoaded', () => {
   loadSavedTheme();
   autoLogin();
   initMobileBackButtonEngine();
+  initPullToRefresh();
+  updateAdminReminderUI();
 });
+
+/* ======================================================
+   MOBILE PULL-TO-REFRESH GESTURE ENGINE
+   ====================================================== */
+function initPullToRefresh() {
+  const container = document.getElementById('app') || document.body;
+  let startY = 0;
+  let moveY = 0;
+  let isAtTop = false;
+
+  container.addEventListener('touchstart', (e) => {
+    if (container.scrollTop <= 5) {
+      startY = e.touches[0].clientY;
+      isAtTop = true;
+    } else {
+      isAtTop = false;
+    }
+  }, { passive: true });
+
+  container.addEventListener('touchmove', (e) => {
+    if (!isAtTop) return;
+    moveY = e.touches[0].clientY;
+  }, { passive: true });
+
+  container.addEventListener('touchend', async () => {
+    if (!isAtTop) return;
+    const dist = moveY - startY;
+    if (dist > 90 && container.scrollTop <= 5) {
+      showNotif('TARIK KEBAWAH: REFRESH DATA SINKRONISASI...', 'info');
+      await pullCentralCloudDB();
+      setTimeout(() => {
+        showNotif('DATA BERHASIL DIPERBARUI!', 'info');
+      }, 300);
+    }
+    startY = 0;
+    moveY = 0;
+    isAtTop = false;
+  }, { passive: true });
+}
+
+/* ======================================================
+   ADMIN FEATURE TOGGLE FOR PENDING APPROVAL REMINDERS (SERVICE & DM)
+   ====================================================== */
+const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7';
+
+function getAdminReminderEnabled() {
+  const val = localStorage.getItem(ADMIN_REMINDER_KEY);
+  return val !== 'false';
+}
+
+function toggleAdminReminderFeature() {
+  const current = getAdminReminderEnabled();
+  const next = !current;
+  localStorage.setItem(ADMIN_REMINDER_KEY, next ? 'true' : 'false');
+  updateAdminReminderUI();
+  showNotif(next ? 'REMINDER PENDING SERVICE & DM SEKARANG AKTIF (ON)!' : 'REMINDER PENDING SERVICE & DM NONAKTIF (OFF)!', 'info');
+  if (next) {
+    checkAndTriggerPendingReminders();
+  }
+}
+
+function updateAdminReminderUI() {
+  const statusText = document.getElementById('reminderFeatureStatusText');
+  const isEnabled = getAdminReminderEnabled();
+  if (statusText) {
+    statusText.textContent = isEnabled ? 'AKTIF (ON)' : 'NONAKTIF (OFF)';
+    statusText.style.color = isEnabled ? '#10b981' : '#ef4444';
+  }
+  const container = document.getElementById('adminReminderControlContainer');
+  if (container) {
+    container.style.display = (currentUser && currentUser.category === 'ADMIN') ? 'flex' : 'none';
+  }
+}
+
+function checkAndTriggerPendingReminders() {
+  if (!getAdminReminderEnabled()) return;
+  const requests = getRequestsFromDB();
+  if (!requests.length) return;
+
+  const pendingServiceReqs = requests.filter(r => r.status === 'PENDING' && !r.serviceApprove);
+  const pendingDMReqs = requests.filter(r => r.status === 'PENDING' && r.serviceApprove);
+
+  let hasNewReminder = false;
+  if (pendingServiceReqs.length > 0) {
+    pendingServiceReqs.forEach(r => {
+      tambahNotifikasiSistem(['SERVICE'], r.area, `REMINDER PENDING: PERMINTAAN #${r.noSurat} DARI TOKO ${r.toko} BELUM DI-APPROVE SERVICE!`, r.noSurat);
+    });
+    hasNewReminder = true;
+  }
+
+  if (pendingDMReqs.length > 0) {
+    pendingDMReqs.forEach(r => {
+      tambahNotifikasiSistem(['DM'], 'ALL', `REMINDER PENDING: PERMINTAAN #${r.noSurat} DARI TOKO ${r.toko} BELUM DI-APPROVE DM!`, r.noSurat);
+    });
+    hasNewReminder = true;
+  }
+
+  if (hasNewReminder) {
+    updateNotifBellCounter();
+  }
+}
 
 /* ======================================================
    CENTRAL ONLINE CLOUD DATABASE SYNC ENGINE (MULTI-DEVICE & WORLDWIDE)
@@ -872,6 +976,8 @@ function bukaMainApp() {
   pindahHalaman('dashboardPage');
   cekUnreadNotif();
   updateNotifBellCounter();
+  updateAdminReminderUI();
+  checkAndTriggerPendingReminders();
 }
 
 // PAGE NAVIGATION WITH CONFIRMATION WHEN LEAVING EDIT MODE

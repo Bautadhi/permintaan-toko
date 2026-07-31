@@ -382,6 +382,24 @@
         </div>
       </div>
 
+      <!-- ADMIN CONTROL TOGGLES (REMINDER PENDING SERVICE & DM) -->
+      <div id="adminReminderControlContainer" class="box" style="border-left: 4px solid #7c3aed; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h3 style="color: #7c3aed; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+            <span class="material-symbols-rounded">notifications_active</span> REMINDER OTOMATIS PENDING SERVICE & DM
+          </h3>
+          <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+            KIRIM NOTIFIKASI REMINDER OTOMATIS KE SERVICE AREA & DM JIKA ADA PERMINTAAN BARU YANG BELUM DI-APPROVE.
+          </p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="reminderFeatureStatusText" style="font-size: 13px; font-weight: 800; color: #10b981;">AKTIF (ON)</span>
+          <button type="button" class="btnDownload" style="background: #7c3aed; height: 38px; padding: 0 16px;" onclick="toggleAdminReminderFeature()">
+            <span class="material-symbols-rounded">toggle_on</span> ON / OFF
+          </button>
+        </div>
+      </div>
+
       <!-- UPLOAD MASTER LOOKUP KODE UNIT (FILE EXCEL .XLSX: A=KODE, B=TYPE) -->
       <div class="box" style="border-left: 4px solid #0284c7; margin-bottom: 20px;">
         <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px;">
@@ -501,7 +519,7 @@
 
         <div>
           <label>AREA WILAYAH</label>
-          <input type="text" id="akunArea" readonly>
+          <input type="text" id="akunArea" readonly style="white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important;">
         </div>
 
         <div>
@@ -676,21 +694,21 @@
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left;">
         <div>
           <label style="font-size: 11px; margin-bottom: 4px; display: block;">USERNAME</label>
-          <input type="text" id="uFormUsername" placeholder="TOKO_BANDUNG" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+          <input type="text" id="uFormUsername" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
 
           <label style="font-size: 11px; margin-bottom: 4px; display: block;">PASSWORD</label>
-          <input type="text" id="uFormPassword" placeholder="123" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+          <input type="text" id="uFormPassword" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
 
           <label style="font-size: 11px; margin-bottom: 4px; display: block;">NAMA LENGKAP</label>
-          <input type="text" id="uFormFullName" placeholder="TOKO MAJU JAYA" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+          <input type="text" id="uFormFullName" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
         </div>
 
         <div>
           <label style="font-size: 11px; margin-bottom: 4px; display: block;">KODE TOKO (FORMAT SURAT)</label>
-          <input type="text" id="uFormStoreCode" placeholder="CONTOH: SNR / CRB" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+          <input type="text" id="uFormStoreCode" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
 
           <label style="font-size: 11px; margin-bottom: 4px; display: block;">NO. HP / WHATSAPP</label>
-          <input type="text" id="uFormPhone" placeholder="081234567890" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+          <input type="text" id="uFormPhone" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
 
           <label style="font-size: 11px; margin-bottom: 4px; display: block;">KATEGORI (ROLE)</label>
           <select id="uFormCategory" style="padding: 8px; font-size: 12px; margin-bottom: 8px; width: 100%;">
