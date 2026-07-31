@@ -3039,7 +3039,7 @@ function simpanUserData() {
     };
     users.push(newUser);
     saveUsersToDB(users);
-    showNotif(`USER BARU ${username} BERHASIL DITAMBAHKAN!`, 'info');
+    showNotif(`${fullName} BERHASIL DISIMPAN!`, 'info');
   }
 
   tutupUserModal();
