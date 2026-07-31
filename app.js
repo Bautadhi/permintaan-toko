@@ -1450,7 +1450,7 @@ async function uploadPhotoToDriveCloud(file) {
     const payload = {
       action: 'uploadPhoto',
       base64: compressedBase64,
-      fileName: `FOTO_${Date.now()}.jpg`
+      fileName: `FOTO_${Date.now()}_${Math.floor(Math.random()*1000)}.jpg`
     };
 
     const targetUrl = GOOGLE_SHEET_WEBAPP_URL || PUBLIC_CLOUD_DB_URL;
@@ -1466,10 +1466,10 @@ async function uploadPhotoToDriveCloud(file) {
         return data.url;
       }
     }
-    return compressedBase64;
+    return await kompresiFoto(file, 200, 0.2);
   } catch (err) {
-    console.warn('Upload Drive Error, fallback base64:', err);
-    return await kompresiFoto(file, 360, 0.25);
+    console.warn('Upload Drive Error, fallback tiny base64:', err);
+    return await kompresiFoto(file, 200, 0.2);
   }
 }
 
@@ -1483,12 +1483,15 @@ async function previewFoto(event) {
   }
 
   showLoading('MENGUNGGAH FOTO KE GOOGLE DRIVE...');
-  for (const file of files) {
+  for (let i = 0; i < files.length; i++) {
     if (currentPhotos.length < 5) {
       try {
-        const driveUrl = await uploadPhotoToDriveCloud(file);
+        const driveUrl = await uploadPhotoToDriveCloud(files[i]);
         if (driveUrl) {
           currentPhotos.push(driveUrl);
+        }
+        if (i < files.length - 1) {
+          await new Promise(r => setTimeout(r, 350));
         }
       } catch (err) {
         console.warn('Foto Upload Error:', err);
