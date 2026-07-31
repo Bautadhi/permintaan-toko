@@ -208,12 +208,11 @@ body {
 .text-primary { color: var(--primary) !important; }
 .text-muted { color: var(--text-muted) !important; }
 
-/* PAGE CONTAINERS & FADE ANIMATIONS - ALL PAGES WIDE & FULL WIDTH */
+/* PAGE CONTAINERS & FADE ANIMATIONS - FULL UNCOVERED BOTTOM SCROLLABILITY PAST BOTTOM MENU BAR */
 .page {
   display: none;
-  padding: 16px 8px !important;
+  padding: 16px 8px 120px 8px !important;
   animation: fade .25s ease-out;
-  padding-bottom: 95px;
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 auto;
@@ -223,11 +222,14 @@ body {
   display: block;
 }
 
-#riwayatPage {
-  padding-left: 4px !important;
-  padding-right: 4px !important;
-  max-width: 100% !important;
-  width: 100% !important;
+#app {
+  padding-bottom: 60px !important;
+}
+
+.box:last-child,
+.tableWrap:last-child,
+#userManagementPage .box:last-child {
+  margin-bottom: 95px !important;
 }
 
 @keyframes fade {
@@ -235,25 +237,26 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* FLOATING NOTIFICATION BELL BUTTON (LEFT OF THEME TOGGLE BUTTON) */
+/* FLOATING NOTIFICATION BELL BUTTON (STANDARDIZED KOTAK PRESI / SQUARE BOX 48X48PX) */
 .notif-bell-btn {
   position: fixed;
   top: 20px;
-  right: 76px;
+  right: 78px;
   z-index: 99999;
-  width: 46px;
-  height: 46px;
-  border: 1.5px solid var(--primary);
-  border-radius: 50%;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
   background: var(--bg-box);
   color: var(--primary);
+  border: 1.5px solid var(--border-color) !important;
   display: none;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
   transition: transform 0.2s, background 0.2s, color 0.2s;
   overflow: visible !important;
+  box-sizing: border-box !important;
 }
 
 .notif-bell-btn:hover {
@@ -282,24 +285,25 @@ body {
   z-index: 99 !important;
 }
 
-/* FLOATING THEME TOGGLE BUTTON */
+/* FLOATING THEME TOGGLE BUTTON (STANDARDIZED KOTAK PRESI / SQUARE BOX 48X48PX) */
 .theme-toggle-btn {
   position: fixed;
   top: 20px;
   right: 20px;
-  z-index: 99999;
-  width: 46px;
-  height: 46px;
-  border: none;
-  border-radius: 50%;
+  z-index: 999999999 !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
   background: var(--primary);
-  color: #fff;
+  color: #ffffff;
+  border: 1.5px solid var(--border-color) !important;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
   transition: transform 0.2s, background 0.2s;
+  box-sizing: border-box !important;
 }
 
 .draggable-btn {
@@ -324,24 +328,25 @@ body {
   font-size: 24px;
 }
 
-/* FLOATING HELP / CHAT BUTTON & UNREAD BADGE */
+/* FLOATING HELP / CHAT BUTTON (STANDARDIZED KOTAK PRESI / SQUARE BOX 48X48PX) */
 .helpButton {
   position: fixed;
   bottom: 85px;
   right: 20px;
   z-index: 9999;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: #16a34a;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #10b981, #047857) !important;
   color: #ffffff;
-  border: none;
+  border: 1.5px solid var(--border-color) !important;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 8px 25px rgba(22, 163, 74, 0.4);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
   transition: transform 0.2s;
+  box-sizing: border-box !important;
 }
 
 .helpButton:hover {
@@ -349,7 +354,7 @@ body {
 }
 
 .helpButton .material-symbols-rounded {
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .unreadBadge {
@@ -773,58 +778,33 @@ input:focus, select:focus, textarea:focus {
   background: rgba(37, 99, 235, 0.28) !important;
 }
 
+/* ALL TABLE ACTION BUTTONS ARE ELEGANT GREY / ABU-ABU (MATCHING USER REQUEST SCREENSHOT) */
+.btnIcon,
+.btnApprove,
+.btnReject,
+.btnDone,
+.btnView,
+.btnInfo,
+.btnPdf,
+.btnEdit,
 .btnDelete {
-  background: rgba(239, 68, 68, 0.16) !important;
-  color: #ef4444 !important;
-  border: 1px solid rgba(239, 68, 68, 0.35) !important;
+  background: rgba(148, 163, 184, 0.22) !important;
+  color: var(--text-main) !important;
+  border: 1.5px solid rgba(148, 163, 184, 0.45) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
 }
+
+.btnIcon:hover,
+.btnApprove:hover,
+.btnReject:hover,
+.btnDone:hover,
+.btnView:hover,
+.btnInfo:hover,
+.btnPdf:hover,
+.btnEdit:hover,
 .btnDelete:hover {
-  background: rgba(239, 68, 68, 0.28) !important;
-}
-
-.btnApprove {
-  background: rgba(16, 185, 129, 0.16) !important;
-  color: #10b981 !important;
-  border: 1px solid rgba(16, 185, 129, 0.35) !important;
-}
-.btnApprove:hover {
-  background: rgba(16, 185, 129, 0.28) !important;
-}
-
-.btnReject {
-  background: rgba(244, 63, 94, 0.16) !important;
-  color: #f43f5e !important;
-  border: 1px solid rgba(244, 63, 94, 0.35) !important;
-}
-.btnReject:hover {
-  background: rgba(244, 63, 94, 0.28) !important;
-}
-
-.btnDone {
-  background: rgba(139, 92, 246, 0.16) !important;
-  color: #8b5cf6 !important;
-  border: 1px solid rgba(139, 92, 246, 0.35) !important;
-}
-.btnDone:hover {
-  background: rgba(139, 92, 246, 0.28) !important;
-}
-
-.btnView, .btnInfo {
-  background: rgba(14, 165, 233, 0.16) !important;
-  color: #0ea5e9 !important;
-  border: 1px solid rgba(14, 165, 233, 0.35) !important;
-}
-.btnView:hover {
-  background: rgba(14, 165, 233, 0.28) !important;
-}
-
-.btnPdf {
-  background: rgba(245, 158, 11, 0.16) !important;
-  color: #f59e0b !important;
-  border: 1px solid rgba(245, 158, 11, 0.35) !important;
-}
-.btnPdf:hover {
-  background: rgba(245, 158, 11, 0.28) !important;
+  background: rgba(148, 163, 184, 0.42) !important;
+  color: #ffffff !important;
 }
 
 /* ACTIVE BOTTOM MENU NAVIGATION HIGHLIGHT (DYNAMICALLY MATCHES ACTIVE THEME VAR(--PRIMARY)) */
@@ -850,18 +830,18 @@ input:focus, select:focus, textarea:focus {
   transition: transform 0.2s ease;
 }
 
-/* FLOATING THEME TOGGLE BUTTON (ALWAYS ON TOP OF ALL POPUPS - ALWAYS CLICKABLE) */
+/* FLOATING THEME TOGGLE BUTTON (STANDARDIZED SQUARE BOX 48X48PX WITH 16PX ROUNDED CORNERS) */
 .theme-toggle-btn {
   position: fixed !important;
   top: 14px !important;
   right: 14px !important;
   z-index: 999999999 !important;
-  width: 42px !important;
-  height: 42px !important;
-  border-radius: 50% !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 16px !important;
   background: var(--bg-box) !important;
   color: var(--primary) !important;
-  border: 2px solid var(--border-color) !important;
+  border: 1.5px solid var(--border-color) !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35) !important;
   cursor: pointer !important;
   display: flex !important;
@@ -874,8 +854,11 @@ input:focus, select:focus, textarea:focus {
 .notif-bell-btn {
   position: fixed !important;
   top: 14px !important;
-  right: 64px !important;
+  right: 68px !important;
   z-index: 999999999 !important;
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 16px !important;
 }
 
 /* ICON-ONLY BUTTON STYLING (MATCHING SCREENSHOT) */
@@ -1341,141 +1324,253 @@ input:focus, select:focus, textarea:focus {
   animation: fade .25s ease-out;
 }
 
-/* LUXURIOUS & ATTRACTIVE NOTIFICATION POPUP DIALOG */
+/* ULTRA-LUXURIOUS STUNNING GLASSMORPHIC NOTIFICATION POPUP DIALOG WITH STANDARDIZED 500PX WIDTH & 5MM PADDING */
 .popupNotifCard {
-  width: 400px !important;
-  max-width: 90vw !important;
+  width: 500px !important;
+  max-width: 92vw !important;
   background: var(--bg-box) !important;
-  border-radius: 22px !important;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   overflow: hidden !important;
-  border: 1px solid var(--border-color) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
-  animation: popupNotifPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  border: 1.5px solid var(--border-color) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  animation: popupNotifPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
   text-align: center !important;
+  padding: 5mm !important;
+  box-sizing: border-box !important;
+  position: relative !important;
 }
 
 @keyframes popupNotifPop {
-  0% { transform: scale(0.85); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
 }
 
 .popupNotifHeader {
-  padding: 24px 20px 14px 20px !important;
+  padding: 5mm 5mm 2mm 5mm !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  gap: 10px !important;
+  gap: 12px !important;
 }
 
 .popupNotifIconBadge {
-  width: 58px !important;
-  height: 58px !important;
+  width: 64px !important;
+  height: 64px !important;
   border-radius: 50% !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35) !important;
 }
 
 .popupNotifIconBadge .material-symbols-rounded {
-  font-size: 32px !important;
+  font-size: 36px !important;
   color: #ffffff !important;
 }
 
 .popupNotifHeader h3 {
   margin: 0 !important;
-  font-size: 17px !important;
+  font-size: 18px !important;
   font-weight: 900 !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 0.8px !important;
   text-transform: uppercase !important;
 }
 
 .popupNotifBody {
-  padding: 0 24px 20px 24px !important;
+  padding: 5mm !important;
 }
 
-.popupNotifBody p {
+.popupNotifBody p,
+#popupNotifText {
   margin: 0 !important;
-  font-size: 13.5px !important;
-  font-weight: 600 !important;
-  line-height: 1.5 !important;
+  padding: 5mm !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.55 !important;
   color: var(--text-main) !important;
+  letter-spacing: 0.2px !important;
 }
 
 .popupNotifFooter {
-  padding: 0 20px 20px 20px !important;
+  padding: 2mm 5mm 5mm 5mm !important;
 }
 
 .btnOkNotif {
   width: 100% !important;
-  height: 44px !important;
-  border-radius: 12px !important;
+  height: 46px !important;
+  border-radius: 14px !important;
   border: none !important;
   color: #ffffff !important;
-  font-size: 14px !important;
-  font-weight: 800 !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2) !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3) !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
 }
 
 .btnOkNotif:hover {
-  transform: translateY(-2px) !important;
-  filter: brightness(1.1) !important;
+  transform: translateY(-2px) scale(1.02) !important;
+  filter: brightness(1.15) !important;
 }
 
 /* ERROR STATE */
+.popupNotifCard.notif-error {
+  border-top: 5px solid #ef4444 !important;
+}
 .popupNotifCard.notif-error .popupNotifIconBadge {
   background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.45) !important;
 }
-
-.popupNotifCard.notif-error .popupNotifHeader h3 {
-  color: #ef4444 !important;
-}
-
+.popupNotifCard.notif-error .popupNotifHeader h3 { color: #ef4444 !important; }
 .popupNotifCard.notif-error .btnOkNotif {
   background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  box-shadow: 0 8px 22px rgba(239, 68, 68, 0.4) !important;
 }
 
 /* WARNING STATE */
+.popupNotifCard.notif-warning {
+  border-top: 5px solid #f59e0b !important;
+}
 .popupNotifCard.notif-warning .popupNotifIconBadge {
   background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.45) !important;
 }
-
-.popupNotifCard.notif-warning .popupNotifHeader h3 {
-  color: #f59e0b !important;
-}
-
+.popupNotifCard.notif-warning .popupNotifHeader h3 { color: #f59e0b !important; }
 .popupNotifCard.notif-warning .btnOkNotif {
   background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.4) !important;
 }
 
 /* SUCCESS STATE */
+.popupNotifCard.notif-success {
+  border-top: 5px solid #10b981 !important;
+}
 .popupNotifCard.notif-success .popupNotifIconBadge {
   background: linear-gradient(135deg, #10b981, #047857) !important;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.45) !important;
 }
-
-.popupNotifCard.notif-success .popupNotifHeader h3 {
-  color: #10b981 !important;
-}
-
+.popupNotifCard.notif-success .popupNotifHeader h3 { color: #10b981 !important; }
 .popupNotifCard.notif-success .btnOkNotif {
   background: linear-gradient(135deg, #10b981, #059669) !important;
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4) !important;
 }
 
 /* INFO STATE */
+.popupNotifCard.notif-info {
+  border-top: 5px solid #0284c7 !important;
+}
 .popupNotifCard.notif-info .popupNotifIconBadge {
   background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  box-shadow: 0 10px 25px rgba(2, 132, 199, 0.45) !important;
+}
+.popupNotifCard.notif-info .popupNotifHeader h3 { color: #0284c7 !important; }
+.popupNotifCard.notif-info .btnOkNotif {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.4) !important;
 }
 
-.popupNotifCard.notif-info .popupNotifHeader h3 {
-  color: var(--primary) !important;
+/* 3CM EDGE SPACING FOR NON-DATA CARDS (SETTINGS, SEARCH FILTERS) */
+@media (min-width: 900px) {
+  .box:not(.box-data):not(:has(table)):not(:has(.tableWrap)):not(:has(.lastHeader)):not(#buatPage .box):not(#inputPage .box):not(#userManagementPage .box),
+  .box-setting:not(#userManagementPage .box-setting) {
+    padding-left: 3cm !important;
+    padding-right: 3cm !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
+
+@media (max-width: 899px) and (min-width: 600px) {
+  .box:not(.box-data):not(:has(table)):not(:has(.tableWrap)):not(:has(.lastHeader)):not(#buatPage .box):not(#inputPage .box):not(#userManagementPage .box) {
+    padding-left: 1.5cm !important;
+    padding-right: 1.5cm !important;
+  }
+}
+
+/* CARD SPACING IN INPUT FORM MENU & USER MANAGEMENT MATCHES DASHBOARD CARDS EXACTLY (22PX 18PX) */
+#buatPage .box,
+#inputPage .box,
+#userManagementPage .box,
+#userManagementPage .box-setting,
+.box-form,
+#formPermintaanCard {
+  padding: 22px 18px !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+/* POPUP TAMBAH TOKO MODAL SPACIOUS LAYOUT (JARAK AGIK JAUH DIIKIT / GENEROUS BREATHING ROOM) */
+#popupTambahToko .popupBox {
+  width: 560px !important;
+  max-width: 94vw !important;
+  padding: 24px !important;
+  border-radius: 16px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4) !important;
+}
+
+#popupTambahToko .popupHeader {
+  margin: -24px -24px 20px -24px !important;
+  padding: 16px 24px !important;
+  border-radius: 16px 16px 0 0 !important;
+}
+
+#popupTambahToko .popupBody {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 14px !important;
+}
+
+/* SOLID BLACK TEXT FOR ALL PDF DOKUMEN & PREVIEW PAPER (#000000) */
+.pdf-paper,
+#pdfDocumentContent,
+#pdfModelFullPreviewArea {
+  color: #000000 !important;
+}
+
+.pdf-paper table,
+.pdf-paper td,
+.pdf-paper div,
+.pdf-paper span,
+.pdf-paper strong,
+.pdf-paper b,
+.pdf-paper p,
+#pdfDocumentContent td,
+#pdfDocumentContent div,
+#pdfDocumentContent span,
+#pdfDocumentContent strong,
+#pdfDocumentContent b,
+#pdfModelFullPreviewArea td,
+#pdfModelFullPreviewArea div,
+#pdfModelFullPreviewArea span,
+#pdfModelFullPreviewArea strong,
+#pdfModelFullPreviewArea b {
+  color: #000000 !important;
+}
+
+/* Preserve contrast white/gold on dark header banners */
+.pdf-paper tr[style*="background"] th,
+#pdfDocumentContent tr[style*="background"] th,
+#pdfModelFullPreviewArea tr[style*="background"] th {
+  color: #ffffff !important;
+}
+
+#pdfDocumentContent div[style*="background: #0f172a"],
+#pdfModelFullPreviewArea div[style*="background: #0f172a"] {
+  color: #fbbf24 !important;
+}
+
+#pdfDocumentContent div[style*="background: linear-gradient"],
+#pdfModelFullPreviewArea div[style*="background: linear-gradient"],
+#pdfDocumentContent div[style*="background: #059669"],
+#pdfModelFullPreviewArea div[style*="background: #059669"] {
+  color: #ffffff !important;
 }
 
 .popupNotifCard.notif-info .btnOkNotif {
@@ -1716,15 +1811,51 @@ input:focus, select:focus, textarea:focus {
   margin: 0 auto !important;
 }
 
-.popupHeader button, .popupHeader .popupClose {
+.popupHeader button.popupClose {
   position: absolute !important;
-  right: 12px !important;
-  top: 12px !important;
+  right: 14px !important;
+  top: 10px !important;
   margin: 0 !important;
   transform: none !important;
 }
 
-/* BOLD WHITE 'X' IN RED CIRCLE FOR ALL CLOSE BUTTONS (COMPLETELY STATIONARY - ABSOLUTELY NO MOVEMENT) */
+/* DEDICATED STYLING FOR PRINT BUTTON IN POPUP HEADER (NO CLIPPING, FULLY VISIBLE ICON & TEXT) */
+.btnPrintHeader,
+.btnPrintPdfHeader,
+#pdfModal .popupHeader .btnPrintHeader {
+  width: auto !important;
+  height: 36px !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  padding: 0 16px !important;
+  border-radius: 10px !important;
+  background: #ffffff !important;
+  color: #0284c7 !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25) !important;
+  position: absolute !important;
+  left: 14px !important;
+  top: 10px !important;
+  right: auto !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  transform: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.btnPrintHeader:hover,
+.btnPrintPdfHeader:hover {
+  background: #f1f5f9 !important;
+  color: #0369a1 !important;
+}
+
+/* THICK BOLD 'X' ONLY FOR ALL CLOSE BUTTONS (NO CIRCLE, NO RED BG, COMPLETELY STATIONARY) */
 .popupClose,
 .chatClose,
 .btnCloseImageViewer,
@@ -1739,26 +1870,27 @@ input:focus, select:focus, textarea:focus {
   height: 32px !important;
   min-width: 32px !important;
   min-height: 32px !important;
-  border-radius: 50% !important;
-  background: #ef4444 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
   color: #ffffff !important;
   font-weight: 900 !important;
-  font-size: 20px !important;
+  font-size: 26px !important;
   line-height: 1 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  border: 2px solid #ffffff !important;
-  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4) !important;
+  border: none !important;
+  box-shadow: none !important;
   cursor: pointer !important;
   padding: 0 !important;
   position: absolute !important;
-  right: 12px !important;
-  top: 12px !important;
+  right: 14px !important;
+  top: 10px !important;
   margin: 0 !important;
   transform: none !important;
-  transition: background 0.15s ease !important;
+  transition: opacity 0.15s ease !important;
   animation: none !important;
+  opacity: 0.9;
 }
 
 .popupClose:hover,
@@ -1771,11 +1903,31 @@ input:focus, select:focus, textarea:focus {
 .popupHeader button:active,
 .popupClose:focus,
 .chatClose:focus {
-  background: #dc2626 !important;
+  background: transparent !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
   transform: none !important;
-  top: 12px !important;
-  right: 12px !important;
+  top: 10px !important;
+  right: 14px !important;
   margin: 0 !important;
+}
+
+/* Light background popups get dark thick X */
+.akunBox .popupClose,
+#popupUserForm .popupClose {
+  color: var(--text-main) !important;
+}
+
+/* 2D SCROLLABLE CARDS WITH DATA (VERTICAL & HORIZONTAL SCROLL: UP/DOWN & LEFT/RIGHT) */
+.tableWrap,
+.popupTableScroll,
+.popupContent,
+#popupMessage,
+.detailTable2Wrap {
+  overflow: auto !important;
+  max-height: 75vh;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 .popupContent {
@@ -2065,9 +2217,13 @@ input:focus, select:focus, textarea:focus {
 #lastData .btnIconContainer {
   display: flex !important;
   justify-content: flex-start !important;
+/* POPUP DETAIL ACTION BUTTONS MATCH SCREENSHOT EXACTLY (38X38PX SQUARE BOX WITH 12PX ROUNDED CORNERS, TRANSLUCENT GREY BG & BORDER) */
+.popupDetailActions {
+  display: flex !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   gap: 8px !important;
-  margin-top: 8px !important;
+  margin-top: 14px !important;
   width: 100% !important;
   flex-wrap: wrap !important;
   text-align: left !important;
@@ -2075,28 +2231,46 @@ input:focus, select:focus, textarea:focus {
 
 .popupDetailActions .btnIcon,
 .popupDetailActions button,
-#lastData .btnIcon,
-.lastItem .btnIcon {
-  flex: 0 0 auto !important;
-  width: auto !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  padding: 0 12px !important;
-  font-size: 11.5px !important;
-  font-weight: 700 !important;
-  border-radius: 6px !important;
+#popupDetail .popupDetailActions button,
+#popupDetail .btnIcon,
+.popupBoxDetail .btnIcon {
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  padding: 0 !important;
+  border-radius: 12px !important;
+  background: rgba(148, 163, 184, 0.22) !important;
+  color: var(--text-main, #334155) !important;
+  border: 1.5px solid rgba(148, 163, 184, 0.5) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   display: inline-flex !important;
   align-items: center !important;
-  justify-content: flex-start !important;
-  gap: 4px !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: transform 0.2s ease, background 0.2s ease !important;
   box-sizing: border-box !important;
 }
 
+.popupDetailActions .btnIcon:hover,
+.popupDetailActions button:hover,
+#popupDetail .btnIcon:hover,
+.popupBoxDetail .btnIcon:hover {
+  background: rgba(148, 163, 184, 0.42) !important;
+  transform: translateY(-1px) scale(1.05) !important;
+  color: var(--primary) !important;
+}
+
 .popupDetailActions .btnIcon span.material-symbols-rounded,
-#lastData .btnIcon span.material-symbols-rounded,
-.lastItem .btnIcon span.material-symbols-rounded {
-  font-size: 16px !important;
+.popupDetailActions button span.material-symbols-rounded,
+#popupDetail .btnIcon span.material-symbols-rounded,
+.popupBoxDetail .btnIcon span.material-symbols-rounded {
+  font-size: 20px !important;
+  color: var(--text-main, #334155) !important;
+  margin: 0 !important;
+  line-height: 1 !important;
 }
 
 #popupNotif {
@@ -2439,4 +2613,71 @@ button, input, select, textarea, .box, .box-full, .popupBox, .akunBox, .confirmB
 .tableWrap, .popupTableScroll, table {
   border-radius: 12px !important;
   overflow: hidden !important;
+}
+
+/* ======================================================
+   MASTER OVERRIDE 1: 100% IDENTICAL KOTAK (SQUARE BOX 48X48PX WITH 16PX ROUNDED CORNERS) FOR ALL FLOATING ACTION BUTTONS (HELP, NOTIF, THEME)
+   ====================================================== */
+.helpButton,
+.notif-bell-btn,
+.theme-toggle-btn,
+button.theme-toggle-btn,
+button.notif-bell-btn,
+button.helpButton,
+#helpButton,
+#notifBellBtn {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  border-radius: 16px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: 1.5px solid var(--border-color) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+.helpButton .material-symbols-rounded,
+.notif-bell-btn .material-symbols-rounded,
+.theme-toggle-btn .material-symbols-rounded,
+#helpButton .material-symbols-rounded,
+#notifBellBtn .material-symbols-rounded {
+  font-size: 24px !important;
+}
+
+/* ======================================================
+   MASTER OVERRIDE 2: ALL DETAIL DATA ACTION BUTTONS (BOTH IN DASHBOARD & RIWAYAT POPUP DETAIL) ARE ELEGANT GREY / ABU-ABU
+   ====================================================== */
+.popupDetailActions .btnIcon,
+.popupDetailActions button,
+#popupDetail .popupDetailActions button,
+#popupDetail .btnIcon,
+.popupBoxDetail .btnIcon,
+.popupBoxDetail button:not(.popupClose),
+.popupBoxDetail .btnApprove,
+.popupBoxDetail .btnReject,
+.popupBoxDetail .btnDone,
+.popupBoxDetail .btnEdit,
+.popupBoxDetail .btnDelete,
+.popupBoxDetail .btnInfo,
+.popupBoxDetail .btnPdf,
+.popupBoxDetail .btnView {
+  background: linear-gradient(135deg, #64748b, #475569) !important;
+  color: #ffffff !important;
+  border: 1px solid #475569 !important;
+  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.35) !important;
+}
+
+.popupDetailActions .btnIcon:hover,
+.popupDetailActions button:hover,
+#popupDetail .btnIcon:hover,
+.popupBoxDetail .btnIcon:hover,
+.popupBoxDetail button:not(.popupClose):hover {
+  background: linear-gradient(135deg, #475569, #334155) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
 }

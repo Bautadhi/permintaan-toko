@@ -682,6 +682,27 @@ async function pullCentralCloudDB() {
 
 async function pushCentralCloudDB() {
   isPushingCloud = true;
+
+  const rawStores = getStoresFromDB();
+  const formattedStores = rawStores.map(s => ({
+    kodeToko: s.storeCode || generateStoreCode(s.fullName),
+    namaToko: s.fullName,
+    area: s.area,
+    status: 'AKTIF',
+    createdAt: s.createdAt || getFormattedDateDDMMYYYY()
+  }));
+
+  const rawChats = JSON.parse(localStorage.getItem(CHAT_DB_KEY) || '[]');
+  const formattedChats = rawChats.map((c, idx) => ({
+    id: c.room ? `${c.room}_${idx}` : `CHAT_${idx}`,
+    senderId: c.user || 'SYSTEM',
+    senderName: c.user || 'SYSTEM',
+    role: c.pengirim || 'USER',
+    text: c.pesan || '',
+    time: c.tanggal || '',
+    area: currentUser ? currentUser.area : 'ALL'
+  }));
+
   const payload = {
     scriptUrl: getGoogleSheetUrl(),
     requests: getRequestsFromDB(),
@@ -689,10 +710,10 @@ async function pushCentralCloudDB() {
     deletedRequests: JSON.parse(localStorage.getItem(DELETED_REQUESTS_KEY) || '[]'),
     deletedUsers: JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]'),
     ttd: JSON.parse(localStorage.getItem(TTD_DB_KEY) || '{}'),
-    stores: JSON.parse(localStorage.getItem(STORES_DB_KEY) || '[]'),
+    stores: formattedStores,
     lookup: JSON.parse(localStorage.getItem(KODE_UNIT_MAP_KEY) || '{}'),
     featurePhotos: getFeaturePhotosEnabled(),
-    chat: JSON.parse(localStorage.getItem(CHAT_DB_KEY) || '[]'),
+    chat: formattedChats,
     chatRooms: JSON.parse(localStorage.getItem(CHAT_ROOM_DB_KEY) || '[]'),
     notifications: JSON.parse(localStorage.getItem(NOTIFICATIONS_DB_KEY) || '[]')
   };
@@ -839,11 +860,18 @@ function initDatabase() {
   if (!localStorage.getItem(REQUESTS_DB_KEY)) {
     localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify([]));
   }
-
-  localStorage.setItem(CHAT_DB_KEY, JSON.stringify([]));
-  localStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify([]));
-  localStorage.setItem(TTD_DB_KEY, JSON.stringify({}));
-  localStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify({}));
+  if (!localStorage.getItem(CHAT_DB_KEY)) {
+    localStorage.setItem(CHAT_DB_KEY, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(CHAT_ROOM_DB_KEY)) {
+    localStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify([]));
+  }
+  if (!localStorage.getItem(TTD_DB_KEY)) {
+    localStorage.setItem(TTD_DB_KEY, JSON.stringify({}));
+  }
+  if (!localStorage.getItem(KODE_UNIT_MAP_KEY)) {
+    localStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify({}));
+  }
 }
 
 function getUsersFromDB() {
@@ -1025,7 +1053,6 @@ function prosesLogin() {
   if (user) {
     currentUser = user;
     localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    showNotif(`SELAMAT DATANG, ${user.fullName}!`, 'info');
     bukaMainApp();
   } else {
     showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
@@ -1202,11 +1229,7 @@ function pindahHalaman(pageId, pushHistory = true) {
   } else if (pageId === 'userManagementPage') {
     loadFonteToken();
     loadUsersManagement();
-    const selectEl = document.getElementById('selectPdfModel');
-    if (selectEl) {
-      selectEl.value = getActivePdfModel();
-      previewSelectedPdfModel(selectEl.value);
-    }
+    updateActivePdfModelBadge();
   }
 }
 
@@ -2142,13 +2165,24 @@ function approveService(noSurat) {
 }
 
 function approveDM(noSurat) {
-  showConfirm(`APPROVE PERMINTAAN?`, () => {
+  const requests = getRequestsFromDB();
+  const req = requests.find(r => r.noSurat === noSurat);
+  if (req && !req.serviceApprove) {
+    showNotif('PERMINTAAN WAJIB DI-APPROVE OLEH SERVICE TERLEBIH DAHULU SEBELUM DM DAPAT MEMPROSES APPROVAL!', 'warning');
+    return;
+  }
+
+  showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, () => {
     showLoading('MEMPROSES...');
     setTimeout(() => {
       hideLoading();
       const requests = getRequestsFromDB();
       const idx = requests.findIndex(r => r.noSurat === noSurat);
       if (idx !== -1) {
+        if (!requests[idx].serviceApprove) {
+          showNotif('PERMINTAAN WAJIB DI-APPROVE OLEH SERVICE TERLEBIH DAHULU!', 'warning');
+          return;
+        }
         requests[idx].status = 'APPROVE';
         requests[idx].dmUserName = currentUser.fullName;
 
@@ -2493,112 +2527,192 @@ function closeDetail() {
   document.getElementById('popupDetail').style.display = 'none';
 }
 
-// PDF TEMPLATE MODEL SETTINGS & PREVIEW ENGINE
+// PDF TEMPLATE 5-MODEL SELECTION & SINGLE FULL POPUP PREVIEW ENGINE
 const PDF_MODEL_KEY = 'SELECTED_PDF_MODEL';
+let currentlyPreviewedModel = 'MODEL_1';
+
+const PDF_MODELS_DATA = [
+  { id: 'MODEL_1', title: 'MODE 1: STANDAR KLASIK', desc: 'Resmi, formal dengan underline header hitam & header tabel biru klasik.', color: '#0284c7' },
+  { id: 'MODEL_2', title: 'MODE 2: MODERN MINIMALIS', desc: 'Header banner biru melengkung modern, tabel slate soft & badge terpadu.', color: '#0284c7' },
+  { id: 'MODEL_3', title: 'MODE 3: ELEGANT CORPORATE', desc: 'Header navy gelap berbingkai aksen emas gold & font korporat elegan.', color: '#0f172a' },
+  { id: 'MODEL_4', title: 'MODE 4: COMPACT GRID BOX', desc: 'Struktur grid hijau emerald bersih dengan border terstruktur presisi.', color: '#059669' },
+  { id: 'MODEL_5', title: 'MODE 5: LUXURY GRADIENT BRAND', desc: 'Banner violet/purple gradient mewah dengan aksen badge rounded.', color: '#7c3aed' }
+];
 
 function getActivePdfModel() {
   return localStorage.getItem(PDF_MODEL_KEY) || 'MODEL_1';
 }
 
-function simpanPengaturanPdfModel() {
-  const selectEl = document.getElementById('selectPdfModel');
-  if (!selectEl) return;
-  const val = selectEl.value;
-  localStorage.setItem(PDF_MODEL_KEY, val);
-  showNotif(`MODEL TEMPLATE PDF BERHASIL DISIMPAN: ${val.replace('_', ' ')}!`, 'success');
+function updateActivePdfModelBadge() {
+  const badge = document.getElementById('activePdfModelBadge');
+  if (!badge) return;
+  const activeId = getActivePdfModel();
+  const modelObj = PDF_MODELS_DATA.find(m => m.id === activeId) || PDF_MODELS_DATA[0];
+  badge.textContent = `${modelObj.title.toUpperCase()}`;
 }
 
-function previewSelectedPdfModel(modelId) {
-  const box = document.getElementById('pdfModelPreviewBox');
-  if (!box) return;
-  
-  const m = modelId || getActivePdfModel();
-  
-  if (m === 'MODEL_2') {
-    // Model 2: Modern Minimalis (Rounded Accent Banner)
-    box.innerHTML = `
-      <div style="font-size: 8px; font-weight: bold; background: #0284c7; color: #fff; padding: 4px; text-align: center; border-radius: 6px; margin-bottom: 6px;">
-        PERMINTAAN TOKO (MODERN MINIMALIS)
-      </div>
-      <div style="display: flex; justify-content: space-between; font-size: 7px; margin-bottom: 6px; background: #f1f5f9; padding: 4px; border-radius: 4px;">
-        <div><b>NO SURAT:</b> <span style="color:#0284c7;">PRM/2026/001</span></div>
-        <div><b>TOKO:</b> TOKO UTAMA</div>
-      </div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 7px; margin-bottom: 6px;">
-        <tr style="background: #334155; color: #fff;">
-          <th style="padding: 2px;">NO</th>
-          <th style="padding: 2px;">TIPE BARANG</th>
-          <th style="padding: 2px;">QTY</th>
-        </tr>
-        <tr style="border-bottom: 1px solid #cbd5e1;">
-          <td style="text-align:center;">1</td>
-          <td>AC DANGIN 2 PK</td>
-          <td style="text-align:center;">1</td>
-        </tr>
-      </table>
-      <div style="display: flex; justify-content: space-around; font-size: 6.5px; text-align: center; margin-top: 6px;">
-        <div><b>PEMOHON</b><br><br>TOKO</div>
-        <div><b>DIPERIKSA</b><br><br>SERVICE</div>
-        <div><b>DISETUJUI</b><br><br>DM</div>
+function bukaModalPdfModels() {
+  currentlyPreviewedModel = getActivePdfModel();
+  renderFullPdfPreviewDocument(currentlyPreviewedModel);
+  updatePdfModelSelectorButtons();
+  document.getElementById('popupPdfModelsModal').style.display = 'flex';
+}
+
+function tutupModalPdfModels() {
+  document.getElementById('popupPdfModelsModal').style.display = 'none';
+}
+
+function switchPdfPreviewModel(modelId) {
+  currentlyPreviewedModel = modelId;
+  renderFullPdfPreviewDocument(currentlyPreviewedModel);
+  updatePdfModelSelectorButtons();
+}
+
+function konfirmasiGunakanModelPdf() {
+  localStorage.setItem(PDF_MODEL_KEY, currentlyPreviewedModel);
+  updateActivePdfModelBadge();
+  showNotif(`BERHASIL MENYIMPAN & MENGAKTIFKAN TEMPLATE PDF ${currentlyPreviewedModel.replace('_', ' ')}!`, 'success');
+  tutupModalPdfModels();
+}
+
+function updatePdfModelSelectorButtons() {
+  PDF_MODELS_DATA.forEach(m => {
+    const btn = document.getElementById(`btnPdf${m.id.replace('_', '')}`);
+    if (btn) {
+      if (m.id === currentlyPreviewedModel) {
+        btn.style.background = m.color === '#0f172a' ? '#0f172a' : (m.color || '#7c3aed');
+        btn.style.color = m.id === 'MODEL_3' ? '#fbbf24' : '#ffffff';
+        btn.style.border = '2px solid #ffffff';
+        btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+        btn.innerHTML = `<span class="material-symbols-rounded" style="vertical-align:middle; font-size:16px;">check_circle</span> ${m.title.split(':')[0]}`;
+      } else {
+        btn.style.background = 'var(--bg-header)';
+        btn.style.color = 'var(--text-main)';
+        btn.style.border = '1px solid var(--border-color)';
+        btn.style.boxShadow = 'none';
+        btn.innerHTML = `${m.title.split(':')[0]}`;
+      }
+    }
+  });
+}
+
+function renderFullPdfPreviewDocument(modelId) {
+  const container = document.getElementById('pdfModelFullPreviewArea');
+  if (!container) return;
+
+  const m = PDF_MODELS_DATA.find(x => x.id === modelId) || PDF_MODELS_DATA[0];
+
+  let tableHeaderBg = '#0284c7';
+  let headerTitleHtml = `
+    <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 6px; margin-bottom: 14px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
+      PERMINTAAN TOKO
+    </div>
+  `;
+
+  if (modelId === 'MODEL_2') {
+    tableHeaderBg = '#334155';
+    headerTitleHtml = `
+      <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; padding: 12px 18px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(2,132,199,0.25);">
+        PERMINTAAN TOKO
       </div>
     `;
-  } else if (m === 'MODEL_3') {
-    // Model 3: Elegant Corporate (Navy & Gold Frame)
-    box.innerHTML = `
-      <div style="font-size: 8px; font-weight: bold; background: #0f172a; color: #fbbf24; padding: 4px; text-align: center; border-bottom: 2px solid #fbbf24; margin-bottom: 6px;">
-        PERMINTAAN TOKO (ELEGANT CORPORATE)
-      </div>
-      <div style="display: flex; justify-content: space-between; font-size: 7px; margin-bottom: 6px; background: #fffbebfb; border: 1px solid #fef3c7; padding: 4px; border-radius: 4px;">
-        <div><b>NO SURAT:</b> <span style="color:#b45309;">PRM/2026/001</span></div>
-        <div><b>TOKO:</b> TOKO UTAMA</div>
-      </div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 7px; margin-bottom: 6px;">
-        <tr style="background: #0f172a; color: #fbbf24;">
-          <th style="padding: 2px;">NO</th>
-          <th style="padding: 2px;">TIPE BARANG</th>
-          <th style="padding: 2px;">QTY</th>
-        </tr>
-        <tr style="border-bottom: 1px dashed #cbd5e1;">
-          <td style="text-align:center;">1</td>
-          <td>AC DANGIN 2 PK</td>
-          <td style="text-align:center;">1</td>
-        </tr>
-      </table>
-      <div style="display: flex; justify-content: space-around; font-size: 6.5px; text-align: center; margin-top: 6px;">
-        <div><b>PEMOHON</b><br><br>TOKO</div>
-        <div><b>DIPERIKSA</b><br><br>SERVICE</div>
-        <div><b>DISETUJUI</b><br><br>DM</div>
+  } else if (modelId === 'MODEL_3') {
+    tableHeaderBg = '#0f172a';
+    headerTitleHtml = `
+      <div style="background: #0f172a; color: #fbbf24; padding: 14px 18px; border-radius: 8px; border-bottom: 4px solid #fbbf24; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; text-transform: uppercase;">
+        PERMINTAAN TOKO
       </div>
     `;
-  } else {
-    // Model 1: Standar Klasik
-    box.innerHTML = `
-      <div style="font-size: 8px; font-weight: bold; border-bottom: 1.5px solid #000; padding-bottom: 2px; text-align: center; margin-bottom: 6px;">
-        PERMINTAAN TOKO (STANDAR KLASIK)
+  } else if (modelId === 'MODEL_4') {
+    tableHeaderBg = '#059669';
+    headerTitleHtml = `
+      <div style="background: #059669; color: #ffffff; padding: 12px 18px; border-radius: 6px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; border-left: 6px solid #047857;">
+        PERMINTAAN TOKO
       </div>
-      <div style="display: flex; justify-content: space-between; font-size: 7px; margin-bottom: 6px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 4px;">
-        <div><b>NO SURAT:</b> <span style="color:#0284c7;">PRM/2026/001</span></div>
-        <div><b>TOKO:</b> TOKO UTAMA</div>
-      </div>
-      <table style="width: 100%; border-collapse: collapse; font-size: 7px; margin-bottom: 6px;">
-        <tr style="background: #0284c7; color: #fff;">
-          <th style="padding: 2px;">NO</th>
-          <th style="padding: 2px;">TIPE BARANG</th>
-          <th style="padding: 2px;">QTY</th>
-        </tr>
-        <tr style="border-bottom: 1px solid #cbd5e1;">
-          <td style="text-align:center;">1</td>
-          <td>AC DANGIN 2 PK</td>
-          <td style="text-align:center;">1</td>
-        </tr>
-      </table>
-      <div style="display: flex; justify-content: space-around; font-size: 6.5px; text-align: center; margin-top: 6px;">
-        <div><b>PEMOHON</b><br><br>TOKO</div>
-        <div><b>DIPERIKSA</b><br><br>SERVICE</div>
-        <div><b>DISETUJUI</b><br><br>DM</div>
+    `;
+  } else if (modelId === 'MODEL_5') {
+    tableHeaderBg = '#7c3aed';
+    headerTitleHtml = `
+      <div style="background: linear-gradient(135deg, #7c3aed, #4c1d95); color: #ffffff; padding: 14px 18px; border-radius: 12px; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; box-shadow: 0 6px 18px rgba(124,58,237,0.3);">
+        PERMINTAAN TOKO
       </div>
     `;
   }
+
+  container.innerHTML = `
+    <!-- FULL A4 PAPER CONTAINER FOR PREVIEW -->
+    <div style="background: #ffffff; color: #0f172a; width: 100%; max-width: 720px; margin: 0 auto; padding: 24px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); font-family: Arial, sans-serif; box-sizing: border-box;">
+      
+      <!-- BADGE INDIKATOR TEMPLATE MODEL -->
+      <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 8px; margin-bottom: 16px;">
+        <span style="font-size: 12px; font-weight: 800; color: ${m.color};">
+          <span class="material-symbols-rounded" style="vertical-align: middle; font-size: 16px;">style</span> ${m.title}
+        </span>
+        <span style="font-size: 11px; color: #64748b; font-weight: 600;">${m.desc}</span>
+      </div>
+
+      ${headerTitleHtml}
+
+      <!-- HEADER META METADATA -->
+      <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 8px; flex-wrap: wrap; gap: 8px;">
+        <div><b>NO SURAT:</b> <span style="color:${m.color}; font-weight:800;">PRM/2026/001</span></div>
+        <div><b>TOKO:</b> TOKO UTAMA BANDUNG</div>
+        <div><b>TANGGAL:</b> 01/08/2026</div>
+        <div><b>JENIS:</b> UNIT</div>
+      </div>
+
+      <!-- MAIN DATA TABLE -->
+      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px;">
+        <thead>
+          <tr style="background: ${tableHeaderBg}; color: #ffffff;">
+            <th style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center;">NO</th>
+            <th style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: left;">TIPE BARANG</th>
+            <th style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: left;">NO. SERI</th>
+            <th style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: left;">NAMA BARANG</th>
+            <th style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: left;">ALASAN</th>
+            <th style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center;">QTY</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:center; padding:8px; border:1px solid #cbd5e1;">1</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">AC DANGIN 2 PK</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">SN-889920112</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">UNIT INDOOR AC 2PK</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">KOMPRESOR BOCOR FREON</td>
+            <td style="text-align:center; padding:8px; border:1px solid #cbd5e1; font-weight:bold;">1</td>
+          </tr>
+          <tr>
+            <td style="text-align:center; padding:8px; border:1px solid #cbd5e1;">2</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">KULKAS 2 PINTO</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">SN-776655100</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">UNIT KULKAS INVERTER</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">KARET PINTU LONGGAR</td>
+            <td style="text-align:center; padding:8px; border:1px solid #cbd5e1; font-weight:bold;">1</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- DIGITAL TTD SIGNATURE SECTION -->
+      <div style="display: flex; justify-content: space-around; font-size: 11px; text-align: center; margin-top: 24px; font-weight: bold; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
+        <div>
+          <div>PEMOHON (TOKO)</div>
+          <div style="height: 45px; margin: 6px 0; color: #10b981; font-size: 10px; display: flex; align-items: center; justify-content: center; font-style: italic;">[ DIGITAL SIGNED ]</div>
+          <div style="font-weight: normal; text-decoration: underline;">TOKO UTAMA</div>
+        </div>
+        <div>
+          <div>DIPERIKSA (SERVICE)</div>
+          <div style="height: 45px; margin: 6px 0; color: #0284c7; font-size: 10px; display: flex; align-items: center; justify-content: center; font-style: italic;">[ SERVICE APPROVAL ]</div>
+          <div style="font-weight: normal; text-decoration: underline;">SERVICE BANDUNG</div>
+        </div>
+        <div>
+          <div>DISETUJUI (DM PUSAT)</div>
+          <div style="height: 45px; margin: 6px 0; color: #7c3aed; font-size: 10px; display: flex; align-items: center; justify-content: center; font-style: italic;">[ DM APPROVAL ]</div>
+          <div style="font-weight: normal; text-decoration: underline;">DISTRICT MANAGER</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // PDF DOCUMENT GENERATOR & PRINT
@@ -2682,7 +2796,6 @@ function bukaPdfModal(noSurat) {
   };
   const hodsAreaTitle = `HODS ${areaNameMap[req.area] || req.area}`;
 
-  let headerColor = '#0284c7';
   let tableHeaderBg = '#0284c7';
   let headerTitleHtml = `
     <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 6px; margin-bottom: 14px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
@@ -2691,19 +2804,31 @@ function bukaPdfModal(noSurat) {
   `;
 
   if (activeModel === 'MODEL_2') {
-    // Model 2: Modern Minimalis
     tableHeaderBg = '#334155';
     headerTitleHtml = `
-      <div style="background: linear-gradient(135deg, #0284c7, #0284c7); color: #ffffff; padding: 12px 18px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(2,132,199,0.25);">
-        SURAT PERMINTAAN TOKO
+      <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; padding: 12px 18px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(2,132,199,0.25);">
+        PERMINTAAN TOKO
       </div>
     `;
   } else if (activeModel === 'MODEL_3') {
-    // Model 3: Elegant Corporate (Navy & Gold)
     tableHeaderBg = '#0f172a';
     headerTitleHtml = `
       <div style="background: #0f172a; color: #fbbf24; padding: 14px 18px; border-radius: 8px; border-bottom: 4px solid #fbbf24; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; text-transform: uppercase;">
-        DOKUMEN RESMI PERMINTAAN TOKO
+        PERMINTAAN TOKO
+      </div>
+    `;
+  } else if (activeModel === 'MODEL_4') {
+    tableHeaderBg = '#059669';
+    headerTitleHtml = `
+      <div style="background: #059669; color: #ffffff; padding: 12px 18px; border-radius: 6px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; border-left: 6px solid #047857;">
+        PERMINTAAN TOKO
+      </div>
+    `;
+  } else if (activeModel === 'MODEL_5') {
+    tableHeaderBg = '#7c3aed';
+    headerTitleHtml = `
+      <div style="background: linear-gradient(135deg, #7c3aed, #4c1d95); color: #ffffff; padding: 14px 18px; border-radius: 12px; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; box-shadow: 0 6px 18px rgba(124,58,237,0.3);">
+        PERMINTAAN TOKO
       </div>
     `;
   }
@@ -2754,10 +2879,18 @@ function bukaPdfModal(noSurat) {
         <!-- FOTO BARANG PENDUKUNG (SAMA KOTAKNYA JIKA ADA FOTO) -->
         ${photoSection}
 
-        <!-- CATATAN -->
-        <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid ${tableHeaderBg}; border-radius: 0 8px 8px 0;">
-          <strong>CATATAN:</strong> ${req.catatan || '-'}
-        </div>
+        <!-- CATATAN (DITAMPILKAN HANYA JIKA ADA CATATAN ISINYA) -->
+        ${(() => {
+          const cTxt = (req.catatan || req.notes || req.rejectReason || '').trim();
+          if (cTxt && cTxt !== '-') {
+            return `
+              <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid ${tableHeaderBg}; border-radius: 0 8px 8px 0;">
+                <strong>CATATAN:</strong> ${cTxt}
+              </div>
+            `;
+          }
+          return '';
+        })()}
       </div>
 
       <div>
@@ -2939,8 +3072,13 @@ let fastChatInterval = null;
 
 // LIVE CHAT WIDGET
 function bukaBantuan() {
-  document.getElementById('helpButton').style.display = 'none';
-  document.getElementById('popupBantuan').classList.add('show');
+  const popup = document.getElementById('popupBantuan');
+  const btnHelp = document.getElementById('helpButton');
+  if (btnHelp) btnHelp.style.display = 'none';
+  if (popup) {
+    popup.style.display = 'block';
+    popup.classList.add('show');
+  }
 
   // Activate 300ms Sub-second Fast Chat Sync
   pullCentralCloudDB();
@@ -2972,8 +3110,15 @@ function bukaBantuan() {
 }
 
 function tutupBantuan() {
-  document.getElementById('popupBantuan').classList.remove('show');
-  document.getElementById('helpButton').style.display = 'flex';
+  const popup = document.getElementById('popupBantuan');
+  const btnHelp = document.getElementById('helpButton');
+  if (popup) {
+    popup.style.display = 'none';
+    popup.classList.remove('show');
+  }
+  if (btnHelp && currentUser) {
+    btnHelp.style.display = 'flex';
+  }
   if (fastChatInterval) {
     clearInterval(fastChatInterval);
     fastChatInterval = null;
