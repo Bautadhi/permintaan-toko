@@ -1715,10 +1715,33 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid var(--border-color);
 }
 
-.popupTitleNotif { background: var(--primary); color: #fff; padding: 12px; text-align: center; }
-#popupNotifMessage { padding: 18px; text-align: center; line-height: 1.5; }
-.popupFooter { display: flex; justify-content: center; padding-bottom: 14px; }
-.btnOk { width: 100px; height: 36px; border: none; border-radius: 8px; background: var(--primary); color: #fff; cursor: pointer; }
+/* TIGHT FLUSH CARD-IN-CARD EDGE FIT (1mm SPACING ~ 3px-4px) */
+.box .box,
+.box-full .box,
+.popupBox .box,
+.popupBoxDetail .box,
+.detailRow,
+.lastItem,
+.cardStat,
+.preset-box,
+.photo-preview-card {
+  margin: 3px 0 !important;
+  padding: 10px 10px !important;
+  border-radius: 10px !important;
+  box-sizing: border-box !important;
+}
+
+.box, .box-full, .popupBoxDetail, .popupBox {
+  padding: 12px 10px !important;
+  box-sizing: border-box !important;
+}
+
+#lastData {
+  display: flex;
+  flex-direction: column;
+  gap: 4px !important;
+  padding: 2px 0 !important;
+}
 
 /* RESPONSIVE & PRINT MEDIA QUERY */
 @media(max-width: 768px) {

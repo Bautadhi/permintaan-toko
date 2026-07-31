@@ -1604,7 +1604,7 @@ function hapusRow(btn) {
   if (container.children.length === 0) tambahRow();
 }
 
-function kompresiFoto(file, maxDimension = 360, quality = 0.25) {
+function kompresiFoto(file, maxDimension = 720, quality = 0.65) {
   return new Promise((resolve) => {
     if (!file || !file.type.startsWith('image/')) {
       resolve('');
@@ -1651,7 +1651,7 @@ function pilihFoto() {
 
 async function uploadPhotoToDriveCloud(file) {
   try {
-    const compressedBase64 = await kompresiFoto(file, 480, 0.45);
+    const compressedBase64 = await kompresiFoto(file, 720, 0.65);
     if (!compressedBase64) return '';
 
     const payload = {
@@ -1673,10 +1673,10 @@ async function uploadPhotoToDriveCloud(file) {
         return data.url;
       }
     }
-    return await kompresiFoto(file, 200, 0.2);
+    return await kompresiFoto(file, 400, 0.4);
   } catch (err) {
-    console.warn('Upload Drive Error, fallback tiny base64:', err);
-    return await kompresiFoto(file, 200, 0.2);
+    console.warn('Upload Drive Error, fallback base64:', err);
+    return await kompresiFoto(file, 400, 0.4);
   }
 }
 
@@ -2325,9 +2325,8 @@ function lihatDetail(noSurat, fromDashboard = false) {
   const msgBox = document.getElementById('popupMessage');
 
   let headerInfoHtml = `
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom:10px; margin-bottom:14px; font-size:12.5px; color:var(--text-main); flex-wrap:wrap; gap:8px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom:10px; margin-bottom:14px; font-size:13px; color:var(--text-main);">
       <div style="text-align:left;">NO SURAT : <span style="color:var(--primary); font-weight:bold;">${req.noSurat}</span></div>
-      <div style="text-align:center;">TANGGAL : <span style="font-weight:bold;">${formatDateDDMMYYYYString(req.tanggal)}</span></div>
       <div style="text-align:right;">TOKO : <span style="font-weight:bold;">${req.toko}</span></div>
     </div>
   `;
@@ -2349,62 +2348,9 @@ function lihatDetail(noSurat, fromDashboard = false) {
   let bottomActionsHtml = '';
 
   let actionButtons = [];
-  const role = currentUser.category;
-
-  if (role === 'SERVICE') {
-    if (req.status === 'PENDING' && !req.serviceApprove) {
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnApprove" onclick="closeDetail(); approveService('${req.noSurat}');">
-          <span class="material-symbols-rounded">check_circle</span> APPROVE SERVICE
-        </button>
-      `);
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnReject" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'SERVICE');">
-          <span class="material-symbols-rounded">cancel</span> REJECT SERVICE
-        </button>
-      `);
-    } else if (req.status === 'APPROVE') {
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnDone" onclick="closeDetail(); doneService('${req.noSurat}');">
-          <span class="material-symbols-rounded">task_alt</span> SET DONE
-        </button>
-      `);
-    }
-  } else if (role === 'DM') {
-    if (req.status === 'PENDING' && req.serviceApprove) {
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnApprove" onclick="closeDetail(); approveDM('${req.noSurat}');">
-          <span class="material-symbols-rounded">check_circle</span> APPROVE DM
-        </button>
-      `);
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnReject" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
-          <span class="material-symbols-rounded">cancel</span> REJECT DM
-        </button>
-      `);
-    }
-  }
-
-  const isPhotoHidden = (req.status === 'APPROVE' || req.status === 'DONE' || req.status === 'REJECT');
-  if (req.photos && req.photos.length > 0 && !isPhotoHidden) {
-    actionButtons.push(`
-      <button type="button" class="btnIcon btnView" onclick="lihatFotoByNoSurat('${req.noSurat}');">
-        <span class="material-symbols-rounded">image</span> FOTO
-      </button>
-    `);
-  }
-
   const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
-  if (req.status === 'APPROVE' || req.status === 'DONE' || (isAdminUser && req.status !== 'REJECT')) {
-    actionButtons.push(`
-      <button type="button" class="btnIcon btnPdf" onclick="bukaPdfModal('${req.noSurat}');">
-        <span class="material-symbols-rounded">picture_as_pdf</span> CETAK PDF
-      </button>
-    `);
-  }
-
   const isCreator = (req.userId === currentUser.id || req.createdBy === currentUser.fullName);
-  const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') && (isCreator || currentUser.category === 'SERVICE' || isAdminUser);
+  const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') || isCreator || currentUser.category === 'SERVICE' || isAdminUser;
 
   if (canEditDelete) {
     actionButtons.push(`
