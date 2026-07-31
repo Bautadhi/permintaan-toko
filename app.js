@@ -502,6 +502,10 @@ async function pullCentralCloudDB() {
     const data = await res.json();
     if (!data) return;
 
+    if (data.scriptUrl && typeof data.scriptUrl === 'string' && data.scriptUrl.startsWith('http')) {
+      localStorage.setItem(SCRIPT_URL_STORAGE_KEY, data.scriptUrl);
+    }
+
     const dataHash = JSON.stringify(data);
     if (dataHash === lastCloudSyncHash) return;
     lastCloudSyncHash = dataHash;
@@ -633,6 +637,7 @@ async function pullCentralCloudDB() {
 async function pushCentralCloudDB() {
   isPushingCloud = true;
   const payload = {
+    scriptUrl: getGoogleSheetUrl(),
     requests: getRequestsFromDB(),
     users: getUsersFromDB(),
     deletedRequests: JSON.parse(localStorage.getItem(DELETED_REQUESTS_KEY) || '[]'),
