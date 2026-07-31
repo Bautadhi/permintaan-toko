@@ -1922,7 +1922,7 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
         requests[idx].photos = [...currentPhotos];
         saveRequestsToDB(requests);
         bersihkanForm();
-        showNotif(`PERMINTAAN #${editNoSurat} BERHASIL DIPERBARUI!`, 'info');
+        showNotif(`PERMINTAAN #${editNoSurat} BERHASIL DIPERBARUI!`, 'success');
       }
     } else {
       const now = new Date();
@@ -1956,7 +1956,7 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
       requests.unshift(newRecord);
       saveRequestsToDB(requests);
       bersihkanForm();
-      showNotif(`PERMINTAAN #${noSurat} BERHASIL DISIMPAN!`, 'info');
+      showNotif(`PERMINTAAN #${noSurat} BERHASIL DISIMPAN!`, 'success');
 
       // WA AUTOMATION TRIGGER 1: NEW REQUEST CREATED -> NOTIFY SERVICE IN AREA
       tambahNotifikasiSistem(['SERVICE'], currentUser.area, `PERMINTAAN BARU #${noSurat} DARI ${toko} (${currentUser.area}). MOHON SEGERA DIPERIKSA DI APLIKASI.`, noSurat);
