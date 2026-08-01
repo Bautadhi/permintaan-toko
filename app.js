@@ -2081,7 +2081,6 @@ function filterRiwayat() {
       <th>NO SURAT</th>
       <th>TOKO</th>
       <th>JENIS</th>
-      <th>DETAIL PERMINTAAN & ALASAN</th>
       <th>STATUS</th>
       <th>CATATAN</th>
     </tr>
@@ -2090,7 +2089,7 @@ function filterRiwayat() {
   tbody.innerHTML = '';
 
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">BELUM ADA DATA PERMINTAAN.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:var(--text-muted);">BELUM ADA DATA PERMINTAAN.</td></tr>`;
     return;
   }
 
@@ -2165,23 +2164,13 @@ function filterRiwayat() {
       `;
     }
 
-    let itemsDetailText = (r.items || []).map((i, idx) => {
-      let dusText = i.dus ? ` | Dus:${i.dus}` : '';
-      return `<div style="padding:3px 0; border-bottom:1px dashed var(--border-color); font-size:12px; line-height:1.4;">
-        <strong>${idx + 1}. ${i.type || '-'}</strong> (SN: <span style="font-family:monospace; color:var(--primary);">${i.seri || '-'}${dusText}</span>)<br>
-        <span style="color:var(--text-main);">${i.barang || '-'}</span> <small style="color:var(--text-muted);">[Alasan: ${i.alasan || '-'}]</small> 
-        <strong style="color:var(--primary);">(Qty: ${i.qty || 1})</strong>
-      </div>`;
-    }).join('');
-
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><div style="display:flex; gap:4px; align-items:center;">${aksi}</div></td>
       <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
       <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
       <td>${r.toko} <div style="font-size:11px; color:var(--text-muted);">${r.area}</div></td>
-      <td><span class="badgeStatus badge-pending" style="font-weight:600;">${r.jenis || 'DEFAULT'}</span></td>
-      <td style="max-width:320px; word-break:break-word;">${itemsDetailText}</td>
+      <td style="white-space:nowrap; font-size:13px; font-family:inherit; color:var(--text-main); font-weight:normal;">${r.jenis || 'DEFAULT'}</td>
       <td>${getBadgeStatus(r.status)}</td>
       <td style="word-break:break-word; white-space:normal; color:var(--text-main);">${r.catatan || '-'}</td>
     `;
