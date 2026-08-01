@@ -598,9 +598,12 @@
         </button>
       </div>
 
-      <div class="akunButton">
+      <div class="akunButton" style="display:flex; align-items:center; gap:8px;">
         <button type="button" class="btnBatal" onclick="tutupAkun()">BATAL</button>
         <button type="button" class="btnSimpan" onclick="simpanAkun()">SIMPAN</button>
+        <button type="button" class="theme-icon-btn" onclick="toggleTheme()" title="GANTI TEMA" style="width:42px; height:42px; border-radius:12px; border:1px solid var(--border-color); background:var(--bg-header); color:var(--primary); display:flex; align-items:center; justify-content:center; padding:0; cursor:pointer;">
+          <span class="material-symbols-rounded">dark_mode</span>
+        </button>
       </div>
 
       <button type="button" class="btnLogout" onclick="logout()">LOGOUT KELUAR</button>

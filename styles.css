@@ -1440,13 +1440,14 @@ input:focus, select:focus, textarea:focus {
 }
 
 .popupNotifBody p,
-#popupNotifText {
+#popupNotifText,
+#popupNotifMessage {
   margin: 0 !important;
   padding: 5mm !important;
   font-size: 14.5px !important;
   font-weight: 700 !important;
   line-height: 1.55 !important;
-  color: #000000 !important;
+  color: #f8fafc !important;
   letter-spacing: 0.2px !important;
 }
 
@@ -1600,6 +1601,17 @@ input:focus, select:focus, textarea:focus {
 
 .popupNotifCard.notif-info .btnOkNotif {
   background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+}
+
+.popupNotifCard.notif-success .popupNotifBody p,
+.popupNotifCard.notif-success #popupNotifMessage,
+.popupNotifCard.notif-warning .popupNotifBody p,
+.popupNotifCard.notif-warning #popupNotifMessage,
+.popupNotifCard.notif-error .popupNotifBody p,
+.popupNotifCard.notif-error #popupNotifMessage,
+.popupNotifCard.notif-info .popupNotifBody p,
+.popupNotifCard.notif-info #popupNotifMessage {
+  color: #f8fafc !important;
 }
 
 /* COMPACT POPUP DIMENSIONS FOR CONFIRM & REJECT POPUPS */

@@ -72,11 +72,49 @@ function getSystemNotifications() {
   return JSON.parse(appStorage.getItem(NOTIFICATIONS_DB_KEY) || '[]');
 }
 
+function shouldEmitImportantNotification(targetRoles, targetArea, message, noSurat = '') {
+  const normalized = String(message || '').trim();
+  if (!normalized) return false;
+
+  const importantPatterns = [
+    'PERMINTAAN BARU',
+    'DISETUJUI SERVICE',
+    'APPROVAL DM',
+    'MOHON APPROVAL DM',
+    'DITOLAK',
+    'SELESAI (DONE)',
+    'REMINDER PENDING'
+  ];
+
+  const containsImportant = importantPatterns.some(pattern => normalized.toUpperCase().includes(pattern));
+  if (!containsImportant) return false;
+
+  const noSuratKey = String(noSurat || '').trim();
+  if (noSuratKey && noSuratKey.startsWith('PRMT/')) {
+    return true;
+  }
+
+  return true;
+}
+
 function tambahNotifikasiSistem(targetRoles, targetArea, message, noSurat = '') {
+  if (!shouldEmitImportantNotification(targetRoles, targetArea, message, noSurat)) {
+    return;
+  }
+
   const notifs = getSystemNotifications();
+  const normalizedRoles = Array.isArray(targetRoles) ? targetRoles : [targetRoles];
+  const dedupeKey = `${String(noSurat || '').trim()}|${String(targetArea || 'ALL')}|${String(message || '').trim()}`;
+  const alreadyExists = notifs.some(n => {
+    const nKey = `${String(n.noSurat || '').trim()}|${String(n.targetArea || 'ALL')}|${String(n.message || '').trim()}`;
+    return nKey === dedupeKey;
+  });
+
+  if (alreadyExists) return;
+
   const newNotif = {
     id: `NTF-${Date.now()}-${Math.floor(Math.random()*1000)}`,
-    targetRoles: Array.isArray(targetRoles) ? targetRoles : [targetRoles],
+    targetRoles: normalizedRoles,
     targetArea: targetArea || 'ALL',
     message: message,
     noSurat: noSurat,
@@ -146,6 +184,7 @@ function bukaNotificationModal() {
   loadNotificationList();
   popup.style.display = 'flex';
   popup.classList.add('show');
+  pushPopupHistoryState();
 }
 
 function tutupNotificationModal() {
@@ -541,22 +580,31 @@ function checkAndTriggerPendingReminders() {
   const requests = getRequestsFromDB();
   if (!requests.length) return;
 
+  const notifs = getSystemNotifications();
   const pendingServiceReqs = requests.filter(r => r.status === 'PENDING' && !r.serviceApprove);
   const pendingDMReqs = requests.filter(r => r.status === 'PENDING' && r.serviceApprove);
 
   let hasNewReminder = false;
   if (pendingServiceReqs.length > 0) {
     pendingServiceReqs.forEach(r => {
-      tambahNotifikasiSistem(['SERVICE'], r.area, `REMINDER PENDING: PERMINTAAN #${r.noSurat} DARI TOKO ${r.toko} BELUM DI-APPROVE SERVICE!`, r.noSurat);
+      const message = `REMINDER PENDING: PERMINTAAN #${r.noSurat} DARI TOKO ${r.toko} BELUM DI-APPROVE SERVICE!`;
+      const duplicate = notifs.some(n => n.noSurat === r.noSurat && String(n.message).includes('REMINDER PENDING') && String(n.message).includes('SERVICE'));
+      if (!duplicate) {
+        tambahNotifikasiSistem(['SERVICE'], r.area, message, r.noSurat);
+        hasNewReminder = true;
+      }
     });
-    hasNewReminder = true;
   }
 
   if (pendingDMReqs.length > 0) {
     pendingDMReqs.forEach(r => {
-      tambahNotifikasiSistem(['DM'], 'ALL', `REMINDER PENDING: PERMINTAAN #${r.noSurat} DARI TOKO ${r.toko} BELUM DI-APPROVE DM!`, r.noSurat);
+      const message = `REMINDER PENDING: PERMINTAAN #${r.noSurat} DARI TOKO ${r.toko} BELUM DI-APPROVE DM!`;
+      const duplicate = notifs.some(n => n.noSurat === r.noSurat && String(n.message).includes('REMINDER PENDING') && String(n.message).includes('DM'));
+      if (!duplicate) {
+        tambahNotifikasiSistem(['DM'], 'ALL', message, r.noSurat);
+        hasNewReminder = true;
+      }
     });
-    hasNewReminder = true;
   }
 
   if (hasNewReminder) {
@@ -820,7 +868,12 @@ function normalizeUserList(users) {
   return cleaned;
 }
 
-function clearAllAppCacheAndData() {
+function clearAllAppCacheAndData(force = false) {
+  if (!force) {
+    console.warn('clearAllAppCacheAndData blocked: destructive reset disabled to protect active app data.');
+    return false;
+  }
+
   try {
     if (window.appStorage) {
       window.appStorage.clear();
@@ -884,6 +937,8 @@ function clearAllAppCacheAndData() {
     window.appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify([]));
     window.appStorage.setItem(DELETED_USERS_KEY, JSON.stringify([]));
   }
+
+  return true;
 }
 
 function getAdminScriptUrl() {
@@ -918,7 +973,10 @@ function initDatabase() {
     [CHAT_DB_KEY]: JSON.stringify([]),
     [CHAT_ROOM_DB_KEY]: JSON.stringify([]),
     [TTD_DB_KEY]: JSON.stringify({}),
-    [KODE_UNIT_MAP_KEY]: JSON.stringify({})
+    [KODE_UNIT_MAP_KEY]: JSON.stringify({}),
+    [FEATURE_PHOTOS_KEY]: 'true',
+    [NOTIFICATIONS_DB_KEY]: JSON.stringify([]),
+    [DELETED_USERS_KEY]: JSON.stringify([])
   };
 
   Object.entries(safeDefaults).forEach(([key, value]) => {
@@ -929,6 +987,10 @@ function initDatabase() {
 
   if (currentSession) appStorage.setItem(SESSION_KEY, currentSession);
   if (currentTheme) appStorage.setItem(THEME_KEY, currentTheme);
+
+  if (typeof updatePhotoSectionVisibility === 'function') {
+    updatePhotoSectionVisibility();
+  }
 
   if (typeof caches !== 'undefined' && caches.keys) {
     caches.keys().then(names => names.forEach(name => caches.delete(name))).catch(() => {});
@@ -1006,16 +1068,16 @@ function loadFonteToken() {
 }
 
 function kirimNotifikasiWA(targetPhone, message) {
+  if (!targetPhone || targetPhone === '-') return false;
+
   const token = getFonteToken();
   if (!token) {
     console.log(`[WA NOTIF SIMULATED - TOKEN BELUM DIISI] To: ${targetPhone} Msg: ${message}`);
-    return;
+    return false;
   }
 
-  if (!targetPhone || targetPhone === '-') return;
-
   let cleanPhone = String(targetPhone).replace(/[^0-9]/g, '');
-  if (!cleanPhone) return;
+  if (!cleanPhone) return false;
   if (cleanPhone.startsWith('0')) {
     cleanPhone = '62' + cleanPhone.slice(1);
   } else if (!cleanPhone.startsWith('62')) {
@@ -1038,6 +1100,8 @@ function kirimNotifikasiWA(targetPhone, message) {
   }).catch(err => {
     console.error('[FONTE WA API ERROR]:', err);
   });
+
+  return true;
 }
 
 // 10 THEME ENGINE
@@ -1058,7 +1122,7 @@ function toggleTheme() {
 }
 
 function updateThemeIcon() {
-  const iconSpans = document.querySelectorAll('.theme-toggle-btn span, .popupThemeToggleBtn span');
+  const iconSpans = document.querySelectorAll('.theme-toggle-btn span, .popupThemeToggleBtn span, .theme-icon-btn span, .theme-toggle-inline span');
   const currentIcon = THEME_MODES[currentThemeIndex] ? THEME_MODES[currentThemeIndex].icon : 'palette';
   iconSpans.forEach(el => {
     if (el) el.textContent = currentIcon;
@@ -1204,13 +1268,18 @@ function showPage(pageId) {
 let mobileBackspaceCount = 0;
 let mobileBackspaceTimer = null;
 
+function pushPopupHistoryState() {
+  try {
+    history.pushState({ modalOpen: true, page: getCurrentActivePageId() }, '', location.href);
+  } catch (e) {}
+}
+
 function initMobileBackButtonEngine() {
   try {
     history.pushState({ page: 'dashboardPage' }, '', location.href);
   } catch(e) {}
 
   window.addEventListener('popstate', (e) => {
-    // 1. If any modal is open -> Close modal first
     const openModals = [
       document.getElementById('popupDetail'),
       document.getElementById('popupNotifList'),
@@ -1219,7 +1288,10 @@ function initMobileBackButtonEngine() {
       document.getElementById('popupUserForm'),
       document.getElementById('pdfModal'),
       document.getElementById('rejectOverlay'),
-      document.getElementById('popupTTD')
+      document.getElementById('popupTTD'),
+      document.getElementById('popupTambahToko'),
+      document.getElementById('popupPdfModelsModal'),
+      document.getElementById('confirmOverlay')
     ];
 
     let closedAnyModal = false;
@@ -1238,7 +1310,6 @@ function initMobileBackButtonEngine() {
 
     const currentActivePage = getCurrentActivePageId();
 
-    // 2. IF NOT ON DASHBOARD -> INSTANTLY RETURN TO DASHBOARD PAGE
     if (currentActivePage !== 'dashboardPage' && currentActivePage !== 'loginPage') {
       pindahHalaman('dashboardPage', false);
       try { history.pushState({ page: 'dashboardPage' }, '', location.href); } catch(err) {}
@@ -1246,7 +1317,6 @@ function initMobileBackButtonEngine() {
       return;
     }
 
-    // 3. IF ALREADY ON DASHBOARD -> COUNT BACKSPACE 5 TIMES BEFORE EXIT (SILENT)
     if (currentActivePage === 'dashboardPage') {
       mobileBackspaceCount++;
 
@@ -2365,6 +2435,7 @@ function tolakServiceModal(noSurat, roleType) {
   document.getElementById('rejectReason').value = '';
   document.getElementById('rejectTitle').textContent = `TOLAK PERMINTAAN`;
   document.getElementById('rejectOverlay').style.display = 'flex';
+  pushPopupHistoryState();
 }
 
 function closeReject() {
@@ -2676,6 +2747,7 @@ function bukaModalPdfModels() {
   renderFullPdfPreviewDocument(currentlyPreviewedModel);
   updatePdfModelSelectorButtons();
   document.getElementById('popupPdfModelsModal').style.display = 'flex';
+  pushPopupHistoryState();
 }
 
 function tutupModalPdfModels() {
@@ -2701,13 +2773,13 @@ function updatePdfModelSelectorButtons() {
     if (btn) {
       if (m.id === currentlyPreviewedModel) {
         btn.style.background = m.color === '#0f172a' ? '#0f172a' : (m.color || '#7c3aed');
-        btn.style.color = '#000000';
+        btn.style.color = '#111827';
         btn.style.border = '2px solid #ffffff';
         btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
         btn.innerHTML = `<span class="material-symbols-rounded" style="vertical-align:middle; font-size:16px;">check_circle</span> ${m.title.split(':')[0]}`;
       } else {
         btn.style.background = 'var(--bg-header)';
-        btn.style.color = 'var(--text-main)';
+        btn.style.color = '#111827';
         btn.style.border = '1px solid var(--border-color)';
         btn.style.boxShadow = 'none';
         btn.innerHTML = `${m.title.split(':')[0]}`;
@@ -3072,6 +3144,7 @@ function bukaTTD() {
     return;
   }
   document.getElementById('popupTTD').classList.add('show');
+  pushPopupHistoryState();
   setTimeout(() => {
     initCanvasTTD();
     loadTTD();
@@ -3104,18 +3177,36 @@ function initCanvasTTD() {
   canvasTTD.ontouchend = stopDraw;
 }
 
+function getCanvasPointFromEvent(e) {
+  if (!canvasTTD) return { x: 0, y: 0 };
+
+  const rect = canvasTTD.getBoundingClientRect();
+  const clientX = e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+  const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+
+  const scaleX = canvasTTD.width / rect.width;
+  const scaleY = canvasTTD.height / rect.height;
+
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
 function startDraw(e) {
   isDrawing = true;
-  lastX = e.offsetX;
-  lastY = e.offsetY;
+  const point = getCanvasPointFromEvent(e);
+  lastX = point.x;
+  lastY = point.y;
   ctxTTD.beginPath();
   ctxTTD.moveTo(lastX, lastY);
 }
 
 function draw(e) {
   if (!isDrawing) return;
-  const x = e.offsetX;
-  const y = e.offsetY;
+  const point = getCanvasPointFromEvent(e);
+  const x = point.x;
+  const y = point.y;
   const mx = (lastX + x) / 2;
   const my = (lastY + y) / 2;
   ctxTTD.quadraticCurveTo(lastX, lastY, mx, my);
@@ -3126,9 +3217,9 @@ function draw(e) {
 
 function startDrawTouch(e) {
   e.preventDefault();
-  const rect = canvasTTD.getBoundingClientRect();
-  lastX = e.touches[0].clientX - rect.left;
-  lastY = e.touches[0].clientY - rect.top;
+  const point = getCanvasPointFromEvent(e.touches[0] || e);
+  lastX = point.x;
+  lastY = point.y;
   isDrawing = true;
   ctxTTD.beginPath();
   ctxTTD.moveTo(lastX, lastY);
@@ -3137,9 +3228,9 @@ function startDrawTouch(e) {
 function drawTouch(e) {
   e.preventDefault();
   if (!isDrawing) return;
-  const rect = canvasTTD.getBoundingClientRect();
-  const x = e.touches[0].clientX - rect.left;
-  const y = e.touches[0].clientY - rect.top;
+  const point = getCanvasPointFromEvent(e.touches[0] || e);
+  const x = point.x;
+  const y = point.y;
   const mx = (lastX + x) / 2;
   const my = (lastY + y) / 2;
   ctxTTD.quadraticCurveTo(lastX, lastY, mx, my);
@@ -3816,6 +3907,7 @@ function bukaAkun() {
   }
 
   document.getElementById('popupAkun').classList.add('show');
+  pushPopupHistoryState();
 }
 
 function tutupAkun() {
@@ -3846,7 +3938,22 @@ function simpanAkun() {
       appStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
 
       showNotif('PROFIL AKUN BERHASIL DIPERBARUI!', 'info');
-      tutupAkun();
+
+      const akunArea = document.getElementById('akunArea');
+      if (akunArea) akunArea.value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
+
+      const akunKategori = document.getElementById('akunKategori');
+      if (akunKategori) akunKategori.value = currentUser.category;
+
+      const akunNama = document.getElementById('akunNama');
+      if (akunNama) akunNama.value = currentUser.fullName;
+
+      const akunHP = document.getElementById('akunHP');
+      if (akunHP) akunHP.value = currentUser.phone || '-';
+
+      const akunPassword = document.getElementById('akunPassword');
+      if (akunPassword) akunPassword.value = '';
+
       loadDashboard();
       if (document.getElementById('userTableBody')) {
         loadUsersManagement();
@@ -3869,6 +3976,7 @@ function bukaModalTambahToko() {
   if (popup) {
     popup.style.display = 'flex';
     popup.classList.add('show');
+    pushPopupHistoryState();
   }
 }
 
@@ -4097,6 +4205,7 @@ function showConfirm(msg, callback) {
   document.getElementById('confirmMessage').innerHTML = msg;
   confirmCallback = callback;
   document.getElementById('confirmOverlay').style.display = 'flex';
+  pushPopupHistoryState();
 }
 
 function closeConfirm() {

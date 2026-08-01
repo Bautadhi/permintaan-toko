@@ -32,15 +32,25 @@ let writeTimer = null;
 let realtimeChannel = null;
 let onDataChangeCallback = null;
 
-/** In-memory cache — pengganti localStorage */
+/** In-memory cache — digunakan sebagai fallback, tetapi data utama disimpan di localStorage */
 const memoryCache = new Map();
 
-/** Session & tema disimpan di memori saja (bukan localStorage) */
+/** Session & tema disimpan di localStorage agar tidak hilang saat reload */
 const sessionKey = window.SESSION_KEY || 'STORE_ACTIVE_SESSION_V7_CLEAN';
 const themeKey = window.THEME_KEY || 'STORE_ACTIVE_THEME_V7_CLEAN';
 
 const appStorage = {
   getItem(key) {
+    try {
+      const localValue = window.localStorage ? window.localStorage.getItem(key) : null;
+      if (localValue !== null) {
+        memoryCache.set(key, localValue);
+        return localValue;
+      }
+    } catch (err) {
+      // fall through to memory cache
+    }
+
     if (!memoryCache.has(key)) return null;
     const val = memoryCache.get(key);
     return typeof val === 'string' ? val : JSON.stringify(val);
@@ -49,11 +59,25 @@ const appStorage = {
   setItem(key, value) {
     const strVal = String(value);
     memoryCache.set(key, strVal);
+    try {
+      if (window.localStorage) {
+        window.localStorage.setItem(key, strVal);
+      }
+    } catch (err) {
+      console.warn('localStorage write failed:', err.message);
+    }
     schedulePersist(key, parseStorageValue(strVal));
   },
 
   removeItem(key) {
     memoryCache.delete(key);
+    try {
+      if (window.localStorage) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (err) {
+      console.warn('localStorage remove failed:', err.message);
+    }
     scheduleDelete(key);
   },
 
@@ -62,9 +86,20 @@ const appStorage = {
     [...memoryCache.keys()].forEach(k => {
       if (!keepKeys.has(k)) {
         memoryCache.delete(k);
-        scheduleDelete(k);
       }
     });
+
+    try {
+      if (window.localStorage) {
+        Object.keys(window.localStorage).forEach(k => {
+          if (!keepKeys.has(k) && (String(k).startsWith('STORE_') || String(k).startsWith('FIREBASE_'))) {
+            window.localStorage.removeItem(k);
+          }
+        });
+      }
+    } catch (err) {
+      console.warn('localStorage clear failed:', err.message);
+    }
   }
 };
 
