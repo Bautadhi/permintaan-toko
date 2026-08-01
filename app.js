@@ -475,7 +475,7 @@ function checkAndTriggerPendingReminders() {
 const SCRIPT_URL_STORAGE_KEY = 'STORE_SCRIPT_URL_V8';
 
 function getGoogleSheetUrl() {
-  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbyc5ZXMmfR5lPX3Xbp7yAcHuN4x4Dl3OWwOiTKx9ydSgh40wPq_bhwDu9YQ7a5frcJebQ/exec';
+  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbwWP6fHqWzF-oyJgFabQn680n0PpFIxni0QH1rtrOs5Yfir0V2OSlgItR23P1fw9ktIig/exec';
 }
 
 function simpanAdminScriptUrl() {
