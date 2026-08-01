@@ -288,23 +288,7 @@ body {
 
 /* FLOATING THEME TOGGLE BUTTON (STANDARDIZED KOTAK PRESI / SQUARE BOX 48X48PX) */
 .theme-toggle-btn {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 999999999 !important;
-  width: 48px !important;
-  height: 48px !important;
-  border-radius: 12px !important;
-  background: var(--primary);
-  color: #ffffff;
-  border: 1.5px solid var(--border-color) !important;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
-  transition: transform 0.2s, background 0.2s;
-  box-sizing: border-box !important;
+  display: none !important;
 }
 
 .draggable-btn {
@@ -854,6 +838,13 @@ input:focus, select:focus, textarea:focus {
   color: var(--primary) !important;
   transform: scale(1.15);
   transition: transform 0.2s ease;
+}
+
+#pdfModelSelectorNav .btnIcon,
+#pdfModelSelectorNav .btnIcon span,
+#pdfModelSelectorNav button,
+#pdfModelSelectorNav button span {
+  color: #111827 !important;
 }
 
 /* FLOATING THEME TOGGLE BUTTON (ALWAYS ON TOP OF ALL POPUPS - ALWAYS CLICKABLE) */
