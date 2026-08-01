@@ -471,37 +471,25 @@ function checkAndTriggerPendingReminders() {
 
 /* ======================================================
    CENTRAL ONLINE CLOUD DATABASE SYNC ENGINE (MULTI-DEVICE & WORLDWIDE)
+   100% ONLINE WEB CLOUD DATABASE - ZERO GOOGLE SHEETS DEPENDENCY
    ====================================================== */
-const SCRIPT_URL_STORAGE_KEY = 'STORE_SCRIPT_URL_V8';
+const ONLINE_CLOUD_DB_URL = 'https://happening-albert-vessels-pic.trycloudflare.com';
+
+function bersihkanCacheAplikasiWeb() {
+  const staleKeys = ['STORE_SCRIPT_URL_V8', 'FIREBASE_CUSTOM_CONFIG_V1', 'CLOUD_SYNC_HASH_V1'];
+  staleKeys.forEach(k => localStorage.removeItem(k));
+  if (typeof caches !== 'undefined' && caches.keys) {
+    caches.keys().then(names => {
+      names.forEach(name => caches.delete(name));
+    }).catch(() => {});
+  }
+}
 
 function getGoogleSheetUrl() {
-  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://happening-albert-vessels-pic.trycloudflare.com';
+  return ONLINE_CLOUD_DB_URL;
 }
 
-function simpanAdminScriptUrl() {
-  const input = document.getElementById('adminScriptUrlInput');
-  if (!input) return;
-  const val = input.value.trim();
-  if (val) {
-    localStorage.setItem(SCRIPT_URL_STORAGE_KEY, val);
-    showNotif('URL GOOGLE APPS SCRIPT BERHASIL DISIMPAN & DIPERBARUI!', 'info');
-    pushCentralCloudDB();
-  } else {
-    localStorage.removeItem(SCRIPT_URL_STORAGE_KEY);
-    showNotif('URL SCRIPT DIKEMBALIKAN KE DEFAULT!', 'info');
-  }
-}
-window.simpanAdminScriptUrl = simpanAdminScriptUrl;
-
-function loadAdminScriptUrlInput() {
-  const input = document.getElementById('adminScriptUrlInput');
-  if (input) {
-    input.value = getGoogleSheetUrl();
-  }
-}
-window.loadAdminScriptUrlInput = loadAdminScriptUrlInput;
-
-const PUBLIC_CLOUD_DB_URL = getGoogleSheetUrl();
+const PUBLIC_CLOUD_DB_URL = ONLINE_CLOUD_DB_URL;
 let cloudSyncInterval = null;
 let lastCloudSyncHash = '';
 let isPushingCloud = false;
@@ -4221,6 +4209,7 @@ function initAllDraggableButtons() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  bersihkanCacheAplikasiWeb();
   initAllDraggableButtons();
   initDatabase();
   loadSavedTheme();
