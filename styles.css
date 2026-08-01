@@ -1416,7 +1416,7 @@ input:focus, select:focus, textarea:focus {
 
 .popupNotifIconBadge .material-symbols-rounded {
   font-size: 36px !important;
-  color: #ffffff !important;
+  color: #0c0d0d !important;
 }
 
 .popupNotifHeader h3 {
@@ -1439,7 +1439,7 @@ input:focus, select:focus, textarea:focus {
   font-size: 14.5px !important;
   font-weight: 700 !important;
   line-height: 1.55 !important;
-  color: #f8fafc !important;
+  color: #0c0d0d !important;
   letter-spacing: 0.2px !important;
 }
 
@@ -1452,7 +1452,7 @@ input:focus, select:focus, textarea:focus {
   height: 46px !important;
   border-radius: 14px !important;
   border: none !important;
-  color: #ffffff !important;
+  color: #0c0d0d !important;
   font-size: 15px !important;
   font-weight: 900 !important;
   letter-spacing: 0.5px !important;
