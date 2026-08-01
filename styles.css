@@ -845,6 +845,7 @@ input:focus, select:focus, textarea:focus {
 #pdfModelSelectorNav button,
 #pdfModelSelectorNav button span {
   color: #111827 !important;
+  background-color: #e5e7eb !important;
 }
 
 /* FLOATING THEME TOGGLE BUTTON (ALWAYS ON TOP OF ALL POPUPS - ALWAYS CLICKABLE) */
