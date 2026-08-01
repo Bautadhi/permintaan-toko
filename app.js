@@ -600,18 +600,11 @@ async function pullCentralCloudDB() {
       }
     }
 
-    // ANTI-FLICKER DATA MERGE FOR USERS
+    // CLOUD DATABASE IS SINGLE SOURCE OF TRUTH FOR USERS (NO STALE LOCALSTORAGE MERGING)
     if (Array.isArray(data.users) && data.users.length > 0) {
       const cloudUsers = data.users.filter(u => u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username));
-      const localUsers = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
-      
-      const userMap = new Map();
-      localUsers.forEach(u => { if (u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username)) userMap.set(u.username ? u.username.toUpperCase() : u.id, u); });
-      cloudUsers.forEach(u => { if (u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username)) userMap.set(u.username ? u.username.toUpperCase() : u.id, u); });
-      
-      const mergedUsers = Array.from(userMap.values());
       const prevUserHash = localStorage.getItem(USERS_DB_KEY) || '[]';
-      const newUserHash = JSON.stringify(mergedUsers);
+      const newUserHash = JSON.stringify(cloudUsers);
       
       if (prevUserHash !== newUserHash) {
         localStorage.setItem(USERS_DB_KEY, newUserHash);
