@@ -475,7 +475,7 @@ function checkAndTriggerPendingReminders() {
 const SCRIPT_URL_STORAGE_KEY = 'STORE_SCRIPT_URL_V8';
 
 function getGoogleSheetUrl() {
-  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbxEsFRPYCO60Hcj4WDh6dZB17YNXx8dA3wS8HBEuTfFvaZuE74WbPkiv08Q4qlr4Mg6lQ/exec';
+  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://happening-albert-vessels-pic.trycloudflare.com';
 }
 
 function simpanAdminScriptUrl() {
