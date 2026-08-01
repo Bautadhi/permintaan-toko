@@ -97,13 +97,28 @@ async function initSupabaseDB(secretKey = null) {
       realtime: { params: { eventsPerSecond: 10 } }
     });
 
-    await loadAllFromSupabase();
-    setupRealtimeSubscription();
-    isSupabaseReady = true;
-    isSupabaseOnline = true;
-    updateSupabaseStatusUI(true);
-    console.log('✅ SUPABASE TERHUBUNG');
-    return true;
+    try {
+      await loadAllFromSupabase();
+      setupRealtimeSubscription();
+      isSupabaseReady = true;
+      isSupabaseOnline = true;
+      updateSupabaseStatusUI(true);
+      console.log('✅ SUPABASE TERHUBUNG');
+      return true;
+    } catch (dbErr) {
+      const msg = String(dbErr?.message || dbErr || '');
+      const isMissingTable = /does not exist|relation .*app_storage|app_storage.*not exist|permission/i.test(msg);
+
+      if (isMissingTable) {
+        console.warn('⚠️ TABEL app_storage belum dibuat di Supabase. Aplikasi tetap berjalan di mode local-memory.');
+        isSupabaseReady = false;
+        isSupabaseOnline = false;
+        updateSupabaseStatusUI(false);
+        return false;
+      }
+
+      throw dbErr;
+    }
   } catch (err) {
     console.error('⚠️ SUPABASE GAGAL TERHUBUNG:', err.message);
     isSupabaseReady = false;
@@ -114,11 +129,21 @@ async function initSupabaseDB(secretKey = null) {
 }
 
 async function loadAllFromSupabase() {
+  if (!supabaseClient) return;
+
   const { data, error } = await supabaseClient
     .from('app_storage')
     .select('key, value');
 
-  if (error) throw error;
+  if (error) {
+    const msg = String(error?.message || error || '');
+    const isMissingTable = /does not exist|relation .*app_storage|app_storage.*not exist|permission/i.test(msg);
+    if (isMissingTable) {
+      console.warn('Tabel app_storage belum dibuat di Supabase, skip sync ke cloud.');
+      return;
+    }
+    throw error;
+  }
 
   if (Array.isArray(data)) {
     data.forEach(row => {
@@ -130,27 +155,31 @@ async function loadAllFromSupabase() {
 function setupRealtimeSubscription() {
   if (!supabaseClient) return;
 
-  realtimeChannel = supabaseClient
-    .channel('app_storage_changes')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'app_storage' },
-      payload => {
-        const row = payload.new || payload.old;
-        if (!row || !row.key) return;
+  try {
+    realtimeChannel = supabaseClient
+      .channel('app_storage_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'app_storage' },
+        payload => {
+          const row = payload.new || payload.old;
+          if (!row || !row.key) return;
 
-        if (payload.eventType === 'DELETE') {
-          memoryCache.delete(row.key);
-        } else {
-          memoryCache.set(row.key, serializeForCache(row.value));
-        }
+          if (payload.eventType === 'DELETE') {
+            memoryCache.delete(row.key);
+          } else {
+            memoryCache.set(row.key, serializeForCache(row.value));
+          }
 
-        if (typeof onDataChangeCallback === 'function') {
-          onDataChangeCallback(row.key);
+          if (typeof onDataChangeCallback === 'function') {
+            onDataChangeCallback(row.key);
+          }
         }
-      }
-    )
-    .subscribe();
+      )
+      .subscribe();
+  } catch (err) {
+    console.warn('Realtime subscription dibatalkan:', err.message);
+  }
 }
 
 function schedulePersist(key, parsedValue) {
@@ -300,12 +329,8 @@ function updateSupabaseStatusUI(isOnline) {
 }
 
 function toggleAdminSecretKeyField() {
-  const username = (document.getElementById('username')?.value || '').trim().toUpperCase();
-  const isAdmin = username === 'ADMIN';
-  const wrap = document.getElementById('adminSecretKeyGroup');
-  const hint = document.getElementById('adminKeyHint');
-  if (wrap) wrap.style.display = isAdmin ? 'flex' : 'none';
-  if (hint) hint.style.display = isAdmin ? 'block' : 'none';
+  // Secret key is now managed only in the user management settings panel.
+  // The login form no longer asks for the key to keep the flow simple.
 }
 
 window.initSupabaseDB = initSupabaseDB;

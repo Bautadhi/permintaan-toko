@@ -410,7 +410,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const usernameInput = document.getElementById('username');
   if (usernameInput) {
-    usernameInput.addEventListener('input', toggleAdminSecretKeyField);
     usernameInput.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -788,11 +787,41 @@ function syncUserToCloud(userObj) {
   }
 }
 
+function normalizeUserList(users) {
+  if (!Array.isArray(users)) return [];
+
+  const seen = new Set();
+  const cleaned = [];
+
+  users.forEach(user => {
+    if (!user || !user.username) return;
+    const key = String(user.username).trim().toUpperCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    cleaned.push(user);
+  });
+
+  return cleaned;
+}
+
 function initDatabase() {
   const currentSession = appStorage.getItem(SESSION_KEY);
   const currentTheme = appStorage.getItem(THEME_KEY);
-  
-  appStorage.clear();
+
+  const safeDefaults = {
+    [USERS_DB_KEY]: JSON.stringify([...SEED_USERS]),
+    [REQUESTS_DB_KEY]: JSON.stringify([]),
+    [CHAT_DB_KEY]: JSON.stringify([]),
+    [CHAT_ROOM_DB_KEY]: JSON.stringify([]),
+    [TTD_DB_KEY]: JSON.stringify({}),
+    [KODE_UNIT_MAP_KEY]: JSON.stringify({})
+  };
+
+  Object.entries(safeDefaults).forEach(([key, value]) => {
+    if (!appStorage.getItem(key)) {
+      appStorage.setItem(key, value);
+    }
+  });
 
   if (currentSession) appStorage.setItem(SESSION_KEY, currentSession);
   if (currentTheme) appStorage.setItem(THEME_KEY, currentTheme);
@@ -800,13 +829,6 @@ function initDatabase() {
   if (typeof caches !== 'undefined' && caches.keys) {
     caches.keys().then(names => names.forEach(name => caches.delete(name))).catch(() => {});
   }
-
-  appStorage.setItem(USERS_DB_KEY, JSON.stringify([...SEED_USERS]));
-  appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify([]));
-  appStorage.setItem(CHAT_DB_KEY, JSON.stringify([]));
-  appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify([]));
-  appStorage.setItem(TTD_DB_KEY, JSON.stringify({}));
-  appStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify({}));
 }
 
 function getUsersFromDB() {
@@ -816,18 +838,24 @@ function getUsersFromDB() {
   } catch (e) {
     users = [];
   }
+
+  users = normalizeUserList(users);
+
   if (!Array.isArray(users) || !users.length) {
     users = [...SEED_USERS];
     appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
-  } else {
-    const adminUser = users.find(u => u && u.username && u.username.toUpperCase() === 'ADMIN');
-    if (!adminUser) {
-      users.unshift(SEED_USERS[0]);
-      appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
-    } else {
-      adminUser.password = '1';
-    }
+    return users;
   }
+
+  const adminUser = users.find(u => u && u.username && u.username.toUpperCase() === 'ADMIN');
+  if (!adminUser) {
+    users.unshift({ ...SEED_USERS[0] });
+    appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+  } else {
+    adminUser.password = '1';
+    appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+  }
+
   return users;
 }
 
@@ -2568,7 +2596,7 @@ function updatePdfModelSelectorButtons() {
     if (btn) {
       if (m.id === currentlyPreviewedModel) {
         btn.style.background = m.color === '#0f172a' ? '#0f172a' : (m.color || '#7c3aed');
-        btn.style.color = m.id === 'MODEL_3' ? '#fbbf24' : '#ffffff';
+        btn.style.color = '#000000';
         btn.style.border = '2px solid #ffffff';
         btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
         btn.innerHTML = `<span class="material-symbols-rounded" style="vertical-align:middle; font-size:16px;">check_circle</span> ${m.title.split(':')[0]}`;
