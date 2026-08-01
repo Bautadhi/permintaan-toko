@@ -18,6 +18,8 @@ const KODE_UNIT_MAP_KEY = 'STORE_KODE_UNIT_MAP_V7_CLEAN';
 const FEATURE_PHOTOS_KEY = 'STORE_FEATURE_PHOTOS_V7_CLEAN';
 const DELETED_REQUESTS_KEY = 'STORE_DELETED_REQUESTS_V7_CLEAN';
 const DELETED_USERS_KEY = 'STORE_DELETED_USERS_V7_CLEAN';
+const FONTE_TOKEN_KEY = 'STORE_FONTE_TOKEN_KEY_V7_CLEAN';
+const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7_CLEAN';
 
 function getSystemNotifications() {
   return JSON.parse(localStorage.getItem(NOTIFICATIONS_DB_KEY) || '[]');
@@ -574,10 +576,8 @@ async function pullCentralCloudDB() {
     }
 
     const dataHash = JSON.stringify(data);
-    if (dataHash === lastCloudSyncHash) return;
+    let needUIRefresh = (dataHash !== lastCloudSyncHash);
     lastCloudSyncHash = dataHash;
-
-    let needUIRefresh = false;
 
     // Merge deleted requests & users blacklists from Cloud
     if (Array.isArray(data.deletedRequests)) {
@@ -684,7 +684,7 @@ async function pullCentralCloudDB() {
       }
     }
 
-    if (needUIRefresh && currentUser) {
+    if (currentUser) {
       loadDashboard();
       loadRiwayat();
       if (document.getElementById('userTableBody')) {
@@ -920,8 +920,10 @@ function getUsersFromDB() {
 function saveUsersToDB(users) {
   localStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
   pushCentralCloudDB();
-  if (dbCloud && isCloudDBActive && Array.isArray(users)) {
-    users.forEach(u => syncUserToCloud(u));
+  if (currentUser) {
+    loadDashboard();
+    loadRiwayat();
+    if (document.getElementById('userTableBody')) loadUsersManagement();
   }
 }
 
@@ -932,8 +934,9 @@ function getRequestsFromDB() {
 function saveRequestsToDB(requests) {
   localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(requests));
   pushCentralCloudDB();
-  if (dbCloud && isCloudDBActive && Array.isArray(requests)) {
-    requests.forEach(r => syncRequestToCloud(r));
+  if (currentUser) {
+    loadDashboard();
+    loadRiwayat();
   }
 }
 
@@ -962,11 +965,20 @@ function kirimNotifikasiWA(targetPhone, message) {
     return;
   }
 
-  if (!targetPhone) return;
+  if (!targetPhone || targetPhone === '-') return;
+
+  let cleanPhone = String(targetPhone).replace(/[^0-9]/g, '');
+  if (!cleanPhone) return;
+  if (cleanPhone.startsWith('0')) {
+    cleanPhone = '62' + cleanPhone.slice(1);
+  } else if (!cleanPhone.startsWith('62')) {
+    cleanPhone = '62' + cleanPhone;
+  }
 
   const formData = new FormData();
-  formData.append('target', targetPhone);
+  formData.append('target', cleanPhone);
   formData.append('message', message);
+  formData.append('countryCode', '62');
 
   fetch('https://api.fonnte.com/send', {
     method: 'POST',
@@ -3095,6 +3107,9 @@ let fastChatInterval = null;
 
 // LIVE CHAT WIDGET
 function bukaBantuan() {
+  if (currentUser) {
+    isAdminChat = (currentUser.category === 'ADMIN' || currentUser.category === 'SERVICE' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+  }
   const popup = document.getElementById('popupBantuan');
   const btnHelp = document.getElementById('helpButton');
   if (btnHelp) btnHelp.style.display = 'none';

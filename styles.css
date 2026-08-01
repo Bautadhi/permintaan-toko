@@ -1360,7 +1360,11 @@ input:focus, select:focus, textarea:focus {
   z-index: 999999 !important;
 }
 
-.popupOverlay.show, .popupAkun.show, .popupTTD.show {
+#popupNotifList {
+  z-index: 99999999 !important;
+}
+
+.popupOverlay.show, .popupAkun.show, .popupTTD.show, #popupNotifList.show {
   display: flex !important;
 }
 
@@ -1528,38 +1532,20 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 8px 22px rgba(2, 132, 199, 0.4) !important;
 }
 
-/* 3CM EDGE SPACING FOR NON-DATA CARDS (SETTINGS, SEARCH FILTERS) */
-@media (min-width: 900px) {
-  .box:not(.box-data):not(:has(table)):not(:has(.tableWrap)):not(:has(.lastHeader)):not(#buatPage .box):not(#inputPage .box):not(#userManagementPage .box),
-  .box-setting:not(#userManagementPage .box-setting) {
-    padding-left: 3cm !important;
-    padding-right: 3cm !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
-}
-
-@media (max-width: 899px) and (min-width: 600px) {
-  .box:not(.box-data):not(:has(table)):not(:has(.tableWrap)):not(:has(.lastHeader)):not(#buatPage .box):not(#inputPage .box):not(#userManagementPage .box) {
-    padding-left: 1.5cm !important;
-    padding-right: 1.5cm !important;
-  }
-}
-
-/* 3MM PADDING FOR CARDS IN INPUT FORM MENU (#buatPage / #inputPage / .box-form) */
+/* UNIFORM PATENT LAYOUT FOR ALL MENU PAGES & CARDS (#dashboardPage / #inputPage / #riwayatPage / #masterDbPage / #userManagementPage) */
+.box,
+.box-full,
+.box-form,
+.box-setting,
 #buatPage .box,
 #inputPage .box,
-.box-form,
-#formPermintaanCard {
-  padding: 3mm !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-  box-sizing: border-box !important;
-}
-
-/* 7MM PADDING FOR USER MANAGEMENT CARDS */
+#riwayatPage .box,
+#masterDbPage .box,
 #userManagementPage .box,
-#userManagementPage .box-setting {
+#userManagementPage .box-setting,
+#formPermintaanCard {
+  width: 100% !important;
+  max-width: 100% !important;
   padding: 7mm !important;
   margin-left: auto !important;
   margin-right: auto !important;
