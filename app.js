@@ -3429,38 +3429,53 @@ function loadUsersManagement() {
 }
 
 function bukaUserModal(userId = null) {
-  document.getElementById('editUserId').value = userId || '';
+  if (typeof userId !== 'string' || userId.startsWith('[object')) {
+    userId = null;
+  }
+
+  const editIdInput = document.getElementById('editUserId');
+  if (editIdInput) editIdInput.value = userId || '';
+
   const title = document.getElementById('userFormTitle');
 
   if (userId) {
-    const u = getUsersFromDB().find(x => x.id === userId);
-    if (!u) return;
-    document.getElementById('uFormUsername').value = u.username;
-    document.getElementById('uFormPassword').value = u.password;
-    document.getElementById('uFormFullName').value = u.fullName;
-    document.getElementById('uFormStoreCode').value = u.storeCode || '';
-    document.getElementById('uFormPhone').value = u.phone;
-    document.getElementById('uFormCategory').value = u.category;
-    document.getElementById('uFormArea').value = u.area;
-    title.textContent = `EDIT USER: ${u.username}`;
+    const u = getUsersFromDB().find(x => x && x.id === userId);
+    if (u) {
+      document.getElementById('uFormUsername').value = u.username || '';
+      document.getElementById('uFormPassword').value = u.password || '';
+      document.getElementById('uFormFullName').value = u.fullName || '';
+      document.getElementById('uFormStoreCode').value = u.storeCode || '';
+      document.getElementById('uFormPhone').value = u.phone || '';
+      document.getElementById('uFormCategory').value = u.category || 'TOKO';
+      document.getElementById('uFormArea').value = u.area || 'BDG';
+      if (title) title.textContent = `EDIT USER: ${u.username}`;
+    }
   } else {
     document.getElementById('uFormUsername').value = '';
     document.getElementById('uFormPassword').value = '';
     document.getElementById('uFormFullName').value = '';
     document.getElementById('uFormStoreCode').value = '';
     document.getElementById('uFormPhone').value = '';
-    title.textContent = 'TAMBAH USER BARU';
+    document.getElementById('uFormCategory').value = 'TOKO';
+    document.getElementById('uFormArea').value = 'BDG';
+    if (title) title.textContent = 'TAMBAH USER BARU';
   }
 
-  document.getElementById('popupUserForm').style.display = 'flex';
+  const modal = document.getElementById('popupUserForm');
+  if (modal) modal.style.display = 'flex';
 }
 
 function tutupUserModal() {
-  document.getElementById('popupUserForm').style.display = 'none';
+  const modal = document.getElementById('popupUserForm');
+  if (modal) modal.style.display = 'none';
 }
 
 function simpanUserData() {
-  const editId = document.getElementById('editUserId').value;
+  let editId = document.getElementById('editUserId') ? document.getElementById('editUserId').value : '';
+  if (typeof editId !== 'string' || editId.startsWith('[object')) {
+    editId = '';
+  }
+
   const username = document.getElementById('uFormUsername').value.trim().toUpperCase();
   const password = document.getElementById('uFormPassword').value.trim();
   const fullName = document.getElementById('uFormFullName').value.trim().toUpperCase();
@@ -3477,7 +3492,7 @@ function simpanUserData() {
   const users = getUsersFromDB();
 
   if (editId) {
-    const idx = users.findIndex(u => u.id === editId);
+    const idx = users.findIndex(u => u && u.id === editId);
     if (idx !== -1) {
       users[idx].username = username;
       users[idx].password = password;
@@ -3488,34 +3503,39 @@ function simpanUserData() {
       users[idx].area = area;
       saveUsersToDB(users);
       showNotif(`USER ${username} DIPERBARUI!`, 'info');
-    }
-  } else {
-    // Check against active users
-    if (users.some(u => u && u.username && u.username.toUpperCase() === username)) {
-      showNotif(`USERNAME '${username}' SUDAH TERDAFTAR!`, 'error');
+      tutupUserModal();
+      loadUsersManagement();
       return;
     }
-
-    // Unmark deleted user list if re-adding
-    const delUsers = JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]');
-    const cleanDelUsers = delUsers.filter(x => x !== username && x !== username.toLowerCase());
-    localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(cleanDelUsers));
-
-    const newUser = {
-      id: `USR-${Date.now()}`,
-      username,
-      password,
-      fullName,
-      storeCode,
-      phone,
-      category,
-      area,
-      createdAt: getFormattedDateDDMMYYYY()
-    };
-    users.push(newUser);
-    saveUsersToDB(users);
-    showNotif(`USER ${fullName} (${username}) BERHASIL DISIMPAN!`, 'info');
   }
+
+  // TAMBAH USER BARU: Cek duplikasi username di antara user yang aktif
+  const isDuplicate = users.some(u => u && u.username && u.username.trim().toUpperCase() === username);
+  if (isDuplicate) {
+    showNotif(`USERNAME '${username}' SUDAH TERDAFTAR! GUNAKAN USERNAME LAIN.`, 'error');
+    return;
+  }
+
+  // Bersihkan dari daftar hapus lama
+  const delUsers = JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]');
+  const cleanDelUsers = delUsers.filter(x => x !== username && x !== username.toLowerCase());
+  localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(cleanDelUsers));
+
+  const newUser = {
+    id: `USR-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+    username,
+    password,
+    fullName,
+    storeCode,
+    phone,
+    category,
+    area,
+    createdAt: getFormattedDateDDMMYYYY()
+  };
+
+  users.push(newUser);
+  saveUsersToDB(users);
+  showNotif(`USER ${fullName} (${username}) BERHASIL DISIMPAN!`, 'success');
 
   tutupUserModal();
   loadUsersManagement();
