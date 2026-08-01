@@ -593,22 +593,42 @@ async function pullCentralCloudDB() {
     const currentDelReqs = JSON.parse(localStorage.getItem(DELETED_REQUESTS_KEY) || '[]');
     const currentDelUsers = JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]');
 
-    const targetRequests = Array.isArray(data.requests) ? data.requests.filter(r => r && r.noSurat && !currentDelReqs.includes(r.noSurat)) : [];
-    const prevReqHash = localStorage.getItem(REQUESTS_DB_KEY) || '[]';
-    const newReqHash = JSON.stringify(targetRequests);
-    if (prevReqHash !== newReqHash) {
-      localStorage.setItem(REQUESTS_DB_KEY, newReqHash);
-      needUIRefresh = true;
+    // ANTI-FLICKER DATA MERGE FOR REQUESTS
+    if (Array.isArray(data.requests)) {
+      const cloudReqs = data.requests.filter(r => r && r.noSurat && !currentDelReqs.includes(r.noSurat));
+      const localReqs = JSON.parse(localStorage.getItem(REQUESTS_DB_KEY) || '[]');
+      
+      const reqMap = new Map();
+      localReqs.forEach(r => { if (r && r.noSurat && !currentDelReqs.includes(r.noSurat)) reqMap.set(r.noSurat, r); });
+      cloudReqs.forEach(r => { if (r && r.noSurat && !currentDelReqs.includes(r.noSurat)) reqMap.set(r.noSurat, r); });
+      
+      const mergedRequests = Array.from(reqMap.values());
+      const prevReqHash = localStorage.getItem(REQUESTS_DB_KEY) || '[]';
+      const newReqHash = JSON.stringify(mergedRequests);
+      
+      if (prevReqHash !== newReqHash) {
+        localStorage.setItem(REQUESTS_DB_KEY, newReqHash);
+        needUIRefresh = true;
+      }
     }
 
-    const targetUsers = (Array.isArray(data.users) && data.users.length > 0) 
-      ? data.users.filter(u => u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username)) 
-      : [...SEED_USERS];
-    const prevUserHash = localStorage.getItem(USERS_DB_KEY) || '[]';
-    const newUserHash = JSON.stringify(targetUsers);
-    if (prevUserHash !== newUserHash) {
-      localStorage.setItem(USERS_DB_KEY, newUserHash);
-      needUIRefresh = true;
+    // ANTI-FLICKER DATA MERGE FOR USERS
+    if (Array.isArray(data.users) && data.users.length > 0) {
+      const cloudUsers = data.users.filter(u => u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username));
+      const localUsers = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
+      
+      const userMap = new Map();
+      localUsers.forEach(u => { if (u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username)) userMap.set(u.username ? u.username.toUpperCase() : u.id, u); });
+      cloudUsers.forEach(u => { if (u && (u.id || u.username) && !currentDelUsers.includes(u.id) && !currentDelUsers.includes(u.username)) userMap.set(u.username ? u.username.toUpperCase() : u.id, u); });
+      
+      const mergedUsers = Array.from(userMap.values());
+      const prevUserHash = localStorage.getItem(USERS_DB_KEY) || '[]';
+      const newUserHash = JSON.stringify(mergedUsers);
+      
+      if (prevUserHash !== newUserHash) {
+        localStorage.setItem(USERS_DB_KEY, newUserHash);
+        needUIRefresh = true;
+      }
     }
 
     if (data.ttd && typeof data.ttd === 'object') {
@@ -682,7 +702,7 @@ async function pullCentralCloudDB() {
       }
     }
 
-    if (currentUser) {
+    if (needUIRefresh && currentUser) {
       loadDashboard();
       loadRiwayat();
       if (document.getElementById('userTableBody')) {
@@ -2060,6 +2080,8 @@ function filterRiwayat() {
       <th>TGL</th>
       <th>NO SURAT</th>
       <th>TOKO</th>
+      <th>JENIS</th>
+      <th>DETAIL PERMINTAAN & ALASAN</th>
       <th>STATUS</th>
       <th>CATATAN</th>
     </tr>
@@ -2068,7 +2090,7 @@ function filterRiwayat() {
   tbody.innerHTML = '';
 
   if (data.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:30px; color:var(--text-muted);">BELUM ADA DATA PERMINTAAN.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:30px; color:var(--text-muted);">BELUM ADA DATA PERMINTAAN.</td></tr>`;
     return;
   }
 
@@ -2143,12 +2165,23 @@ function filterRiwayat() {
       `;
     }
 
+    let itemsDetailText = (r.items || []).map((i, idx) => {
+      let dusText = i.dus ? ` | Dus:${i.dus}` : '';
+      return `<div style="padding:3px 0; border-bottom:1px dashed var(--border-color); font-size:12px; line-height:1.4;">
+        <strong>${idx + 1}. ${i.type || '-'}</strong> (SN: <span style="font-family:monospace; color:var(--primary);">${i.seri || '-'}${dusText}</span>)<br>
+        <span style="color:var(--text-main);">${i.barang || '-'}</span> <small style="color:var(--text-muted);">[Alasan: ${i.alasan || '-'}]</small> 
+        <strong style="color:var(--primary);">(Qty: ${i.qty || 1})</strong>
+      </div>`;
+    }).join('');
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><div style="display:flex; gap:4px; align-items:center;">${aksi}</div></td>
       <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
-      <td>${r.noSurat}</td>
-      <td>${r.toko} <div style="font-size:11px; color:var(--primary);">${r.area}</div></td>
+      <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
+      <td>${r.toko} <div style="font-size:11px; color:var(--text-muted);">${r.area}</div></td>
+      <td><span class="badgeStatus badge-pending" style="font-weight:600;">${r.jenis || 'DEFAULT'}</span></td>
+      <td style="max-width:320px; word-break:break-word;">${itemsDetailText}</td>
       <td>${getBadgeStatus(r.status)}</td>
       <td style="word-break:break-word; white-space:normal; color:var(--text-main);">${r.catatan || '-'}</td>
     `;
@@ -3531,16 +3564,23 @@ function loadMasterDbTable() {
   }
 
   requests.forEach(r => {
-    let itemsDetailText = r.items.map((i, idx) => `${idx + 1}. ${i.type} | SN:${i.seri} | Item:${i.barang} | Alasan:${i.alasan} (Qty:${i.qty})`).join('<br>');
+    let itemsDetailText = (r.items || []).map((i, idx) => {
+      let dusText = i.dus ? ` | Dus:${i.dus}` : '';
+      return `<div style="padding:3px 0; border-bottom:1px dashed var(--border-color); font-size:12px; line-height:1.4;">
+        <strong>${idx + 1}. ${i.type || '-'}</strong> (SN: <span style="font-family:monospace; color:var(--primary);">${i.seri || '-'}${dusText}</span>)<br>
+        <span style="color:var(--text-main);">${i.barang || '-'}</span> <small style="color:var(--text-muted);">[Alasan: ${i.alasan || '-'}]</small> 
+        <strong style="color:var(--primary);">(Qty: ${i.qty || 1})</strong>
+      </div>`;
+    }).join('');
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
       <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
       <td>${r.toko} <div style="font-size:11px; color:var(--text-muted);">By: ${r.createdBy}</div></td>
-      <td><span style="color:var(--primary);">${r.area}</span></td>
-      <td>${r.jenis}</td>
-      <td style="font-size:12px; max-width:320px; word-break:break-word;">${itemsDetailText}</td>
+      <td><span style="color:var(--primary); font-weight:600;">${r.area}</span></td>
+      <td><span class="badgeStatus badge-pending" style="font-weight:600;">${r.jenis || 'DEFAULT'}</span></td>
+      <td style="max-width:320px; word-break:break-word;">${itemsDetailText}</td>
       <td>${getBadgeStatus(r.status)}</td>
       <td style="word-break:break-word; max-width:200px;">${r.catatan || '-'}</td>
       <td style="text-align:center;">
