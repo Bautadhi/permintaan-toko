@@ -342,6 +342,42 @@ document.addEventListener('DOMContentLoaded', async () => {
   startCentralCloudSyncEngine();
   startSupabaseKeepalive();
   loadSavedTheme();
+
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (typeof window.prosesLogin === 'function') {
+        window.prosesLogin();
+      }
+    });
+  }
+
+  const usernameInput = document.getElementById('username');
+  if (usernameInput) {
+    usernameInput.addEventListener('input', toggleAdminSecretKeyField);
+    usernameInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (typeof window.prosesLogin === 'function') {
+          window.prosesLogin();
+        }
+      }
+    });
+  }
+
+  const passwordInput = document.getElementById('password');
+  if (passwordInput) {
+    passwordInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (typeof window.prosesLogin === 'function') {
+          window.prosesLogin();
+        }
+      }
+    });
+  }
+
   autoLogin();
   initMobileBackButtonEngine();
   initPullToRefresh();
