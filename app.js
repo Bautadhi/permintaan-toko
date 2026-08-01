@@ -21,6 +21,7 @@ const DELETED_USERS_KEY = 'STORE_DELETED_USERS_V7_CLEAN';
 const FONTE_TOKEN_KEY = 'STORE_FONTE_TOKEN_KEY_V7_CLEAN';
 const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7_CLEAN';
 const ADMIN_SECRET_KEY_STORAGE_KEY = 'STORE_ADMIN_SECRET_KEY_V7_CLEAN';
+const ADMIN_SCRIPT_URL_KEY = 'STORE_ADMIN_SCRIPT_URL_V7_CLEAN';
 
 if (!window.appStorage) {
   const fallbackMemory = {};
@@ -383,6 +384,7 @@ function formatDateDDMMYYYYString(input) {
 // APP INITIALIZATION
 // APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
+  clearAllAppCacheAndData();
   initDatabase();
   await initSupabaseDB();
   startCentralCloudSyncEngine();
@@ -795,13 +797,113 @@ function normalizeUserList(users) {
 
   users.forEach(user => {
     if (!user || !user.username) return;
-    const key = String(user.username).trim().toUpperCase();
-    if (!key || seen.has(key)) return;
+    const username = String(user.username).trim();
+    if (!username) return;
+    const key = username.toUpperCase();
+    if (seen.has(key)) return;
     seen.add(key);
-    cleaned.push(user);
+
+    cleaned.push({
+      ...user,
+      username,
+      fullName: String(user.fullName || '').trim(),
+      password: String(user.password || '').trim(),
+      storeCode: String(user.storeCode || '').trim().toUpperCase(),
+      phone: String(user.phone || '').trim(),
+      category: String(user.category || 'TOKO').trim().toUpperCase(),
+      area: String(user.area || 'BDG').trim().toUpperCase()
+    });
   });
 
   return cleaned;
+}
+
+function clearAllAppCacheAndData() {
+  try {
+    if (window.appStorage) {
+      window.appStorage.clear();
+    }
+  } catch (err) {
+    console.warn('clearAllAppCacheAndData appStorage clear failed:', err);
+  }
+
+  try {
+    const keysToRemove = Object.keys(localStorage || {});
+    keysToRemove.forEach(key => {
+      if (String(key).startsWith('STORE_') || String(key).startsWith('FIREBASE_')) {
+        localStorage.removeItem(key);
+      }
+    });
+  } catch (err) {
+    console.warn('clearAllAppCacheAndData localStorage failed:', err);
+  }
+
+  try {
+    if (typeof caches !== 'undefined' && Array.isArray(caches)) {
+      caches.keys().then(names => names.forEach(n => caches.delete(n))).catch(() => {});
+    }
+  } catch (err) {
+    console.warn('clearAllAppCacheAndData caches failed:', err);
+  }
+
+  const sessionKeys = [
+    SESSION_KEY,
+    THEME_KEY,
+    USERS_DB_KEY,
+    REQUESTS_DB_KEY,
+    CHAT_DB_KEY,
+    CHAT_ROOM_DB_KEY,
+    TTD_DB_KEY,
+    STORES_DB_KEY,
+    DELETED_STORES_KEY,
+    NOTIFICATIONS_DB_KEY,
+    KODE_UNIT_MAP_KEY,
+    FEATURE_PHOTOS_KEY,
+    DELETED_REQUESTS_KEY,
+    DELETED_USERS_KEY,
+    FONTE_TOKEN_KEY,
+    ADMIN_REMINDER_KEY,
+    ADMIN_SECRET_KEY_STORAGE_KEY,
+    ADMIN_SCRIPT_URL_KEY
+  ];
+
+  sessionKeys.forEach(key => {
+    try { localStorage.removeItem(key); } catch (err) {}
+    try { window.appStorage?.removeItem?.(key); } catch (err) {}
+  });
+
+  if (window.appStorage) {
+    window.appStorage.setItem(USERS_DB_KEY, JSON.stringify([...SEED_USERS]));
+    window.appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify([]));
+    window.appStorage.setItem(CHAT_DB_KEY, JSON.stringify([]));
+    window.appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify([]));
+    window.appStorage.setItem(TTD_DB_KEY, JSON.stringify({}));
+    window.appStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify({}));
+    window.appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify([]));
+    window.appStorage.setItem(DELETED_USERS_KEY, JSON.stringify([]));
+  }
+}
+
+function getAdminScriptUrl() {
+  return (appStorage.getItem(ADMIN_SCRIPT_URL_KEY) || '').trim();
+}
+
+function saveAdminScriptUrl(url) {
+  const clean = (url || '').trim();
+  if (clean) appStorage.setItem(ADMIN_SCRIPT_URL_KEY, clean);
+  else appStorage.removeItem(ADMIN_SCRIPT_URL_KEY);
+}
+
+function loadAdminScriptUrlInput() {
+  const input = document.getElementById('adminScriptUrlInput');
+  if (input) input.value = getAdminScriptUrl();
+}
+
+function simpanAdminScriptUrl() {
+  const input = document.getElementById('adminScriptUrlInput');
+  const value = input ? input.value.trim() : '';
+  saveAdminScriptUrl(value);
+  showNotif(value ? 'URL GOOGLE APPS SCRIPT BERHASIL DISIMPAN!' : 'URL GOOGLE APPS SCRIPT DIHAPUS!', 'info');
 }
 
 function initDatabase() {
@@ -860,7 +962,8 @@ function getUsersFromDB() {
 }
 
 function saveUsersToDB(users) {
-  appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+  const normalizedUsers = normalizeUserList(Array.isArray(users) ? users : []);
+  appStorage.setItem(USERS_DB_KEY, JSON.stringify(normalizedUsers));
   pushCentralCloudDB();
   if (currentUser) {
     loadDashboard();
@@ -3413,6 +3516,17 @@ function simpanUserData() {
   if (editId) {
     const idx = users.findIndex(u => u && u.id === editId);
     if (idx !== -1) {
+      const targetUsername = String(users[idx].username || '').trim();
+      const duplicateWithOtherUser = users.some(u => {
+        if (!u || !u.username || u.id === editId) return false;
+        return String(u.username).trim().toUpperCase() === username;
+      });
+
+      if (duplicateWithOtherUser) {
+        showNotif(`USERNAME '${username}' SUDAH TERDAFTAR! GUNAKAN USERNAME LAIN.`, 'error');
+        return;
+      }
+
       users[idx].username = username;
       users[idx].password = password;
       users[idx].fullName = fullName;
