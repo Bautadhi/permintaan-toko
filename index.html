@@ -115,7 +115,7 @@
         <h2>PERMINTAAN TOKO</h2>
         <p>SISTEM PERMINTAAN TOKO AREA JAWA BARAT</p>
 
-        <form id="loginForm">
+        <form id="loginForm" novalidate>
           <div class="input-group">
             <span><span class="material-symbols-rounded">person</span></span>
             <input type="text" id="username" placeholder="USERNAME" autocomplete="off">
@@ -134,7 +134,7 @@
             ISI SECRET KEY SUPABASE UNTUK AKSES DATABASE PENUH (ADMIN SAJA).
           </p>
 
-          <button type="submit" class="btn-primary">MASUK APLIKASI</button>
+          <button type="button" class="btn-primary" id="btnLogin">MASUK APLIKASI</button>
         </form>
       </div>
     </section>
@@ -365,6 +365,22 @@
           <input type="text" id="fonteTokenInput" placeholder="MASUKKAN FONTE / FONNTE API TOKEN DI SINI (CONTOH: 9kXj...)" style="flex: 1; min-width: 280px; padding: 12px;">
           <button type="button" class="btnDownload" style="background: #16a34a; height: 44px;" onclick="simpanFonteToken()">
             <span class="material-symbols-rounded">save</span> SIMPAN TOKEN WA
+          </button>
+        </div>
+      </div>
+
+      <!-- ADMIN SECRET KEY STORAGE (SAVED ONCE FOR FULL SUPABASE ACCESS) -->
+      <div class="box" style="border-left: 4px solid #f59e0b; margin-bottom: 20px; background: rgba(245, 158, 11, 0.04);">
+        <h3 style="color: #f59e0b; display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span class="material-symbols-rounded">key</span> SECRET KEY SUPABASE (ADMIN, DISIMPAN SATU KALI)
+        </h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+          MASUKKAN SECRET KEY SUPABASE DI SINI. NILAI INI AKAN DIPAKAI SECARA OTOMATIS SAAT LOGIN ADMIN, SEHINGGA TIDAK PERLU DIISI SETIAP KALI.
+        </p>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <input type="password" id="adminSecretKeySettingInput" placeholder="PASTEKAN SECRET KEY SUPABASE DISINI" style="flex: 1; min-width: 280px; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <button type="button" class="btnDownload" style="background: #f59e0b; height: 44px;" onclick="simpanAdminSecretKey()">
+            <span class="material-symbols-rounded">save</span> SIMPAN SECRET KEY
           </button>
         </div>
       </div>

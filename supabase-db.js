@@ -3,8 +3,8 @@
    Menggantikan localStorage + Firebase + Cloud Sync
 ====================================================== */
 
-const SUPABASE_URL = 'https://ducrykojvabaoioigbgc.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_H2w50rrXQWKqZM2fKZJXBw_sRsEpwNf';
+const APP_SUPABASE_URL = 'https://ducrykojvabaoioigbgc.supabase.co';
+const APP_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_H2w50rrXQWKqZM2fKZJXBw_sRsEpwNf';
 
 let supabaseClient = null;
 let isSupabaseReady = false;
@@ -18,8 +18,8 @@ let onDataChangeCallback = null;
 const memoryCache = new Map();
 
 /** Session & tema disimpan di memori saja (bukan localStorage) */
-const SESSION_KEY = 'STORE_ACTIVE_SESSION_V7_CLEAN';
-const THEME_KEY = 'STORE_ACTIVE_THEME_V7_CLEAN';
+const sessionKey = window.SESSION_KEY || 'STORE_ACTIVE_SESSION_V7_CLEAN';
+const themeKey = window.THEME_KEY || 'STORE_ACTIVE_THEME_V7_CLEAN';
 
 const appStorage = {
   getItem(key) {
@@ -40,7 +40,7 @@ const appStorage = {
   },
 
   clear() {
-    const keepKeys = new Set([SESSION_KEY, THEME_KEY]);
+    const keepKeys = new Set([sessionKey, themeKey]);
     [...memoryCache.keys()].forEach(k => {
       if (!keepKeys.has(k)) {
         memoryCache.delete(k);
@@ -83,7 +83,7 @@ async function initSupabaseDB(secretKey = null) {
     return false;
   }
 
-  const apiKey = (secretKey && secretKey.trim()) ? secretKey.trim() : SUPABASE_PUBLISHABLE_KEY;
+  const apiKey = (secretKey && secretKey.trim()) ? secretKey.trim() : APP_SUPABASE_PUBLISHABLE_KEY;
 
   try {
     if (supabaseClient) {
@@ -93,7 +93,7 @@ async function initSupabaseDB(secretKey = null) {
       }
     }
 
-    supabaseClient = supabase.createClient(SUPABASE_URL, apiKey, {
+    supabaseClient = supabase.createClient(APP_SUPABASE_URL, apiKey, {
       realtime: { params: { eventsPerSecond: 10 } }
     });
 

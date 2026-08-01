@@ -20,6 +20,52 @@ const DELETED_REQUESTS_KEY = 'STORE_DELETED_REQUESTS_V7_CLEAN';
 const DELETED_USERS_KEY = 'STORE_DELETED_USERS_V7_CLEAN';
 const FONTE_TOKEN_KEY = 'STORE_FONTE_TOKEN_KEY_V7_CLEAN';
 const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7_CLEAN';
+const ADMIN_SECRET_KEY_STORAGE_KEY = 'STORE_ADMIN_SECRET_KEY_V7_CLEAN';
+
+if (!window.appStorage) {
+  const fallbackMemory = {};
+  window.appStorage = {
+    getItem(key) {
+      return Object.prototype.hasOwnProperty.call(fallbackMemory, key) ? String(fallbackMemory[key]) : null;
+    },
+    setItem(key, value) {
+      fallbackMemory[key] = String(value);
+    },
+    removeItem(key) {
+      delete fallbackMemory[key];
+    },
+    clear() {
+      Object.keys(fallbackMemory).forEach(key => delete fallbackMemory[key]);
+    }
+  };
+}
+
+function getSavedAdminSecretKey() {
+  return (appStorage.getItem(ADMIN_SECRET_KEY_STORAGE_KEY) || '').trim();
+}
+
+function saveAdminSecretKey(secretKey) {
+  const cleanKey = (secretKey || '').trim();
+  if (cleanKey) {
+    appStorage.setItem(ADMIN_SECRET_KEY_STORAGE_KEY, cleanKey);
+  } else {
+    appStorage.removeItem(ADMIN_SECRET_KEY_STORAGE_KEY);
+  }
+}
+
+function loadSavedAdminSecretKey() {
+  const input = document.getElementById('adminSecretKeySettingInput');
+  if (input) {
+    input.value = getSavedAdminSecretKey();
+  }
+}
+
+function simpanAdminSecretKey() {
+  const input = document.getElementById('adminSecretKeySettingInput');
+  const value = input ? input.value.trim() : '';
+  saveAdminSecretKey(value);
+  showNotif(value ? 'SECRET KEY SUPABASE BERHASIL DISIMPAN!' : 'SECRET KEY SUPABASE DIHAPUS!', 'info');
+}
 
 function getSystemNotifications() {
   return JSON.parse(appStorage.getItem(NOTIFICATIONS_DB_KEY) || '[]');
@@ -347,6 +393,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (loginForm) {
     loginForm.addEventListener('submit', (event) => {
       event.preventDefault();
+      if (typeof window.prosesLogin === 'function') {
+        window.prosesLogin();
+      }
+    });
+  }
+
+  const loginButton = document.getElementById('btnLogin');
+  if (loginButton) {
+    loginButton.addEventListener('click', () => {
       if (typeof window.prosesLogin === 'function') {
         window.prosesLogin();
       }
@@ -903,7 +958,7 @@ async function prosesLogin() {
 
   const u = uEl.value.trim().toUpperCase();
   const p = pEl.value.trim();
-  const adminSecretKey = (document.getElementById('adminSecretKey')?.value || '').trim();
+  const adminSecretKey = ((document.getElementById('adminSecretKey')?.value || '').trim() || getSavedAdminSecretKey());
 
   if (!u || !p) {
     showNotif('USERNAME DAN PASSWORD WAJIB DIISI!', 'warning');
