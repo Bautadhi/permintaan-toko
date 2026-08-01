@@ -3,8 +3,26 @@
    Menggantikan localStorage + Firebase + Cloud Sync
 ====================================================== */
 
-const APP_SUPABASE_URL = 'https://ducrykojvabaoioigbgc.supabase.co';
-const APP_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_H2w50rrXQWKqZM2fKZJXBw_sRsEpwNf';
+let APP_SUPABASE_URL = 'https://ducrykojvabaoioigbgc.supabase.co';
+let APP_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_H2w50rrXQWKqZM2fKZJXBw_sRsEpwNf';
+
+async function loadSupabaseConfigFromJson() {
+  try {
+    const response = await fetch('./supabase-config.json?v=20260801_supabase_fix_3', { cache: 'no-store' });
+    if (!response.ok) return;
+    const config = await response.json();
+    if (config.SUPABASE_URL) APP_SUPABASE_URL = String(config.SUPABASE_URL).trim();
+    if (config.SUPABASE_PUBLISHABLE_KEY) APP_SUPABASE_PUBLISHABLE_KEY = String(config.SUPABASE_PUBLISHABLE_KEY).trim();
+    if (config.SUPABASE_SECRET_KEY) {
+      window.APP_SUPABASE_SECRET_KEY = String(config.SUPABASE_SECRET_KEY).trim();
+    }
+    if (config.SUPABASE_JWKS_URL) {
+      window.APP_SUPABASE_JWKS_URL = String(config.SUPABASE_JWKS_URL).trim();
+    }
+  } catch (err) {
+    console.warn('Supabase config JSON tidak terbaca:', err.message);
+  }
+}
 
 let supabaseClient = null;
 let isSupabaseReady = false;

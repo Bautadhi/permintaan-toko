@@ -384,8 +384,10 @@ function formatDateDDMMYYYYString(input) {
 // APP INITIALIZATION
 // APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
-  clearAllAppCacheAndData();
   initDatabase();
+  if (typeof loadSupabaseConfigFromJson === 'function') {
+    await loadSupabaseConfigFromJson();
+  }
   await initSupabaseDB();
   startCentralCloudSyncEngine();
   startSupabaseKeepalive();
