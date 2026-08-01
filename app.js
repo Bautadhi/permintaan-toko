@@ -385,8 +385,6 @@ function initPullToRefresh() {
 /* ======================================================
    ADMIN FEATURE TOGGLE FOR PENDING APPROVAL REMINDERS (SERVICE & DM)
    ====================================================== */
-const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7';
-
 function getAdminReminderEnabled() {
   const val = localStorage.getItem(ADMIN_REMINDER_KEY);
   return val !== 'false';
@@ -1091,6 +1089,7 @@ function prosesLogin() {
     showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
   }
 }
+window.prosesLogin = prosesLogin;
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
@@ -2076,7 +2075,10 @@ function filterRiwayat() {
   data.forEach(r => {
     let aksi = '';
 
-    if (role === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN')) {
+    const isCreator = currentUser && (r.userId === currentUser.id || r.createdBy === currentUser.fullName || (currentUser.category === 'TOKO' && r.toko.toUpperCase() === currentUser.fullName.toUpperCase()));
+    const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+
+    if (isAdminUser) {
       if (r.status === 'PENDING' && !r.serviceApprove) {
         aksi += `
           <button class="btnIcon btnApprove" onclick="approveService('${r.noSurat}')" title="APPROVE SERVICE"><span class="material-symbols-rounded">check_circle</span></button>
@@ -2112,6 +2114,17 @@ function filterRiwayat() {
       }
     }
 
+    const canCreatorEditDelete = isCreator && !r.serviceApprove && r.status === 'PENDING';
+    const canServiceEditDelete = (role === 'SERVICE' && !r.serviceApprove && r.status === 'PENDING');
+    const canAdminEditDelete = isAdminUser;
+
+    if (canCreatorEditDelete || canServiceEditDelete || canAdminEditDelete) {
+      aksi += `
+        <button class="btnIcon btnEdit" onclick="editPermintaan('${r.noSurat}')" title="EDIT PERMINTAAN"><span class="material-symbols-rounded">edit</span></button>
+        <button class="btnIcon btnDelete" onclick="hapusData('${r.noSurat}')" title="HAPUS PERMINTAAN"><span class="material-symbols-rounded">delete</span></button>
+      `;
+    }
+
     aksi += `
       <button class="btnIcon btnInfo" onclick="lihatDetail('${r.noSurat}')" title="LIHAT DETAIL"><span class="material-symbols-rounded">visibility</span></button>
     `;
@@ -2123,7 +2136,6 @@ function filterRiwayat() {
       `;
     }
 
-    const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
     const isPdfVisible = (r.status === 'APPROVE' || r.status === 'DONE' || (isAdminUser && r.status !== 'REJECT'));
     if (isPdfVisible) {
       aksi += `
@@ -2367,6 +2379,12 @@ function editPermintaan(noSurat) {
   const req = requests.find(r => r.noSurat === noSurat);
   if (!req) return;
 
+  const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+  if (req.serviceApprove && !isAdminUser) {
+    showNotif('PERMINTAAN TERKUNCI! TIDAK DAPAT DIUBAH KARENA SUDAH DI-APPROVE SERVICE.', 'warning');
+    return;
+  }
+
   modeEdit = true;
   editNoSurat = req.noSurat;
 
@@ -2498,7 +2516,16 @@ function lihatDetail(noSurat, fromDashboard = false) {
     }
   }
 
-  // 2. DONE BUTTON WHEN STATUS IS APPROVE
+  // 2. DONE & PDF BUTTONS WHEN STATUS IS APPROVE / DONE
+  const isPdfVisible = (req.status === 'APPROVE' || req.status === 'DONE' || (isAdminUser && req.status !== 'REJECT'));
+  if (isPdfVisible) {
+    actionButtons.push(`
+      <button type="button" class="btnIcon btnPdf btnIconOnly" title="CETAK PDF" onclick="closeDetail(); bukaPdfModal('${req.noSurat}');">
+        <span class="material-symbols-rounded">picture_as_pdf</span>
+      </button>
+    `);
+  }
+
   if (req.status === 'APPROVE' && (role === 'SERVICE' || isAdminUser)) {
     actionButtons.push(`
       <button type="button" class="btnIcon btnDone btnIconOnly" title="SET DONE" onclick="closeDetail(); doneService('${req.noSurat}');">
@@ -2507,11 +2534,13 @@ function lihatDetail(noSurat, fromDashboard = false) {
     `);
   }
 
-  // 3. EDIT & HAPUS BUTTONS
-  const isCreator = (req.userId === currentUser.id || req.createdBy === currentUser.fullName);
-  const canEditDelete = (!req.serviceApprove && req.status === 'PENDING') || isCreator || role === 'SERVICE' || isAdminUser;
+  // 3. EDIT & HAPUS BUTTONS ACCORDING TO EXACT WORKFLOW
+  const isCreator = currentUser && (req.userId === currentUser.id || req.createdBy === currentUser.fullName || (currentUser.category === 'TOKO' && req.toko.toUpperCase() === currentUser.fullName.toUpperCase()));
+  const canCreatorEditDelete = isCreator && !req.serviceApprove && req.status === 'PENDING';
+  const canServiceEditDelete = (role === 'SERVICE' && !req.serviceApprove && req.status === 'PENDING');
+  const canAdminEditDelete = isAdminUser;
 
-  if (canEditDelete) {
+  if (canCreatorEditDelete || canServiceEditDelete || canAdminEditDelete) {
     actionButtons.push(`
       <button type="button" class="btnIcon btnEdit btnIconOnly" title="EDIT" onclick="closeDetail(); editPermintaan('${req.noSurat}');">
         <span class="material-symbols-rounded">edit</span>
