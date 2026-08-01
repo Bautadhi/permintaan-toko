@@ -475,7 +475,7 @@ function checkAndTriggerPendingReminders() {
 const SCRIPT_URL_STORAGE_KEY = 'STORE_SCRIPT_URL_V8';
 
 function getGoogleSheetUrl() {
-  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbwWP6fHqWzF-oyJgFabQn680n0PpFIxni0QH1rtrOs5Yfir0V2OSlgItR23P1fw9ktIig/exec';
+  return localStorage.getItem(SCRIPT_URL_STORAGE_KEY) || 'https://script.google.com/macros/s/AKfycbxEsFRPYCO60Hcj4WDh6dZB17YNXx8dA3wS8HBEuTfFvaZuE74WbPkiv08Q4qlr4Mg6lQ/exec';
 }
 
 function simpanAdminScriptUrl() {
@@ -763,7 +763,9 @@ async function pushCentralCloudDB() {
   try {
     const res = await fetch(targetUrl, {
       method: isGoogle ? 'POST' : 'PUT',
-      headers: isGoogle ? { 'Content-Type': 'text/plain' } : { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      mode: 'cors',
+      redirect: 'follow',
+      headers: isGoogle ? { 'Content-Type': 'text/plain;charset=utf-8' } : { 'Content-Type': 'application/json', 'Accept': 'application/json' },
       body: JSON.stringify(payload)
     });
     if (res.ok || res.type === 'opaque') {
