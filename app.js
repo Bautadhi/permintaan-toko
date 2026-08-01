@@ -798,20 +798,34 @@ function updateCloudStatusUI(isOnline) {
 }
 
 /* ======================================================
-   FIREBASE CLOUD FIRESTORE REALTIME DATABASE ENGINE
+   FIREBASE CLOUD FIRESTORE & STORAGE REALTIME DATABASE ENGINE
    ====================================================== */
 let dbCloud = null;
+let storageCloud = null;
 let isCloudDBActive = false;
 
 // Firebase Cloud Firestore Web Configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyB-DEFAULT_PLACEHOLDER_KEY",
-  authDomain: "permintaan-toko-app.firebaseapp.com",
-  projectId: "permintaan-toko-app",
-  storageBucket: "permintaan-toko-app.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abc123def456"
-};
+const FIREBASE_CONFIG_STORAGE_KEY = 'FIREBASE_CUSTOM_CONFIG_V1';
+
+function getFirebaseConfig() {
+  const customConfigStr = localStorage.getItem(FIREBASE_CONFIG_STORAGE_KEY);
+  if (customConfigStr) {
+    try {
+      const parsed = JSON.parse(customConfigStr);
+      if (parsed && parsed.projectId) return parsed;
+    } catch(e) {}
+  }
+  return {
+    apiKey: "AIzaSyB-DEFAULT_PLACEHOLDER_KEY",
+    authDomain: "permintaantoko.firebaseapp.com",
+    projectId: "permintaantoko",
+    storageBucket: "permintaantoko.firebasestorage.app",
+    messagingSenderId: "123456789012",
+    appId: "1:123456789012:web:abc123def456"
+  };
+}
+
+const firebaseConfig = getFirebaseConfig();
 
 function initFirebaseCloudDB() {
   if (typeof firebase !== 'undefined' && firebase.initializeApp) {
@@ -820,13 +834,28 @@ function initFirebaseCloudDB() {
         firebase.initializeApp(firebaseConfig);
       }
       dbCloud = firebase.firestore();
+      try { storageCloud = firebase.storage(); } catch (sErr) {}
       isCloudDBActive = true;
-      console.log('✅ FIREBASE CLOUD FIRESTORE TERHUBUNG BERHASIL!');
+      console.log('✅ FIREBASE CLOUD FIRESTORE & STORAGE TERHUBUNG BERHASIL!');
       setupFirestoreRealtimeListeners();
     } catch (err) {
       console.warn('⚠️ FIREBASE FIRESTORE OFFLINE FALLBACK (LOCALSTORAGE MODE):', err.message);
     }
   }
+}
+
+async function uploadFotoToFirebaseStorage(file, fileName) {
+  if (storageCloud && isCloudDBActive) {
+    try {
+      const ref = storageCloud.ref('photos/' + (fileName || ('FOTO_' + Date.now() + '.jpg')));
+      const snapshot = await ref.put(file);
+      const downloadUrl = await snapshot.ref.getDownloadURL();
+      return downloadUrl;
+    } catch (e) {
+      console.warn('Firebase Storage error, falling back:', e);
+    }
+  }
+  return null;
 }
 
 function setupFirestoreRealtimeListeners() {
@@ -844,6 +873,7 @@ function setupFirestoreRealtimeListeners() {
         if (currentUser) {
           loadDashboard();
           loadRiwayat();
+          if (document.getElementById('masterDbTableBody')) loadMasterDbTable();
         }
       }
     }
@@ -4192,4 +4222,8 @@ function initAllDraggableButtons() {
 
 document.addEventListener('DOMContentLoaded', () => {
   initAllDraggableButtons();
+  initDatabase();
+  loadSavedTheme();
+  startCentralCloudSyncEngine();
+  autoLogin();
 });
