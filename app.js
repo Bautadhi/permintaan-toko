@@ -903,34 +903,24 @@ function syncUserToCloud(userObj) {
 }
 
 function initDatabase() {
-  let storedUsers = [];
-  try {
-    storedUsers = JSON.parse(localStorage.getItem(USERS_DB_KEY) || '[]');
-  } catch (e) {
-    storedUsers = [];
+  const currentSession = localStorage.getItem(SESSION_KEY);
+  const currentTheme = localStorage.getItem(THEME_KEY);
+  
+  localStorage.clear();
+
+  if (currentSession) localStorage.setItem(SESSION_KEY, currentSession);
+  if (currentTheme) localStorage.setItem(THEME_KEY, currentTheme);
+
+  if (typeof caches !== 'undefined' && caches.keys) {
+    caches.keys().then(names => names.forEach(name => caches.delete(name))).catch(() => {});
   }
 
-  // FORCE RESET TO ONLY 1 ADMIN USER IF UNCLEAN
-  if (!Array.isArray(storedUsers) || !storedUsers.length || storedUsers.some(u => u.username !== 'ADMIN')) {
-    storedUsers = [...SEED_USERS];
-    localStorage.setItem(USERS_DB_KEY, JSON.stringify(storedUsers));
-  }
-  
-  if (!localStorage.getItem(REQUESTS_DB_KEY)) {
-    localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(CHAT_DB_KEY)) {
-    localStorage.setItem(CHAT_DB_KEY, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(CHAT_ROOM_DB_KEY)) {
-    localStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify([]));
-  }
-  if (!localStorage.getItem(TTD_DB_KEY)) {
-    localStorage.setItem(TTD_DB_KEY, JSON.stringify({}));
-  }
-  if (!localStorage.getItem(KODE_UNIT_MAP_KEY)) {
-    localStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify({}));
-  }
+  localStorage.setItem(USERS_DB_KEY, JSON.stringify([...SEED_USERS]));
+  localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify([]));
+  localStorage.setItem(CHAT_DB_KEY, JSON.stringify([]));
+  localStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify([]));
+  localStorage.setItem(TTD_DB_KEY, JSON.stringify({}));
+  localStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify({}));
 }
 
 function getUsersFromDB() {
