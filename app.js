@@ -3490,10 +3490,17 @@ function simpanUserData() {
       showNotif(`USER ${username} DIPERBARUI!`, 'info');
     }
   } else {
-    if (users.some(u => u.username.toUpperCase() === username)) {
+    // Check against active users
+    if (users.some(u => u && u.username && u.username.toUpperCase() === username)) {
       showNotif(`USERNAME '${username}' SUDAH TERDAFTAR!`, 'error');
       return;
     }
+
+    // Unmark deleted user list if re-adding
+    const delUsers = JSON.parse(localStorage.getItem(DELETED_USERS_KEY) || '[]');
+    const cleanDelUsers = delUsers.filter(x => x !== username && x !== username.toLowerCase());
+    localStorage.setItem(DELETED_USERS_KEY, JSON.stringify(cleanDelUsers));
+
     const newUser = {
       id: `USR-${Date.now()}`,
       username,
@@ -3507,7 +3514,7 @@ function simpanUserData() {
     };
     users.push(newUser);
     saveUsersToDB(users);
-    showNotif(`${fullName} BERHASIL DISIMPAN!`, 'info');
+    showNotif(`USER ${fullName} (${username}) BERHASIL DISIMPAN!`, 'info');
   }
 
   tutupUserModal();
