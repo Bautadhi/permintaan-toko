@@ -420,83 +420,82 @@ function formatDateDDMMYYYYString(input) {
   return str;
 }
 // APP INITIALIZATION
-// APP INITIALIZATION
+// ======================================================
+// APP INITIALIZATION & BOOT SEQUENCE (ANTI-BLANK)
+// ======================================================
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Tarik konfigurasi Supabase (URL & Key) terlebih dahulu
-  if (typeof loadSupabaseConfigFromJson === 'function') {
-    await loadSupabaseConfigFromJson();
-  }
-  
-  // 2. TUNGGU SUPABASE SELESAI MENGUNDUH SEMUA DATA CLOUD KE RAM
-  await initSupabaseDB();
-  
-  // 3. BARU JALANKAN INISIALISASI (Aman, tidak akan menimpa data yang sudah ada)
-  initDatabase(); 
+  try {
+    // Loading awal dihapus agar langsung instan
+    closeAllPopups();
 
-  startCentralCloudSyncEngine();
-  startSupabaseKeepalive();
-  loadSavedTheme();
+    if (typeof loadSupabaseConfigFromJson === 'function') {
+      await loadSupabaseConfigFromJson();
+    }
+    
+    await initSupabaseDB();
+    
+    initDatabase(); 
+    if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
+    if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
+    loadSavedTheme();
 
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      if (typeof window.prosesLogin === 'function') {
-        window.prosesLogin();
-      }
-    });
-  }
-
-  const loginButton = document.getElementById('btnLogin');
-  if (loginButton) {
-    loginButton.addEventListener('click', () => {
-      if (typeof window.prosesLogin === 'function') {
-        window.prosesLogin();
-      }
-    });
-  }
-
-  const usernameInput = document.getElementById('username');
-  if (usernameInput) {
-    usernameInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+      loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        if (typeof window.prosesLogin === 'function') {
-          window.prosesLogin();
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+      });
+    }
+
+    const loginButton = document.getElementById('btnLogin');
+    if (loginButton) {
+      loginButton.addEventListener('click', () => {
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+      });
+    }
+
+    const usernameInput = document.getElementById('username');
+    if (usernameInput) {
+      usernameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
         }
-      }
-    });
-  }
+      });
+    }
 
-  const passwordInput = document.getElementById('password');
-  if (passwordInput) {
-    passwordInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        if (typeof window.prosesLogin === 'function') {
-          window.prosesLogin();
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+      passwordInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
         }
-      }
-    });
+      });
+    }
+
+    autoLogin();
+
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (typeof loadRiwayat === 'function') loadRiwayat();
+      if (document.getElementById('masterDbTableBody') && typeof loadMasterDbTable === 'function') loadMasterDbTable();
+      if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+    }
+
+    initMobileBackButtonEngine();
+    initPullToRefresh();
+    updateAdminReminderUI();
+  } catch (err) {
+    console.error("Boot error:", err);
+  } finally {
+    hideLoading(); // Tetap jalankan hide untuk membersihkan sisa overlay jika ada
+    closeAllPopups();
+    if (!document.querySelector('.page.active')) {
+      const dash = document.getElementById('dashboardPage');
+      if (dash) dash.classList.add('active');
+    }
   }
-
-  // 4. JALANKAN CEK SESI (LOGIN)
-  autoLogin();
-
-  // =========================================================================
-  // 5. TAMBAHAN FIX: REFRESH LAYAR OTOMATIS JIKA SUDAH LOGIN
-  // =========================================================================
-  if (typeof currentUser !== 'undefined' && currentUser) {
-    if (typeof loadDashboard === 'function') loadDashboard();
-    if (typeof loadRiwayat === 'function') loadRiwayat();
-    if (document.getElementById('masterDbTableBody') && typeof loadMasterDbTable === 'function') loadMasterDbTable();
-    if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
-  }
-  // =========================================================================
-
-  initMobileBackButtonEngine();
-  initPullToRefresh();
-  updateAdminReminderUI();
 });
 /* ======================================================
    MOBILE PULL-TO-REFRESH GESTURE ENGINE
