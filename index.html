@@ -39,9 +39,9 @@
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
-        <div style="font-size: 12px; font-weight: 800; color: var(--primary); text-transform: uppercase;">PESAN MASUK REAL-TIME</div>
+        <div style="font-size: 12px; font-weight: 800; color: var(--primary); text-transform: uppercase;"></div>
         <button type="button" style="background: none; border: none; color: var(--primary); font-size: 11.5px; font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="markAllNotifAsRead()">
-          TANDAI SEMUA DIBACA
+          TANDAI SEMUA SUDAH DIBACA
         </button>
       </div>
 
@@ -352,7 +352,7 @@
         </p>
 
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="fonteTokenInput" placeholder="MASUKKAN FONTE / FONNTE API TOKEN DI SINI (CONTOH: 9kXj...)" style="flex: 1; min-width: 280px; padding: 12px;">
+          <input type="text" id="fonteTokenInput" placeholder="MASUKKAN TOKEN FONTE" style="flex: 1; min-width: 280px; padding: 12px;">
           <button type="button" class="btnDownload" style="background: #16a34a; height: 44px;" onclick="simpanFonteToken()">
             <span class="material-symbols-rounded">save</span> SIMPAN TOKEN WA
           </button>
@@ -703,8 +703,8 @@
       <div class="rejectBodyPopup">
         <input type="hidden" id="rejectNoSurat">
         <input type="hidden" id="rejectRoleType">
-        <p>MASUKKAN ALASAN PENOLAKAN PERMINTAAN BARANG INI:</p>
-        <textarea id="rejectReason" rows="4" placeholder="CONTOH: STOK DUS TIDAK TERSEDIA / FISIK BARANG TIDAK COCOK..."></textarea>
+        <p>MASUKKAN ALASAN PENOLAKAN:</p>
+        <textarea id="rejectReason" rows="4" placeholder=""></textarea>
         <div class="confirmButton">
           <button type="button" class="btnBatal" onclick="closeReject()">BATAL</button>
           <button type="button" class="btnHapus" onclick="kirimReject()">KIRIM</button>
