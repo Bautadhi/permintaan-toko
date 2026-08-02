@@ -421,44 +421,22 @@ function formatDateDDMMYYYYString(input) {
 }
 
 // APP INITIALIZATION
-// APP INITIALIZATION - ULTIMATE SAFE BOOT (ANTI-STUCK BLANK)
-document.addEventListener('DOMContentLoaded', async () => {
-  // 1. PASTIKAN LAYAR LANGSUNG MENAMPILKAN LOGIN/DASHBOARD DETIK INI JUGA (ANTI BLANK)
-  hideLoading();
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  
-  const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
-  if (sess) {
-    const dash = document.getElementById('dashboardPage');
-    if (dash) dash.classList.add('active');
-  } else {
-    const login = document.getElementById('loginPage');
-    if (login) login.classList.add('active');
-  }
-
-  // 2. Jalankan konfigurasi dan database di latar belakang (Background Process)
+// ULTIMATE INSTANT BOOT - ANTI STUCK "MEMUAT SISTEM"
+document.addEventListener('DOMContentLoaded', () => {
   try {
-    if (typeof loadSupabaseConfigFromJson === 'function') {
-      await loadSupabaseConfigFromJson();
-    }
-    
-    // Inisialisasi Supabase secara aman (tidak membuat aplikasi freeze jika lambat)
-    if (typeof initSupabaseDB === 'function') {
-      initSupabaseDB().then(() => {
-        // Setelah data cloud sukses ditarik di background, jalankan sinkronisasi
-        if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
-        if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
-      }).catch(e => console.warn("Background sync warning:", e));
-    }
-    
-    if (typeof initDatabase === 'function') initDatabase();
-    if (typeof loadSavedTheme === 'function') loadSavedTheme();
+    // 1. Matikan loading overlay secara paksa
+    const loadingEl = document.getElementById('loadingOverlay');
+    if (loadingEl) loadingEl.style.display = 'none';
 
-    // 3. Daftarkan Event Listener Tombol Login
+    // 2. Muat tema lokal dengan aman
+    const currentTheme = localStorage.getItem('THEME_KEY') || 'dark-mode';
+    document.body.className = currentTheme;
+
+    // 3. Daftarkan event listener tombol login secara langsung
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
-      loginForm.addEventListener('submit', (event) => {
-        event.preventDefault();
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
         if (typeof window.prosesLogin === 'function') window.prosesLogin();
       });
     }
@@ -472,22 +450,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const passwordInput = document.getElementById('password');
     if (passwordInput) {
-      passwordInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
+      passwordInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
           if (typeof window.prosesLogin === 'function') window.prosesLogin();
         }
       });
     }
 
-    // 4. Jalankan alur sesi login
-    if (typeof autoLogin === 'function') autoLogin();
-    if (typeof initMobileBackButtonEngine === 'function') initMobileBackButtonEngine();
-    if (typeof initPullToRefresh === 'function') initPullToRefresh();
-    if (typeof updateAdminReminderUI === 'function') updateAdminReminderUI();
+    // 4. CEK SESI SECARA INSTAN TANPA MENUNGGU JARINGAN
+    const sess = localStorage.getItem('SESSION_KEY') || sessionStorage.getItem('SESSION_KEY');
+    if (sess) {
+      try {
+        currentUser = JSON.parse(sess);
+        // Jika sudah login, langsung buka aplikasi tanpa menunggu
+        if (typeof bukaMainApp === 'function') {
+          bukaMainApp();
+        } else {
+          pindahHalaman('dashboardPage');
+          const bottomMenu = document.getElementById('bottomMenu');
+          if (bottomMenu) bottomMenu.style.display = 'flex';
+        }
+      } catch (err) {
+        console.warn("Sesi rusak, arahkan ke login");
+        pindahHalaman('loginPage');
+      }
+    } else {
+      // Jika belum login, langsung tampilkan halaman login
+      pindahHalaman('loginPage');
+    }
 
-  } catch (err) {
-    console.error("Boot execution notice:", err);
+    // 5. Jalankan koneksi Supabase secara terpisah di latar belakang (Background)
+    setTimeout(async () => {
+      try {
+        if (typeof loadSupabaseConfigFromJson === 'function') await loadSupabaseConfigFromJson();
+        if (typeof initSupabaseDB === 'function') await initSupabaseDB();
+        if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
+        if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
+      } catch (bgErr) {
+        console.warn("Background sync berjalan di mode offline:", bgErr);
+      }
+    }, 500);
+
+  } catch (fatalErr) {
+    console.error("Fatal boot error caught:", fatalErr);
+    // Darurat: Pastikan halaman login tetap muncul jika terjadi error
+    const loginPage = document.getElementById('loginPage');
+    if (loginPage) loginPage.classList.add('active');
   }
 });
 /* ======================================================
