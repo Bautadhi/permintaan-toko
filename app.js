@@ -2289,6 +2289,7 @@ function filterRiwayat() {
     const isCreator = currentUser && (r.userId === currentUser.id || r.createdBy === currentUser.fullName || (currentUser.category === 'TOKO' && r.toko.toUpperCase() === currentUser.fullName.toUpperCase()));
     const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
 
+    // TOMBOL APPROVE/REJECT/DONE SESUAI ROLE
     if (isAdminUser) {
       if (r.status === 'PENDING' && !r.serviceApprove) {
         aksi += `
@@ -2325,17 +2326,11 @@ function filterRiwayat() {
       }
     }
 
-    const canCreatorEditDelete = isCreator && !r.serviceApprove && r.status === 'PENDING';
-    const canServiceEditDelete = (role === 'SERVICE' && !r.serviceApprove && r.status === 'PENDING');
-    const canAdminEditDelete = isAdminUser;
+    // ==============================================================================
+    // PERMINTAAN: TOMBOL EDIT & HAPUS SUDAH DIHILANGKAN DARI SINI (HANYA ADA DI POPUP DETAIL)
+    // ==============================================================================
 
-    if (canCreatorEditDelete || canServiceEditDelete || canAdminEditDelete) {
-      aksi += `
-        <button class="btnIcon btnEdit" onclick="editPermintaan('${r.noSurat}')" title="EDIT PERMINTAAN"><span class="material-symbols-rounded">edit</span></button>
-        <button class="btnIcon btnDelete" onclick="hapusData('${r.noSurat}')" title="HAPUS PERMINTAAN"><span class="material-symbols-rounded">delete</span></button>
-      `;
-    }
-
+    // TOMBOL INFO DETAIL SELALU MUNCUL DI TABEL
     aksi += `
       <button class="btnIcon btnInfo" onclick="lihatDetail('${r.noSurat}')" title="LIHAT DETAIL"><span class="material-symbols-rounded">visibility</span></button>
     `;
@@ -2361,13 +2356,12 @@ function filterRiwayat() {
       <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
       <td>${r.toko} <div style="font-size:11px; color:var(--text-muted);">${r.area}</div></td>
       <td style="white-space:nowrap; font-size:13px; font-family:inherit; color:var(--text-main); font-weight:normal;">${r.jenis || 'DEFAULT'}</td>
-      <td>${getBadgeStatus(r.status)}</td>
+      <td>${getBadgeStatus(r)}</td>
       <td style="word-break:break-word; white-space:normal; color:var(--text-main);">${r.catatan || '-'}</td>
     `;
     tbody.appendChild(tr);
   });
 }
-
 function lihatFotoByNoSurat(noSurat) {
   const requests = getRequestsFromDB();
   const req = requests.find(r => r.noSurat === noSurat);
