@@ -420,6 +420,7 @@ function formatDateDDMMYYYYString(input) {
   return str;
 }
 // APP INITIALIZATION
+// APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
   // 1. Tarik konfigurasi Supabase (URL & Key) terlebih dahulu
   if (typeof loadSupabaseConfigFromJson === 'function') {
@@ -479,7 +480,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // 4. JALANKAN CEK SESI (LOGIN)
   autoLogin();
+
+  // =========================================================================
+  // 5. TAMBAHAN FIX: REFRESH LAYAR OTOMATIS JIKA SUDAH LOGIN
+  // =========================================================================
+  if (typeof currentUser !== 'undefined' && currentUser) {
+    if (typeof loadDashboard === 'function') loadDashboard();
+    if (typeof loadRiwayat === 'function') loadRiwayat();
+    if (document.getElementById('masterDbTableBody') && typeof loadMasterDbTable === 'function') loadMasterDbTable();
+    if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+  }
+  // =========================================================================
+
   initMobileBackButtonEngine();
   initPullToRefresh();
   updateAdminReminderUI();
