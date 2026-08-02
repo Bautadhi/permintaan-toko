@@ -111,37 +111,39 @@
     <!-- ==========================================================================
          1. LOGIN PAGE (CARD TITLE & BUTTON = PERMINTAAN, PRESET REMOVED)
          ========================================================================== -->
+    <!-- LOGIN PAGE -->
     <section id="loginPage" class="page active">
-      <div class="login-card">
-        <div class="logo">
-          <span class="material-symbols-rounded">storefront</span>
+      <div class="login-container" style="display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px;">
+        <div class="login-card" style="width: 100%; max-width: 400px; background: var(--bg-box, #1e293b); padding: 30px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); text-align: center;">
+          
+          <div class="logo" style="margin: 0 auto 15px auto; width: 60px; height: 60px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+            <span class="material-symbols-rounded" style="font-size: 30px;">storefront</span>
+          </div>
+          
+          <h2 style="color: var(--text-main, #fff); font-size: 20px; font-weight: 800; margin-bottom: 20px;">PERMINTAAN TOKO</h2>
+          
+          <form id="loginForm" onsubmit="event.preventDefault();" style="display: flex; flex-direction: column; gap: 14px; text-align: left;">
+            <div>
+              <label style="font-size: 12px; font-weight: 700; color: var(--text-muted, #94a3b8); margin-bottom: 5px; display: block;">USERNAME</label>
+              <input type="text" id="username" placeholder="MASUKKAN USERNAME..." style="width: 100%; height: 46px; border-radius: 10px; padding: 0 14px; background: var(--input-bg, #0f172a); color: var(--input-text, #fff); border: 1px solid var(--border-color, #334155); outline: none; box-sizing: border-box;">
+            </div>
+
+            <div>
+              <label style="font-size: 12px; font-weight: 700; color: var(--text-muted, #94a3b8); margin-bottom: 5px; display: block;">PASSWORD</label>
+              <input type="password" id="password" placeholder="MASUKKAN PASSWORD..." style="width: 100%; height: 46px; border-radius: 10px; padding: 0 14px; background: var(--input-bg, #0f172a); color: var(--input-text, #fff); border: 1px solid var(--border-color, #334155); outline: none; box-sizing: border-box;">
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 8px; margin: 5px 0;">
+              <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; accent-color: #3b82f6;">
+              <label for="rememberMe" style="font-size: 12px; color: var(--text-muted, #94a3b8); font-weight: 600; cursor: pointer;">Ingat Saya</label>
+            </div>
+
+            <button type="button" id="btnLogin" style="width: 100%; height: 48px; border-radius: 10px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; font-size: 14px; font-weight: 800; border: none; cursor: pointer; margin-top: 5px; box-shadow: 0 4px 12px rgba(59,130,246,0.4);">MASUK</button>
+          </form>
+
         </div>
-        <h2>PERMINTAAN TOKO</h2>
-        <p>SISTEM PERMINTAAN TOKO AREA JAWA BARAT</p>
-
-        <form id="loginForm" novalidate>
-          <div class="input-group">
-            <span><span class="material-symbols-rounded">person</span></span>
-            <input type="text" id="username" placeholder="USERNAME" autocomplete="off">
-          </div>
-
-          <div class="input-group">
-            <span><span class="material-symbols-rounded">lock</span></span>
-            <input type="password" id="password" placeholder="PASSWORD">
-          </div>
-
-          <!-- FITUR BARU: KOTAK CENTANG INGAT SANDI -->
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; margin-top: -4px;">
-            <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
-            <label for="rememberMe" style="margin: 0; font-size: 12px; color: var(--text-muted); cursor: pointer;">INGAT SANDI & SESI SAYA</label>
-          </div>
-
-          <button type="button" class="btn-primary" id="btnLogin">MASUK APLIKASI</button>
-        </form>
-
       </div>
     </section>
-
     <!-- ==========================================================================
          2. DASHBOARD PAGE (RICH VIVID COLORED METRIC CARDS & FILTERABLE LIST)
          ========================================================================== -->
