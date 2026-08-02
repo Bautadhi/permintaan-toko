@@ -2635,3 +2635,70 @@ button, input, select, textarea, .box, .box-full, .popupBox, .akunBox, .confirmB
 table {
   border-radius: 12px !important;
 }
+/* ======================================================
+   IMAGE VIEWER ZOOM CONTROLS
+   ====================================================== */
+.zoomControls {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  z-index: 1001;
+  background: rgba(15, 23, 42, 0.65);
+  padding: 8px 14px;
+  border-radius: 30px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+.zoomControls button {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 42px !important;
+  height: 42px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  transition: transform 0.2s ease, background 0.2s ease !important;
+}
+
+.zoomControls button:hover {
+  background: var(--primary-hover) !important;
+  transform: scale(1.15) !important;
+}
+
+#viewerImage {
+  max-width: none !important; /* Di-override agar bisa lebih besar dari layar saat di-zoom */
+  max-height: none !important;
+  cursor: grab;
+}
+
+/* ======================================================
+   FIX WARNA TEKS POPUP KONFIRMASI (MENGIKUTI TEMA)
+   ====================================================== */
+.confirmBox, .rejectBoxPopup {
+  background: var(--bg-box) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.confirmBox h3 {
+  color: var(--primary) !important; /* Judul konfirmasi mengikuti warna primary tema */
+  font-weight: 800 !important;
+}
+
+.confirmBox p {
+  color: var(--text-main) !important; /* Teks paragraf konfirmasi mengikuti warna teks tema */
+  font-weight: 600 !important;
+}
+
+.rejectBodyPopup p {
+  color: var(--text-main) !important;
+}
