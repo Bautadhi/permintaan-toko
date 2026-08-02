@@ -1129,9 +1129,11 @@ function updateThemeIcon() {
   });
 }
 
-// AUTHENTICATION & SESSION
+// AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
 function autoLogin() {
-  const sess = appStorage.getItem(SESSION_KEY);
+  // Cek localStorage (Jika dicentang 'Ingat Saya') atau sessionStorage (Jika tidak dicentang)
+  const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+  
   if (sess) {
     currentUser = JSON.parse(sess);
     bukaMainApp();
@@ -1139,6 +1141,69 @@ function autoLogin() {
     pindahHalaman('loginPage');
   }
 }
+
+async function prosesLogin() {
+  const uEl = document.getElementById('username');
+  const pEl = document.getElementById('password');
+  if (!uEl || !pEl) return;
+
+  const u = uEl.value.trim().toUpperCase();
+  const p = pEl.value.trim();
+
+  if (!u || !p) {
+    showNotif('USERNAME DAN PASSWORD WAJIB DIISI!', 'warning');
+    return;
+  }
+
+  showLoading('MEMPROSES LOGIN...');
+  try {
+    if (u === 'ADMIN') {
+      await initSupabaseDB();
+    }
+
+    let users = getUsersFromDB();
+    if (!Array.isArray(users) || !users.length) {
+      users = [...SEED_USERS];
+    }
+    
+    let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
+
+    // Fallback match from SEED_USERS
+    if (!user) {
+      user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
+      if (user) {
+        users.push(user);
+        saveUsersToDB(users);
+      }
+    }
+
+    // Fallback for ADMIN
+    if (!user && u === 'ADMIN' && p === '1') {
+      user = SEED_USERS[0];
+    }
+
+    if (user) {
+      currentUser = user;
+      
+      // LOGIKA PENYIMPANAN SESI BERDASARKAN KOTAK CENTANG
+      const rememberCheckbox = document.getElementById('rememberMe');
+      if (rememberCheckbox && rememberCheckbox.checked) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Permanen (tersimpan di HP)
+      } else {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Sementara (hilang saat browser/tab ditutup)
+      }
+      
+      bukaMainApp();
+    } else {
+      showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
+    }
+  } finally {
+    hideLoading();
+  }
+}
+window.prosesLogin = prosesLogin;
+
+
 
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
@@ -1211,7 +1276,9 @@ window.prosesLogin = prosesLogin;
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
-    appStorage.removeItem(SESSION_KEY);
+    // Hapus kedua penyimpanan saat logout
+    localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
     currentUser = null;
     tutupAkun();
     tutupNotificationModal();
@@ -1223,7 +1290,6 @@ function logout() {
     updateNotifBellCounter();
   });
 }
-
 function bukaMainApp() {
   document.getElementById('loginPage').classList.remove('active');
   document.getElementById('bottomMenu').style.display = 'flex';
