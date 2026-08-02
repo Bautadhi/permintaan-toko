@@ -516,6 +516,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (dash) dash.classList.add('active');
     }
   }
+   if (typeof aturTampilanLonceng === 'function' && typeof getCurrentActivePageId === 'function') {
+      aturTampilanLonceng(getCurrentActivePageId());
+    }
+  }, 500); // Tunggu setengah detik sampai halaman benar-benar terbentuk
 });
 /* ======================================================
    MOBILE PULL-TO-REFRESH GESTURE ENGINE
