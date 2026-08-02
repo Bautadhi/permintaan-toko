@@ -1,5 +1,5 @@
 /* ======================================================
-   SUPABASE DATABASE ENGINE (FIXED WEBSOCKET & KEEPALIVE)
+   SUPABASE DATABASE ENGINE (CLOUD ONLY - NO LOCAL STORAGE)
 ====================================================== */
 
 let APP_SUPABASE_URL = 'https://ducrykojvabaoioigbgc.supabase.co';
@@ -13,44 +13,43 @@ let writeTimer = null;
 let realtimeChannel = null;
 let onDataChangeCallback = null;
 
+// PENTING: Hanya menggunakan RAM (Memory), tidak ada Local Storage
 const memoryCache = new Map();
-const sessionKey = window.SESSION_KEY || 'STORE_ACTIVE_SESSION_V7_CLEAN';
 const themeKey = window.THEME_KEY || 'STORE_ACTIVE_THEME_V7_CLEAN';
 
 const appStorage = {
   getItem(key) {
-    if (window.localStorage) {
-      const localValue = window.localStorage.getItem(key);
-      if (localValue !== null) {
-        memoryCache.set(key, localValue);
-        return localValue;
-      }
-    }
+    // Tema tetap diijinkan baca dari local storage agar tidak kedip
+    if (key === themeKey && window.localStorage) return window.localStorage.getItem(key);
+    
+    // Semua data aplikasi dibaca murni dari RAM yang telah di-fetch dari Supabase
     if (!memoryCache.has(key)) return null;
     const val = memoryCache.get(key);
     return typeof val === 'string' ? val : JSON.stringify(val);
   },
+
   setItem(key, value) {
     const strVal = String(value);
     memoryCache.set(key, strVal);
-    if (window.localStorage) window.localStorage.setItem(key, strVal);
+    
+    // Simpan Tema ke local storage, sisanya JANGAN DISIMPAN
+    if (key === themeKey && window.localStorage) {
+      window.localStorage.setItem(key, strVal);
+      return;
+    }
+    
+    // Data langsung dikirim ke Cloud Supabase
     schedulePersist(key, parseStorageValue(strVal));
   },
+
   removeItem(key) {
     memoryCache.delete(key);
-    if (window.localStorage) window.localStorage.removeItem(key);
+    if (key === themeKey && window.localStorage) window.localStorage.removeItem(key);
     scheduleDelete(key);
   },
+
   clear() {
-    const keepKeys = new Set([sessionKey, themeKey]);
-    [...memoryCache.keys()].forEach(k => { if (!keepKeys.has(k)) memoryCache.delete(k); });
-    if (window.localStorage) {
-      Object.keys(window.localStorage).forEach(k => {
-        if (!keepKeys.has(k) && (k.startsWith('STORE_') || k.startsWith('FIREBASE_'))) {
-          window.localStorage.removeItem(k);
-        }
-      });
-    }
+    memoryCache.clear();
   }
 };
 
@@ -73,18 +72,16 @@ async function initSupabaseDB(secretKey = null) {
     return false;
   }
 
-  // MENCEGAH MULTIPLE INSTANCES: Jika sudah terkoneksi, lewati pembuatan ulang klien.
-  if (supabaseClient) {
-    return true; 
-  }
+  // Cek agar tidak terjadi double instances
+  if (supabaseClient) return true;
 
   const apiKey = (secretKey && secretKey.trim()) ? secretKey.trim() : APP_SUPABASE_PUBLISHABLE_KEY;
-  
+
   try {
     supabaseClient = supabase.createClient(APP_SUPABASE_URL, apiKey, {
       realtime: { params: { eventsPerSecond: 10 } }
     });
-    
+
     await loadAllFromSupabase();
     setupRealtimeSubscription();
     
@@ -101,30 +98,42 @@ async function initSupabaseDB(secretKey = null) {
 
 async function loadAllFromSupabase() {
   if (!supabaseClient) return;
+
   const { data, error } = await supabaseClient.from('app_storage').select('key, value');
   if (error) throw error;
+
+  // Masukkan data cloud ke RAM (memoryCache)
   if (Array.isArray(data)) {
-    data.forEach(row => memoryCache.set(row.key, serializeForCache(row.value)));
+    data.forEach(row => {
+      memoryCache.set(row.key, serializeForCache(row.value));
+    });
   }
 }
 
 function setupRealtimeSubscription() {
   if (!supabaseClient) return;
+
   try {
     if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+
     realtimeChannel = supabaseClient
       .channel('app_storage_changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_storage' }, payload => {
         const row = payload.new || payload.old;
         if (!row || !row.key) return;
-        if (payload.eventType === 'DELETE') memoryCache.delete(row.key);
-        else memoryCache.set(row.key, serializeForCache(row.value));
-        if (typeof onDataChangeCallback === 'function') onDataChangeCallback(row.key);
+
+        if (payload.eventType === 'DELETE') {
+          memoryCache.delete(row.key);
+        } else {
+          memoryCache.set(row.key, serializeForCache(row.value));
+        }
+
+        if (typeof onDataChangeCallback === 'function') {
+          onDataChangeCallback(row.key);
+        }
       })
       .subscribe((status) => {
-        // FITUR RECONNECT OTOMATIS JIKA PUTUS
         if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          console.warn('Supabase Realtime terputus, mencoba reconnect dalam 5 detik...');
           setTimeout(setupRealtimeSubscription, 5000);
         }
       });
@@ -136,42 +145,71 @@ function setupRealtimeSubscription() {
 function schedulePersist(key, parsedValue) {
   pendingWrites.set(key, parsedValue);
   if (writeTimer) clearTimeout(writeTimer);
-  writeTimer = setTimeout(flushPendingWrites, 500);
+  writeTimer = setTimeout(flushPendingWrites, 300);
 }
 
 function scheduleDelete(key) {
   pendingWrites.set(key, { __DELETE__: true });
   if (writeTimer) clearTimeout(writeTimer);
-  writeTimer = setTimeout(flushPendingWrites, 500);
+  writeTimer = setTimeout(flushPendingWrites, 300);
 }
 
 async function flushPendingWrites() {
   if (!supabaseClient || pendingWrites.size === 0) return;
+
   const batch = new Map(pendingWrites);
   pendingWrites.clear();
+
   for (const [key, val] of batch) {
     try {
       if (val && val.__DELETE__) {
         await supabaseClient.from('app_storage').delete().eq('key', key);
       } else {
         await supabaseClient.from('app_storage').upsert({
-          key, value: val, updated_at: new Date().toISOString()
+          key,
+          value: val,
+          updated_at: new Date().toISOString()
         }, { onConflict: 'key' });
       }
     } catch (err) {
-      console.warn('Supabase write error:', key, err.message);
+      console.warn('Supabase write error:', err.message);
       isSupabaseOnline = false;
       updateSupabaseStatusUI(false);
     }
   }
+
   isSupabaseOnline = true;
   updateSupabaseStatusUI(true);
 }
 
+async function pushToSupabaseNow() {
+  if (writeTimer) {
+    clearTimeout(writeTimer);
+    writeTimer = null;
+  }
+  await flushPendingWrites();
+}
+
+async function pullFromSupabase() {
+  if (!supabaseClient) return false;
+  try {
+    await loadAllFromSupabase();
+    isSupabaseOnline = true;
+    updateSupabaseStatusUI(true);
+    return true;
+  } catch (err) {
+    console.warn('Supabase pull error:', err.message);
+    isSupabaseOnline = false;
+    updateSupabaseStatusUI(false);
+    return false;
+  }
+}
+
 let supabaseKeepaliveTimer = null;
+
 function startSupabaseKeepalive() {
   if (supabaseKeepaliveTimer) clearInterval(supabaseKeepaliveTimer);
-  // PING SETIAP 60 DETIK AGAR KONEKSI TIDAK PUTUS SETELAH 5 MENIT
+  
   supabaseKeepaliveTimer = setInterval(async () => {
     if (!supabaseClient) return;
     try {
@@ -187,19 +225,48 @@ function startSupabaseKeepalive() {
   }, 60000);
 }
 
+async function uploadPhotoToSupabaseStorage(file) {
+  if (!supabaseClient) return null;
+
+  try {
+    const ext = (file.name && file.name.split('.').pop()) || 'jpg';
+    const fileName = `FOTO_${Date.now()}_${Math.floor(Math.random() * 10000)}.${ext}`;
+
+    const { error } = await supabaseClient.storage
+      .from('photos')
+      .upload(fileName, file, { cacheControl: '3600', upsert: false });
+
+    if (error) throw error;
+
+    const { data } = supabaseClient.storage.from('photos').getPublicUrl(fileName);
+    return data?.publicUrl || null;
+  } catch (err) {
+    console.warn('Supabase Storage upload error:', err.message);
+    return null;
+  }
+}
+
 function updateSupabaseStatusUI(isOnline) {
   const badge = document.getElementById('cloudStatusBadge');
   if (!badge) return;
+
   if (isOnline) {
-    badge.innerHTML = 'SUPABASE ONLINE';
+    badge.style.background = 'rgba(16, 185, 129, 0.18)';
     badge.style.color = '#10b981';
+    badge.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+    badge.innerHTML = '<span class="material-symbols-rounded" style="font-size: 15px;">cloud_done</span> SUPABASE ONLINE';
   } else {
-    badge.innerHTML = 'SUPABASE OFFLINE';
+    badge.style.background = 'rgba(239, 68, 68, 0.18)';
     badge.style.color = '#ef4444';
+    badge.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+    badge.innerHTML = '<span class="material-symbols-rounded" style="font-size: 15px;">cloud_off</span> SUPABASE OFFLINE';
   }
 }
 
 window.initSupabaseDB = initSupabaseDB;
+window.pushToSupabaseNow = pushToSupabaseNow;
+window.pullFromSupabase = pullFromSupabase;
 window.startSupabaseKeepalive = startSupabaseKeepalive;
+window.uploadPhotoToSupabaseStorage = uploadPhotoToSupabaseStorage;
 window.setOnDataChangeCallback = setOnDataChangeCallback;
 window.appStorage = appStorage;
