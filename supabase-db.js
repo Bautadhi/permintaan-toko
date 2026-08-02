@@ -72,21 +72,26 @@ async function initSupabaseDB(secretKey = null) {
     updateSupabaseStatusUI(false);
     return false;
   }
+
+  // MENCEGAH MULTIPLE INSTANCES: Jika sudah terkoneksi, lewati pembuatan ulang klien.
+  if (supabaseClient) {
+    return true; 
+  }
+
   const apiKey = (secretKey && secretKey.trim()) ? secretKey.trim() : APP_SUPABASE_PUBLISHABLE_KEY;
+  
   try {
-    if (supabaseClient && realtimeChannel) {
-      await supabaseClient.removeChannel(realtimeChannel);
-      realtimeChannel = null;
-    }
     supabaseClient = supabase.createClient(APP_SUPABASE_URL, apiKey, {
       realtime: { params: { eventsPerSecond: 10 } }
     });
+    
     await loadAllFromSupabase();
     setupRealtimeSubscription();
+    
     isSupabaseReady = true;
     isSupabaseOnline = true;
     updateSupabaseStatusUI(true);
-    startSupabaseKeepalive(); // MENYALAKAN PING SETIAP 60 DETIK
+    startSupabaseKeepalive(); 
     return true;
   } catch (err) {
     console.error('SUPABASE GAGAL TERHUBUNG:', err.message);
