@@ -854,10 +854,22 @@
   </div>
 
   <!-- 10. LIGHTBOX IMAGE VIEWER -->
-  <div id="imageViewer" onclick="this.style.display='none'">
+ <!-- 10. LIGHTBOX IMAGE VIEWER WITH ZOOM CONTROLS -->
+  <div id="imageViewer" onclick="tutupImageViewer()">
     <div class="imageViewerBox" onclick="event.stopPropagation()">
-      <button type="button" class="btnCloseImageViewer" onclick="document.getElementById('imageViewer').style.display='none'">&times;</button>
-      <img id="viewerImage" src="" alt="Zoom Foto">
+      <button type="button" class="btnCloseImageViewer" onclick="tutupImageViewer()">&times;</button>
+      
+      <!-- Kontainer Gambar Bisa Di-scroll Saat Di-zoom -->
+      <div id="imageDragContainer" style="width: 100%; height: 100%; overflow: auto; display: flex; align-items: center; justify-content: center;">
+        <img id="viewerImage" src="" alt="Zoom Foto" style="transition: transform 0.2s ease-out; transform: scale(1); transform-origin: center center;">
+      </div>
+
+      <!-- Tombol Zoom (+), (-), dan (Reset) -->
+      <div class="zoomControls">
+        <button type="button" onclick="zoomImage(-0.25)" title="Perkecil"><span class="material-symbols-rounded">zoom_out</span></button>
+        <button type="button" onclick="resetZoom()" title="Reset Ukuran"><span class="material-symbols-rounded">restart_alt</span></button>
+        <button type="button" onclick="zoomImage(0.25)" title="Perbesar"><span class="material-symbols-rounded">zoom_in</span></button>
+      </div>
     </div>
   </div>
 
