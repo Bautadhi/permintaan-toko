@@ -1611,7 +1611,7 @@ input:focus, select:focus, textarea:focus {
 .popupNotifCard.notif-error #popupNotifMessage,
 .popupNotifCard.notif-info .popupNotifBody p,
 .popupNotifCard.notif-info #popupNotifMessage {
-  color: #f8fafc !important;
+ color: var(--text-main) !important;
 }
 
 /* COMPACT POPUP DIMENSIONS FOR CONFIRM & REJECT POPUPS */
