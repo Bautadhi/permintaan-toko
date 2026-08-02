@@ -424,66 +424,76 @@ const SESSION_KEY = 'PERMINTAAN_TOKO_SESSION';
 const THEME_KEY = 'PERMINTAAN_TOKO_THEME';
 let currentUser = null;
 
-// Jalankan sistem begitu halaman siap
-document.addEventListener('DOMContentLoaded', () => {
+// APP INITIALIZATION & BOOT SEQUENCE (ANTI-BLANK)
+document.addEventListener('DOMContentLoaded', async () => {
   try {
-    console.log("Sistem dimulai dengan aman...");
+    showLoading('MEMUAT APLIKASI...');
+    closeAllPopups();
 
-    // 1. Ambil tema tersimpan
-    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark-mode';
-    document.body.className = savedTheme;
+    if (typeof loadSupabaseConfigFromJson === 'function') {
+      await loadSupabaseConfigFromJson();
+    }
+    if (typeof initSupabaseDB === 'function') {
+      await initSupabaseDB();
+    }
 
-    // 2. Hubungkan Tombol Login
+    if (typeof seedSupabaseDefaults === 'function') {
+      await seedSupabaseDefaults({
+        [USERS_DB_KEY]: JSON.stringify([...SEED_USERS]),
+        [REQUESTS_DB_KEY]: JSON.stringify([]),
+        [CHAT_DB_KEY]: JSON.stringify([]),
+        [CHAT_ROOM_DB_KEY]: JSON.stringify([]),
+        [TTD_DB_KEY]: JSON.stringify({}),
+        [KODE_UNIT_MAP_KEY]: JSON.stringify({}),
+        [FEATURE_PHOTOS_KEY]: 'true',
+        [NOTIFICATIONS_DB_KEY]: JSON.stringify([]),
+        [DELETED_USERS_KEY]: JSON.stringify([])
+      });
+    }
+
+    initDatabase();
+    if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
+    if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
+    loadSavedTheme();
+
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
-      loginForm.addEventListener('submit', (e) => {
-        e.preventDefault();
+      loginForm.addEventListener('submit', (event) => {
+        event.preventDefault();
         prosesLogin();
       });
     }
 
-    const btnLogin = document.getElementById('btnLogin');
-    if (btnLogin) {
-      btnLogin.addEventListener('click', () => {
+    const loginButton = document.getElementById('btnLogin');
+    if (loginButton) {
+      loginButton.addEventListener('click', () => {
         prosesLogin();
       });
     }
 
     const passwordInput = document.getElementById('password');
     if (passwordInput) {
-      passwordInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
+      passwordInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
           prosesLogin();
         }
       });
     }
 
-    // 3. Cek Sesi Login Otomatis
-    const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
-    if (sess) {
-      try {
-        currentUser = JSON.parse(sess);
-        bukaMainApp();
-      } catch (err) {
-        localStorage.removeItem(SESSION_KEY);
-        sessionStorage.removeItem(SESSION_KEY);
-        pindahHalaman('loginPage');
-      }
-    } else {
-      pindahHalaman('loginPage');
-    }
-
-    // 4. Inisialisasi background Supabase secara aman
-    setTimeout(() => {
-      if (typeof initSupabaseDB === 'function') {
-        initSupabaseDB().catch(e => console.log("Supabase background status:", e));
-      }
-    }, 500);
-
+    autoLogin();
+    initMobileBackButtonEngine();
+    initPullToRefresh();
+    updateAdminReminderUI();
   } catch (err) {
-    console.error("Kesalahan saat booting:", err);
-    pindahHalaman('loginPage');
+    console.error("Boot error:", err);
+  } finally {
+    hideLoading();
+    closeAllPopups();
+    if (!document.querySelector('.page.active')) {
+      const dash = document.getElementById('dashboardPage');
+      if (dash) dash.classList.add('active');
+    }
   }
 });
 /* ======================================================
@@ -1189,56 +1199,55 @@ async function prosesLogin() {
 
   const u = uEl.value.trim().toUpperCase();
   const p = pEl.value.trim();
-  const adminSecretKey = ((document.getElementById('adminSecretKey')?.value || '').trim() || getSavedAdminSecretKey());
 
   if (!u || !p) {
     showNotif('USERNAME DAN PASSWORD WAJIB DIISI!', 'warning');
     return;
   }
 
-  if (u === 'ADMIN') {
-    await initSupabaseDB(adminSecretKey || null);
-  }
-
-  let users = getUsersFromDB();
-  if (!Array.isArray(users) || !users.length) {
-    users = [...SEED_USERS];
-  }
-  
-  // 1. Match from active user database
-  let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-
-  // 2. Fallback match from SEED_USERS
-  if (!user) {
-    user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-    if (user) {
-      users.push(user);
-      saveUsersToDB(users);
+  showLoading('MEMPROSES LOGIN...');
+  try {
+    if (u === 'ADMIN') {
+      await initSupabaseDB();
     }
-  }
 
-  // 3. Fallback for ADMIN with password 1
-  if (!user && u === 'ADMIN' && p === '1') {
-    user = {
-      id: 'USR-ADMIN',
-      username: 'ADMIN',
-      password: '1',
-      fullName: 'ADMINISTRATOR PUSAT',
-      phone: '',
-      category: 'ADMIN',
-      area: 'ALL',
-      createdAt: '31/07/2026'
-    };
-    users.unshift(user);
-    saveUsersToDB(users);
-  }
+    let users = getUsersFromDB();
+    if (!Array.isArray(users) || !users.length) {
+      users = [...SEED_USERS];
+    }
+    
+    let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
 
-  if (user) {
-    currentUser = user;
-    appStorage.setItem(SESSION_KEY, JSON.stringify(user));
-    bukaMainApp();
-  } else {
-    showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
+    if (!user) {
+      user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
+      if (user) {
+        users.push(user);
+        saveUsersToDB(users);
+      }
+    }
+
+    if (!user && u === 'ADMIN' && p === '1') {
+      user = SEED_USERS[0];
+    }
+
+    if (user) {
+      currentUser = user;
+      const rememberCheckbox = document.getElementById('rememberMe');
+      if (rememberCheckbox && rememberCheckbox.checked) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
+      } else {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
+      }
+      
+      // Hapus memori halaman terakhir agar login manual selalu ke Dashboard
+      sessionStorage.removeItem('LAST_ACTIVE_PAGE');
+      
+      bukaMainApp();
+    } else {
+      showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
+    }
+  } finally {
+    hideLoading();
   }
 }
 window.prosesLogin = prosesLogin;
@@ -1259,9 +1268,29 @@ function bukaMainApp() {
   const bottomMenu = document.getElementById('bottomMenu');
   if (bottomMenu) bottomMenu.style.display = 'flex';
 
-  pindahHalaman('dashboardPage');
-  if (typeof loadDashboard === 'function') loadDashboard();
-}
+  if (typeof initAllDraggableButtons === 'function') initAllDraggableButtons();
+
+  const isAdmin = (
+    currentUser.category === 'ADMIN' ||
+    (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN')
+  );
+  
+  const btnUserNav = document.getElementById('btnUserNav');
+  const btnMasterDbNav = document.getElementById('btnMasterDbNav');
+
+  if (btnUserNav) btnUserNav.style.display = isAdmin ? 'flex' : 'none';
+  if (btnMasterDbNav) btnMasterDbNav.style.display = isAdmin ? 'flex' : 'none';
+
+  const btnHelp = document.getElementById('helpButton');
+  if (btnHelp) btnHelp.style.display = 'flex';
+
+  isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
+
+  let savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE');
+  if (!savedPage || savedPage === 'null' || savedPage === 'undefined' || !document.getElementById(savedPage)) {
+    savedPage = 'dashboardPage';
+  }
+  
   pindahHalaman(savedPage);
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
