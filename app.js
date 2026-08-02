@@ -423,11 +423,17 @@ function formatDateDDMMYYYYString(input) {
 // APP INITIALIZATION
 // APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
-  initDatabase();
+  // 1. Tarik konfigurasi Supabase (URL & Key) terlebih dahulu
   if (typeof loadSupabaseConfigFromJson === 'function') {
     await loadSupabaseConfigFromJson();
   }
+  
+  // 2. TUNGGU SUPABASE SELESAI MENGUNDUH SEMUA DATA CLOUD KE RAM
   await initSupabaseDB();
+  
+  // 3. BARU JALANKAN INISIALISASI (Aman, tidak akan menimpa data yang sudah ada)
+  initDatabase(); 
+
   startCentralCloudSyncEngine();
   startSupabaseKeepalive();
   loadSavedTheme();
@@ -480,7 +486,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   initPullToRefresh();
   updateAdminReminderUI();
 });
-
 /* ======================================================
    MOBILE PULL-TO-REFRESH GESTURE ENGINE
    ====================================================== */
