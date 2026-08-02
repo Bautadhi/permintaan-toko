@@ -661,13 +661,6 @@ function startCentralCloudSyncEngine() {
     cloudSyncInterval = null;
   }
 }
-
-async function pullCentralCloudDB() {
-  const ok = await pullFromSupabase();
-  if (ok && currentUser) onSupabaseDataChange();
-  return ok;
-}
-
 async function pushCentralCloudDB() {
   await pushToSupabaseNow();
 }
@@ -1176,10 +1169,17 @@ async function prosesLogin() {
       // LOGIKA PENYIMPANAN SESI BERDASARKAN KOTAK CENTANG
       const rememberCheckbox = document.getElementById('rememberMe');
       if (rememberCheckbox && rememberCheckbox.checked) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Permanen (tersimpan di HP)
+        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
       } else {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Sementara (hilang saat browser/tab ditutup)
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
       }
+      
+      // ========================================================
+      // FITUR BARU: HAPUS JEJAK HALAMAN SAAT LOGIN MANUAL
+      // Ini memastikan setiap kali selesai login, pengguna 
+      // SELALU kembali ke Dashboard.
+      // ========================================================
+      sessionStorage.removeItem('LAST_ACTIVE_PAGE');
       
       bukaMainApp();
     } else {
@@ -1190,9 +1190,6 @@ async function prosesLogin() {
   }
 }
 window.prosesLogin = prosesLogin;
-
-
-
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
@@ -1263,9 +1260,12 @@ window.prosesLogin = prosesLogin;
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
-    // Hapus kedua penyimpanan saat logout
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_KEY);
+    
+    // HAPUS JEJAK HALAMAN TERAKHIR SAAT LOGOUT
+    sessionStorage.removeItem('LAST_ACTIVE_PAGE'); 
+
     currentUser = null;
     tutupAkun();
     tutupNotificationModal();
@@ -1280,10 +1280,10 @@ function logout() {
 function bukaMainApp() {
   const loginPage = document.getElementById('loginPage');
   if (loginPage) loginPage.classList.remove('active');
-
+  
   const bottomMenu = document.getElementById('bottomMenu');
   if (bottomMenu) bottomMenu.style.display = 'flex';
-
+  
   if (typeof initAllDraggableButtons === 'function') initAllDraggableButtons();
 
   const isAdmin = (
@@ -1300,8 +1300,13 @@ function bukaMainApp() {
   const btnHelp = document.getElementById('helpButton');
   if (btnHelp) btnHelp.style.display = 'flex';
 
+  // ================================================================
+  // PERBAIKAN AKSES: Hak akses Chat Bantuan untuk ADMIN dan SERVICE TSM
+  // ================================================================
   isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
 
+  // FAILSAFE BACA JEJAK: Jika string jejak rusak ('null', 'undefined') atau halamannya tidak ada, 
+  // paksa kembali ke Dashboard agar layar tidak kosong!
   let savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE');
   if (!savedPage || savedPage === 'null' || savedPage === 'undefined' || !document.getElementById(savedPage)) {
     savedPage = 'dashboardPage';
@@ -1424,19 +1429,36 @@ function updateBottomMenuHighlight(pageId) {
   });
 }
 
-function pindahHalaman(pageId) {
-  document.querySelectorAll('.page').forEach(p => {
-    p.classList.remove('active');
-  });
+function pindahHalaman(pageId, pushHistory = true) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  const target = document.getElementById(pageId);
+  if (target) target.classList.add('active');
 
-  let target = document.getElementById(pageId);
-  if (!target) {
-    pageId = 'loginPage';
-    target = document.getElementById(pageId);
+  updateBottomMenuHighlight(pageId);
+
+  // FITUR BARU: Simpan halaman aktif agar tidak kembali ke Dashboard saat refresh
+  if (pageId !== 'loginPage') {
+    sessionStorage.setItem('LAST_ACTIVE_PAGE', pageId);
   }
 
-  if (target) {
-    target.classList.add('active');
+  if (pushHistory && pageId !== 'loginPage') {
+    try {
+      history.pushState({ page: pageId }, '', location.href);
+    } catch(e) {}
+  }
+
+  if (pageId === 'dashboardPage') {
+    loadDashboard();
+  } else if (pageId === 'inputPage') {
+    loadForm();
+  } else if (pageId === 'riwayatPage') {
+    loadRiwayat();
+  } else if (pageId === 'masterDbPage') {
+    loadMasterDbTable();
+  } else if (pageId === 'userManagementPage') {
+    loadFonteToken();
+    loadUsersManagement();
+    updateActivePdfModelBadge();
   }
 }
 /// DATA ACCESS BY ROLE & AREA (ADMIN & DM HAVE UNRESTRICTED ACCESS TO ALL AREAS)
