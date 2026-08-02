@@ -516,11 +516,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (dash) dash.classList.add('active');
     }
   }
-   if (typeof aturTampilanLonceng === 'function' && typeof getCurrentActivePageId === 'function') {
+
+  // =========================================================================
+  // FIX PENULISAN: TAMBAHKAN PEMBUKA "setTimeout(() => {" DI SINI
+  // =========================================================================
+  setTimeout(() => {
+    if (typeof aturTampilanLonceng === 'function' && typeof getCurrentActivePageId === 'function') {
       aturTampilanLonceng(getCurrentActivePageId());
     }
   }, 500); // Tunggu setengah detik sampai halaman benar-benar terbentuk
-});
+
+}); // <-- Ini kurung penutup utama DOMContentLoaded
 /* ======================================================
    MOBILE PULL-TO-REFRESH GESTURE ENGINE
    ====================================================== */
