@@ -1149,7 +1149,7 @@ async function prosesLogin() {
     return;
   }
 
-  showLoading('MEMPROSES LOGIN...');
+  // Notifikasi loading dihapus agar masuknya instan
   try {
     if (u === 'ADMIN') {
       await initSupabaseDB();
@@ -1162,7 +1162,6 @@ async function prosesLogin() {
     
     let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
 
-    // Fallback match from SEED_USERS
     if (!user) {
       user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
       if (user) {
@@ -1171,37 +1170,32 @@ async function prosesLogin() {
       }
     }
 
-    // Fallback for ADMIN
     if (!user && u === 'ADMIN' && p === '1') {
       user = SEED_USERS[0];
     }
 
     if (user) {
       currentUser = user;
-      
-      // LOGIKA PENYIMPANAN SESI BERDASARKAN KOTAK CENTANG
       const rememberCheckbox = document.getElementById('rememberMe');
       if (rememberCheckbox && rememberCheckbox.checked) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
+        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
       } else {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
       }
       
-      // ========================================================
-      // FITUR BARU: HAPUS JEJAK HALAMAN SAAT LOGIN MANUAL
-      // Ini memastikan setiap kali selesai login, pengguna 
-      // SELALU kembali ke Dashboard.
-      // ========================================================
       sessionStorage.removeItem('LAST_ACTIVE_PAGE');
       
       bukaMainApp();
     } else {
       showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
     }
+  } catch (err) {
+    console.error("Login Error:", err);
   } finally {
     hideLoading();
   }
 }
+
 window.prosesLogin = prosesLogin;
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
