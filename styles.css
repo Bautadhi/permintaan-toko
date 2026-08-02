@@ -2726,3 +2726,13 @@ body.classic-mode #inputPage .box > h3:first-of-type {
   background: #ffffff !important;
   box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.1) !important;
 }
+/* ======================================================
+   POSISI PATEN LONCENG NOTIFIKASI (POJOK KANAN ATAS)
+   ====================================================== */
+#notifBellBtn {
+  position: fixed !important;
+  top: 20px !important;  /* Jarak dari atas */
+  right: 20px !important; /* Jarak dari kanan */
+  z-index: 9999 !important; /* Pastikan tidak tertutup elemen lain */
+  margin: 0 !important;
+}
