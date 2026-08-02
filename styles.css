@@ -2681,24 +2681,3 @@ table {
   cursor: grab;
 }
 
-/* ======================================================
-   FIX WARNA TEKS POPUP KONFIRMASI (MENGIKUTI TEMA)
-   ====================================================== */
-.confirmBox, .rejectBoxPopup {
-  background: var(--bg-box) !important;
-  border: 1px solid var(--border-color) !important;
-}
-
-.confirmBox h3 {
-  color: var(--primary) !important; /* Judul konfirmasi mengikuti warna primary tema */
-  font-weight: 800 !important;
-}
-
-.confirmBox p {
-  color: var(--text-main) !important; /* Teks paragraf konfirmasi mengikuti warna teks tema */
-  font-weight: 600 !important;
-}
-
-.rejectBodyPopup p {
-  color: var(--text-main) !important;
-}
