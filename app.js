@@ -420,10 +420,6 @@ function formatDateDDMMYYYYString(input) {
   return str;
 }
 
-const SESSION_KEY = 'PERMINTAAN_TOKO_SESSION';
-const THEME_KEY = 'PERMINTAAN_TOKO_THEME';
-let currentUser = null;
-
 // APP INITIALIZATION & BOOT SEQUENCE (ANTI-BLANK)
 document.addEventListener('DOMContentLoaded', async () => {
   try {
