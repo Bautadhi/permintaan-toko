@@ -1751,10 +1751,17 @@ function getKodeUnitMap() {
 }
 
 // CAMERA BARCODE / QR SCANNER ENGINE (INSTANT AUTO-EXIT & AUTO-FOCUS TO PERMINTAAN COLUMN)
+// ======================================================
+// CAMERA SCANNER ENGINE (FIXED & INSTANT INPUT)
+// ======================================================
 function bukaScanner(btn) {
+  // 1. Cari input "NO SERI" secara absolut pada baris tombol yang diklik
   const row = btn.closest('.detailRow');
   if (row) {
     activeScanInput = row.querySelector('.seriBarang');
+  } else {
+    // Fallback darurat jika DOM meleset
+    activeScanInput = btn.parentElement.querySelector('.seriBarang');
   }
 
   const modal = document.getElementById('scannerModal');
@@ -1774,41 +1781,49 @@ function bukaScanner(btn) {
           { facingMode: "environment" },
           config,
           (decodedText) => {
-            const targetInput = activeScanInput;
-            const targetRow = targetInput ? targetInput.closest('.detailRow') : null;
-
-            if (targetInput) {
+            // JIKA BERHASIL SCAN:
+            if (activeScanInput) {
               const cleanCode = String(decodedText || '').trim().toUpperCase();
-              targetInput.value = cleanCode;
-              lookupTypeRow(targetInput, true);
-              showNotif(`NO SERI BERHASIL DI-SCAN: ${cleanCode}`, 'info');
-            }
+              
+              // Paksa masukkan nilai ke kotak input
+              activeScanInput.value = cleanCode;
+              activeScanInput.setAttribute('value', cleanCode);
+              
+              // Picu event 'input' agar form sadar ada data baru
+              activeScanInput.dispatchEvent(new Event('input', { bubbles: true }));
+              
+              showNotif(`BERHASIL SCAN: ${cleanCode}`, 'success');
 
-            // OTOMATIS KELUAR POPUP SCANNER
-            tutupScanner();
-
-            // OTOMATIS PINDAHKAN KURSOR KE KOLOM PERMINTAAN (.namaBarang)
-            if (targetRow) {
-              const namaInput = targetRow.querySelector('.namaBarang');
-              if (namaInput) {
-                setTimeout(() => {
-                  namaInput.focus();
-                  if (typeof namaInput.select === 'function') namaInput.select();
-                }, 200);
+              // Otomatis pindah fokus ke kolom 'PERMINTAAN BARANG'
+              const targetRow = activeScanInput.closest('.detailRow');
+              if (targetRow) {
+                const namaInput = targetRow.querySelector('.namaBarang');
+                if (namaInput) {
+                  setTimeout(() => {
+                    namaInput.focus();
+                  }, 300);
+                }
               }
+            } else {
+              showNotif('GAGAL MENEMUKAN KOTAK INPUT!', 'error');
             }
+
+            // Langsung tutup kamera
+            tutupScanner();
           },
-          () => {}
+          (errorMessage) => {
+            // Abaikan peringatan frame-by-frame agar console tidak penuh
+          }
         ).catch(err => {
-          console.warn("Kamera tidak dapat diakses / fallback input manual", err);
-          showNotif('IZIN KAMERA DITOLAK ATAU TERTUTUP BROWSER!', 'warning');
+          showNotif('KAMERA TIDAK TERSEDIA ATAU DIBLOKIR BROWSER!', 'warning');
+          tutupScanner();
         });
       } catch(err) {
-        console.warn("Gagal inisialisasi html5QrCode:", err);
+        console.warn("Kesalahan inisialisasi kamera:", err);
       }
-    }, 150);
+    }, 200); // Beri sedikit jeda agar popup benar-benar terbuka
   } else {
-    showNotif('MODUL SCANNER BELUM SIAP, ATAU BROWSER TIDAK MENDUKUNG!', 'warning');
+    showNotif('MODUL SCANNER BELUM SIAP!', 'warning');
   }
 }
 
@@ -1819,7 +1834,7 @@ function tutupScanner() {
   if (html5QrCodeScanner) {
     try {
       const scannerRef = html5QrCodeScanner;
-      html5QrCodeScanner = null;
+      html5QrCodeScanner = null; // Putus referensi segera
       scannerRef.stop().then(() => {
         try { scannerRef.clear(); } catch(e) {}
       }).catch(err => {
@@ -1829,21 +1844,11 @@ function tutupScanner() {
       html5QrCodeScanner = null;
     }
   }
-
-  if (activeScanInput) {
-    const row = activeScanInput.closest('.detailRow');
-    if (row) {
-      const namaInput = row.querySelector('.namaBarang');
-      if (namaInput) {
-        setTimeout(() => {
-          namaInput.focus();
-        }, 200);
-      }
-    }
-  }
-  activeScanInput = null;
+  // Biarkan activeScanInput bernilai null SETELAH semuanya selesai
+  setTimeout(() => {
+    activeScanInput = null;
+  }, 500);
 }
-
 function lookupTypeRow(el, isFromScanner = false) {
   if (!el) return;
   const rawValue = String(el.value || '').trim().toUpperCase();
