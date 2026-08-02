@@ -178,16 +178,33 @@ function updateNotifBellCounter() {
 }
 
 function bukaNotificationModal() {
-  const modal = document.getElementById('popupNotifList');
-  if (modal) {
-    modal.classList.add('show');
-    modal.style.display = 'flex';
-    
-    // PENGAMAN: Beri tahu HP bahwa ada popup terbuka (agar bisa di-back)
-    try { history.pushState({ popup: 'notif' }, '', location.href); } catch(e) {}
+  const popup = document.getElementById('popupNotifList');
+  if (!popup) return;
+
+  // 1. Eksekusi pemuatan data
+  if (typeof renderNotifList === 'function') {
+    renderNotifList(); // Gunakan renderNotifList jika ada
+  } else if (typeof loadNotificationList === 'function') {
+    loadNotificationList(); // Fallback ke fungsi Anda
   }
+
+  // 2. Cek paksa apakah elemen body notifikasi kosong
+  const listBody = document.getElementById('notifListBody');
+  if (listBody && listBody.innerHTML.trim() === '') {
+    listBody.innerHTML = `
+      <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px; font-weight: bold;">
+        TIDAK ADA NOTIFIKASI SAAT INI.
+      </div>
+    `;
+  }
+
+  // 3. Tampilkan popup & beritahu HP
+  popup.style.display = 'flex';
+  popup.classList.add('show');
   
-  if (typeof renderNotifList === 'function') renderNotifList();
+  if (typeof pushPopupHistoryState === 'function') {
+    pushPopupHistoryState();
+  }
 }
 
 function tutupNotificationModal() {
@@ -1329,18 +1346,53 @@ function bukaMainApp() {
   if (typeof updateAdminReminderUI === 'function') updateAdminReminderUI();
   if (typeof checkAndTriggerPendingReminders === 'function') checkAndTriggerPendingReminders();
 }
-// PAGE NAVIGATION WITH CONFIRMATION WHEN LEAVING EDIT MODE
 function showPage(pageId) {
   if (modeEdit && pageId !== 'inputPage') {
     showConfirm('KELUAR DARI MENU EDIT?', () => {
       bersihkanForm();
       closeAllPopups();
       pindahHalaman(pageId);
+      aturTampilanLonceng(pageId); // Sesuaikan lonceng setelah setuju keluar edit
     });
     return;
   }
+  
   closeAllPopups();
   pindahHalaman(pageId);
+  aturTampilanLonceng(pageId); // Sesuaikan lonceng untuk perpindahan normal
+}
+
+// =========================================================================
+// FUNGSI BANTUAN KHUSUS UNTUK MENYEMBUNYIKAN/MENAMPILKAN LONCENG NOTIF
+// =========================================================================
+function showPage(pageId) {
+  if (modeEdit && pageId !== 'inputPage') {
+    showConfirm('KELUAR DARI MENU EDIT?', () => {
+      bersihkanForm();
+      closeAllPopups();
+      pindahHalaman(pageId);
+      aturTampilanLonceng(pageId); // Sesuaikan lonceng setelah setuju keluar edit
+    });
+    return;
+  }
+  
+  closeAllPopups();
+  pindahHalaman(pageId);
+  aturTampilanLonceng(pageId); // Sesuaikan lonceng untuk perpindahan normal
+}
+
+// =========================================================================
+// FUNGSI BANTUAN KHUSUS UNTUK MENYEMBUNYIKAN/MENAMPILKAN LONCENG NOTIF
+// =========================================================================
+function aturTampilanLonceng(pageId) {
+  const notifBtn = document.getElementById('notifBellBtn');
+  if (notifBtn) {
+    if (pageId === 'dashboardPage') {
+      notifBtn.style.display = 'flex'; // Munculkan hanya di Dashboard
+    } else {
+      notifBtn.style.display = 'none'; // Sembunyikan di halaman lain
+    }
+  }
 }
 
 let mobileBackspaceCount = 0;
