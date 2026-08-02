@@ -4464,6 +4464,10 @@ function showNotif(msg, type = 'info') {
 }
 
 function closePopup() {
+   // Tambahkan baris ini di dalam fungsi closePopup() Anda
+  if (typeof aturTampilanLonceng === 'function' && typeof getCurrentActivePageId === 'function') {
+    aturTampilanLonceng(getCurrentActivePageId());
+  }
   const notifOverlay = document.getElementById('popupNotif');
   if (notifOverlay) notifOverlay.style.display = 'none';
   const inputPage = document.getElementById('inputPage');
