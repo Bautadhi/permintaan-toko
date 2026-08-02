@@ -1424,7 +1424,7 @@ input:focus, select:focus, textarea:focus {
 
 .popupNotifIconBadge .material-symbols-rounded {
   font-size: 36px !important;
-  color: #ffffff !important;
+  color: var(--text-main) !important;;
 }
 
 .popupNotifHeader h3 {
