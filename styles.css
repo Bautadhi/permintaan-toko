@@ -2680,33 +2680,47 @@ table {
   background: rgba(255, 255, 255, 0.2);
 }
 /* ======================================================
-   SUPER STICKY HEADER FORM INPUT (ANTI GAGAL DI HP)
+   FIX: KUNCI LAYAR (ANTI-GESER & ANTI CHROME SEMBUNYI)
    ====================================================== */
-/* 1. Pastikan bungkusannya mengizinkan efek sticky */
-#inputPage {
-  overflow-y: auto !important;
-  overflow-x: visible !important;
+
+/* 1. KUNCI LAYAR UTAMA BROWSER SECARA PAKSA */
+html, body {
+  height: 100vh !important;
+  height: 100dvh !important; /* Dynamic Viewport untuk HP modern */
+  overflow: hidden !important; /* Matikan scroll bawaan browser */
+  overscroll-behavior-y: none !important; /* Matikan efek mantul/karet saat ditarik di HP */
+  margin: 0;
+  padding: 0;
 }
 
+/* 2. PINDAHKAN SCROLL HANYA KE DALAM HALAMAN APLIKASI */
+.page {
+  height: 100vh !important;
+  height: 100dvh !important;
+  overflow-y: auto !important; /* Halaman ini yang akan scroll secara internal */
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important; /* Scroll mulus layaknya aplikasi HP */
+  padding-bottom: 85px !important; /* Jarak aman agar bagian bawah tidak tertutup menu */
+}
+
+/* 3. SETTING ULANG JUDUL FORM AGAR MEMBEKU SEMPURNA */
 #inputPage .box {
   padding-top: 0 !important;
-  overflow: visible !important; 
 }
 
-/* 2. Bekukan Judul Form */
 #inputPage .box > h3:first-of-type {
-  position: -webkit-sticky !important; /* Wajib untuk HP iPhone/Safari */
+  position: -webkit-sticky !important; /* Wajib untuk iPhone/Safari */
   position: sticky !important;
-  top: -2px !important; /* Menutup celah bocor di atas */
+  top: 0 !important; /* Nempel tepat di atas layar */
   background: var(--bg-box, #1e293b) !important;
   padding: 18px 15px 15px 15px !important;
-  margin: 0 -15px 20px -15px !important; /* Tarik lebar penuh menutupi padding box */
-  z-index: 999 !important; /* Pastikan selalu di lapisan teratas menutupi text lain */
+  margin: 0 -15px 20px -15px !important;
+  z-index: 999 !important;
   border-bottom: 2px solid var(--border-color, #334155) !important;
   box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* 3. Penyesuaian warna otomatis untuk mode Terang / Klasik */
+/* Penyesuaian warna judul untuk mode Terang / Klasik */
 body.light-mode #inputPage .box > h3:first-of-type,
 body.classic-mode #inputPage .box > h3:first-of-type {
   background: #ffffff !important;
