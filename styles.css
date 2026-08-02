@@ -2696,37 +2696,4 @@ table {
   margin: 0 !important;
   display: none !important; /* TAMBAHAN: Sembunyikan secara default saat refresh */
 }
-/* ======================================================
-   FINAL FIX: KUNCI LAYAR KHUSUS HALAMAN INPUT SAJA
-   ====================================================== */
 
-/* 1. Kunci spesifik hanya untuk Halaman Input */
-#inputPage {
-  height: 100vh !important;
-  height: 100dvh !important; /* Gunakan tinggi dinamis HP */
-  overflow-y: auto !important; /* Biarkan form discroll di dalam */
-  overflow-x: hidden !important;
-  overscroll-behavior-y: none !important; /* Cegah mantul/refresh tak sengaja saat isi form */
-  padding-bottom: 90px !important; /* Beri jarak untuk menu bawah */
-}
-
-
-
-#inputPage .box > h3:first-of-type {
-  position: -webkit-sticky !important; /* Khusus Safari/iPhone */
-  position: sticky !important;
-  top: 0 !important;
-  background: var(--bg-box, #1e293b) !important;
-  padding: 18px 15px 15px 15px !important;
-  margin: 0 -15px 20px -15px !important;
-  z-index: 999 !important;
-  border-bottom: 2px solid var(--border-color, #334155) !important;
-  box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Penyesuaian tema terang */
-body.light-mode #inputPage .box > h3:first-of-type,
-body.classic-mode #inputPage .box > h3:first-of-type {
-  background: #ffffff !important;
-  box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.1) !important;
-}
