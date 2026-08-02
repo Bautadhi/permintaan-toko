@@ -421,70 +421,71 @@ function formatDateDDMMYYYYString(input) {
 }
 
 // APP INITIALIZATION
-// APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
-  // 1. Tarik konfigurasi Supabase (URL & Key) terlebih dahulu
-  if (typeof loadSupabaseConfigFromJson === 'function') {
-    await loadSupabaseConfigFromJson();
-  }
-  
-  // 2. TUNGGU SUPABASE SELESAI MENGUNDUH SEMUA DATA CLOUD KE RAM
-  await initSupabaseDB();
-  
-  // 3. BARU JALANKAN INISIALISASI (Aman, tidak akan menimpa data yang sudah ada)
-  initDatabase(); 
+  // 1. Tampilkan loading agar layar tidak bocor / blank hitam saat menyambung ke Supabase
+  showLoading('MEMUAT APLIKASI...');
 
-  startCentralCloudSyncEngine();
-  startSupabaseKeepalive();
-  loadSavedTheme();
+  try {
+    if (typeof loadSupabaseConfigFromJson === 'function') {
+      await loadSupabaseConfigFromJson();
+    }
+    
+    // 2. Tunggu koneksi ke Supabase selesai
+    await initSupabaseDB();
+    
+    // 3. Eksekusi data
+    initDatabase();
+    startCentralCloudSyncEngine();
+    startSupabaseKeepalive();
+    loadSavedTheme();
 
-  const loginForm = document.getElementById('loginForm');
-  if (loginForm) {
-    loginForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      if (typeof window.prosesLogin === 'function') {
-        window.prosesLogin();
-      }
-    });
-  }
-
-  const loginButton = document.getElementById('btnLogin');
-  if (loginButton) {
-    loginButton.addEventListener('click', () => {
-      if (typeof window.prosesLogin === 'function') {
-        window.prosesLogin();
-      }
-    });
-  }
-
-  const usernameInput = document.getElementById('username');
-  if (usernameInput) {
-    usernameInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+      loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        if (typeof window.prosesLogin === 'function') {
-          window.prosesLogin();
-        }
-      }
-    });
-  }
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+      });
+    }
 
-  const passwordInput = document.getElementById('password');
-  if (passwordInput) {
-    passwordInput.addEventListener('keydown', (event) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        if (typeof window.prosesLogin === 'function') {
-          window.prosesLogin();
-        }
-      }
-    });
-  }
+    const loginButton = document.getElementById('btnLogin');
+    if (loginButton) {
+      loginButton.addEventListener('click', () => {
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+      });
+    }
 
-  autoLogin();
-  initMobileBackButtonEngine();
-  initPullToRefresh();
-  updateAdminReminderUI();
+    const usernameInput = document.getElementById('username');
+    if (usernameInput) {
+      usernameInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
+        }
+      });
+    }
+
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+      passwordInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
+        }
+      });
+    }
+
+    // 4. Jalankan auto login untuk memulihkan sesi dan halaman terakhir
+    autoLogin();
+    initMobileBackButtonEngine();
+    initPullToRefresh();
+    updateAdminReminderUI();
+  } catch (err) {
+    console.error("Boot error:", err);
+  } finally {
+    // 5. Apapun yang terjadi, matikan loading dan bersihkan sisa popup
+    hideLoading();
+    closeAllPopups();
+  }
 });
 /* ======================================================
    MOBILE PULL-TO-REFRESH GESTURE ENGINE
@@ -1136,13 +1137,19 @@ function updateThemeIcon() {
 
 // AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
 function autoLogin() {
-  // Cek localStorage (Jika dicentang 'Ingat Saya') atau sessionStorage (Jika tidak dicentang)
+  // Ambil sesi login
   const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
   
   if (sess) {
-    currentUser = JSON.parse(sess);
-    bukaMainApp();
+    try {
+      currentUser = JSON.parse(sess);
+      bukaMainApp();
+    } catch (e) {
+      currentUser = null;
+      pindahHalaman('loginPage');
+    }
   } else {
+    currentUser = null;
     pindahHalaman('loginPage');
   }
 }
@@ -1193,10 +1200,17 @@ async function prosesLogin() {
       // LOGIKA PENYIMPANAN SESI BERDASARKAN KOTAK CENTANG
       const rememberCheckbox = document.getElementById('rememberMe');
       if (rememberCheckbox && rememberCheckbox.checked) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Permanen (tersimpan di HP)
+        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
       } else {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Sementara (hilang saat browser/tab ditutup)
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
       }
+      
+      // ========================================================
+      // FITUR BARU: HAPUS JEJAK HALAMAN SAAT LOGIN MANUAL
+      // Ini memastikan setiap kali selesai login, pengguna 
+      // SELALU kembali ke Dashboard.
+      // ========================================================
+      sessionStorage.removeItem('LAST_ACTIVE_PAGE');
       
       bukaMainApp();
     } else {
@@ -1207,7 +1221,6 @@ async function prosesLogin() {
   }
 }
 window.prosesLogin = prosesLogin;
-
 
 
 function fillLogin(u, p) {
@@ -1284,7 +1297,7 @@ function logout() {
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_KEY);
     
-    // HAPUS JEJAK HALAMAN TERAKHIR SAAT LOGOUT
+    // HAPUS JEJAK: Agar pengguna selanjutnya mulai dari Dashboard
     sessionStorage.removeItem('LAST_ACTIVE_PAGE'); 
 
     currentUser = null;
@@ -1292,8 +1305,11 @@ function logout() {
     tutupNotificationModal();
     const popupBantuan = document.getElementById('popupBantuan');
     if (popupBantuan) popupBantuan.classList.remove('show');
+    
     document.getElementById('bottomMenu').style.display = 'none';
     document.getElementById('helpButton').style.display = 'none';
+    
+    closeAllPopups();
     pindahHalaman('loginPage');
     updateNotifBellCounter();
   });
@@ -1318,7 +1334,7 @@ function bukaMainApp() {
 
   isAdminChat = isAdmin;
 
-  // FITUR BARU: Baca halaman terakhir yang dibuka, jika tidak ada default ke dashboardPage
+  // BACA JEJAK: Pulihkan halaman terakhir, jika tidak ada buka dashboard
   const savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE') || 'dashboardPage';
   pindahHalaman(savedPage);
 
@@ -1438,13 +1454,20 @@ function updateBottomMenuHighlight(pageId) {
 }
 
 function pindahHalaman(pageId, pushHistory = true) {
+  // Sembunyikan semua halaman
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const target = document.getElementById(pageId);
-  if (target) target.classList.add('active');
-
+  
+  // Pastikan target halaman ada, jika tidak ada (error/blank), paksa ke dashboard
+  let target = document.getElementById(pageId);
+  if (!target) {
+    pageId = 'dashboardPage';
+    target = document.getElementById(pageId);
+  }
+  
+  target.classList.add('active');
   updateBottomMenuHighlight(pageId);
 
-  // FITUR BARU: Simpan halaman aktif agar tidak kembali ke Dashboard saat refresh
+  // Simpan jejak halaman terakhir agar tidak kembali ke login saat refresh
   if (pageId !== 'loginPage') {
     sessionStorage.setItem('LAST_ACTIVE_PAGE', pageId);
   }
@@ -1455,6 +1478,7 @@ function pindahHalaman(pageId, pushHistory = true) {
     } catch(e) {}
   }
 
+  // Load data spesifik sesuai halaman yang dibuka
   if (pageId === 'dashboardPage') {
     loadDashboard();
   } else if (pageId === 'inputPage') {
@@ -1469,7 +1493,6 @@ function pindahHalaman(pageId, pushHistory = true) {
     updateActivePdfModelBadge();
   }
 }
-
 /// DATA ACCESS BY ROLE & AREA (ADMIN & DM HAVE UNRESTRICTED ACCESS TO ALL AREAS)
 function getAccessibleRequests() {
   const requests = getRequestsFromDB();
