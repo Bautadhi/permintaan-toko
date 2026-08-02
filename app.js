@@ -421,71 +421,73 @@ function formatDateDDMMYYYYString(input) {
 }
 
 // APP INITIALIZATION
-// APP INITIALIZATION & ANTI-BLANK BOOT SEQUENCE
+// APP INITIALIZATION - ULTIMATE SAFE BOOT (ANTI-STUCK BLANK)
 document.addEventListener('DOMContentLoaded', async () => {
+  // 1. PASTIKAN LAYAR LANGSUNG MENAMPILKAN LOGIN/DASHBOARD DETIK INI JUGA (ANTI BLANK)
+  hideLoading();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  
+  const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
+  if (sess) {
+    const dash = document.getElementById('dashboardPage');
+    if (dash) dash.classList.add('active');
+  } else {
+    const login = document.getElementById('loginPage');
+    if (login) login.classList.add('active');
+  }
+
+  // 2. Jalankan konfigurasi dan database di latar belakang (Background Process)
   try {
-    // 1. Tampilkan layar pemuatan dan kunci semua popup
-    showLoading('MEMUAT APLIKASI...');
-    closeAllPopups();
-    
-    // 2. Koneksi ke Supabase dan Unduh Data ke RAM
     if (typeof loadSupabaseConfigFromJson === 'function') {
       await loadSupabaseConfigFromJson();
     }
+    
+    // Inisialisasi Supabase secara aman (tidak membuat aplikasi freeze jika lambat)
     if (typeof initSupabaseDB === 'function') {
-      await initSupabaseDB();
-    }
-
-    // 3. SEEDING AMAN: Buat data default HANYA JIKA Supabase terdeteksi benar-benar kosong (0 baris)
-    // Ini menghentikan bug data terhapus secara otomatis!
-    if (typeof seedSupabaseDefaults === 'function') {
-      await seedSupabaseDefaults({
-        [USERS_DB_KEY]: JSON.stringify([...SEED_USERS]),
-        [REQUESTS_DB_KEY]: JSON.stringify([]),
-        [CHAT_DB_KEY]: JSON.stringify([]),
-        [CHAT_ROOM_DB_KEY]: JSON.stringify([]),
-        [TTD_DB_KEY]: JSON.stringify({}),
-        [KODE_UNIT_MAP_KEY]: JSON.stringify({}),
-        [FEATURE_PHOTOS_KEY]: 'true',
-        [NOTIFICATIONS_DB_KEY]: JSON.stringify([]),
-        [DELETED_USERS_KEY]: JSON.stringify([])
-      });
+      initSupabaseDB().then(() => {
+        // Setelah data cloud sukses ditarik di background, jalankan sinkronisasi
+        if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
+        if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
+      }).catch(e => console.warn("Background sync warning:", e));
     }
     
-    // 4. Setup Tema & UI Lokal
-    initDatabase();
-    if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
-    if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
+    if (typeof initDatabase === 'function') initDatabase();
     if (typeof loadSavedTheme === 'function') loadSavedTheme();
 
-    // 5. Daftarkan Event Listener
+    // 3. Daftarkan Event Listener Tombol Login
     const loginForm = document.getElementById('loginForm');
-    if (loginForm) loginForm.addEventListener('submit', (e) => { e.preventDefault(); if (typeof window.prosesLogin === 'function') window.prosesLogin(); });
+    if (loginForm) {
+      loginForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+      });
+    }
+
     const btnLogin = document.getElementById('btnLogin');
-    if (btnLogin) btnLogin.addEventListener('click', () => { if (typeof window.prosesLogin === 'function') window.prosesLogin(); });
+    if (btnLogin) {
+      btnLogin.addEventListener('click', () => {
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+      });
+    }
+
     const passwordInput = document.getElementById('password');
-    if (passwordInput) passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); if (typeof window.prosesLogin === 'function') window.prosesLogin(); } });
-    
-    // 6. Jalankan Pemulihan Sesi (Auto-Login / Kembali ke Halaman Terakhir)
+    if (passwordInput) {
+      passwordInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
+        }
+      });
+    }
+
+    // 4. Jalankan alur sesi login
     if (typeof autoLogin === 'function') autoLogin();
     if (typeof initMobileBackButtonEngine === 'function') initMobileBackButtonEngine();
     if (typeof initPullToRefresh === 'function') initPullToRefresh();
     if (typeof updateAdminReminderUI === 'function') updateAdminReminderUI();
-    
+
   } catch (err) {
-    console.error("FATAL BOOT ERROR:", err);
-    // FAILSAFE 1: Paksa masuk halaman login jika terjadi error sistem agar tidak blank!
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    const loginPage = document.getElementById('loginPage');
-    if(loginPage) loginPage.classList.add('active');
-    showNotif('Terjadi kesalahan saat memuat sistem. Harap periksa jaringan.', 'error');
-  } finally {
-    hideLoading();
-    // FAILSAFE 2 EKSTREM: Jika setelah loading selesai layar tetap kosong/hitam, paksa tampilkan Dashboard!
-    if (!document.querySelector('.page.active')) {
-       const dash = document.getElementById('dashboardPage');
-       if (dash) dash.classList.add('active');
-    }
+    console.error("Boot execution notice:", err);
   }
 });
 /* ======================================================
