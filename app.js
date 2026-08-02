@@ -420,31 +420,32 @@ function formatDateDDMMYYYYString(input) {
   return str;
 }
 
-// APP INITIALIZATION
-// ULTIMATE INSTANT BOOT - ANTI STUCK "MEMUAT SISTEM"
+const SESSION_KEY = 'PERMINTAAN_TOKO_SESSION';
+const THEME_KEY = 'PERMINTAAN_TOKO_THEME';
+let currentUser = null;
+
+// Jalankan sistem begitu halaman siap
 document.addEventListener('DOMContentLoaded', () => {
   try {
-    // 1. Matikan loading overlay secara paksa
-    const loadingEl = document.getElementById('loadingOverlay');
-    if (loadingEl) loadingEl.style.display = 'none';
+    console.log("Sistem dimulai dengan aman...");
 
-    // 2. Muat tema lokal dengan aman
-    const currentTheme = localStorage.getItem('THEME_KEY') || 'dark-mode';
-    document.body.className = currentTheme;
+    // 1. Ambil tema tersimpan
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'dark-mode';
+    document.body.className = savedTheme;
 
-    // 3. Daftarkan event listener tombol login secara langsung
+    // 2. Hubungkan Tombol Login
     const loginForm = document.getElementById('loginForm');
     if (loginForm) {
       loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+        prosesLogin();
       });
     }
 
     const btnLogin = document.getElementById('btnLogin');
     if (btnLogin) {
       btnLogin.addEventListener('click', () => {
-        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+        prosesLogin();
       });
     }
 
@@ -453,50 +454,36 @@ document.addEventListener('DOMContentLoaded', () => {
       passwordInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
-          if (typeof window.prosesLogin === 'function') window.prosesLogin();
+          prosesLogin();
         }
       });
     }
 
-    // 4. CEK SESI SECARA INSTAN TANPA MENUNGGU JARINGAN
-    const sess = localStorage.getItem('SESSION_KEY') || sessionStorage.getItem('SESSION_KEY');
+    // 3. Cek Sesi Login Otomatis
+    const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
     if (sess) {
       try {
         currentUser = JSON.parse(sess);
-        // Jika sudah login, langsung buka aplikasi tanpa menunggu
-        if (typeof bukaMainApp === 'function') {
-          bukaMainApp();
-        } else {
-          pindahHalaman('dashboardPage');
-          const bottomMenu = document.getElementById('bottomMenu');
-          if (bottomMenu) bottomMenu.style.display = 'flex';
-        }
+        bukaMainApp();
       } catch (err) {
-        console.warn("Sesi rusak, arahkan ke login");
+        localStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY);
         pindahHalaman('loginPage');
       }
     } else {
-      // Jika belum login, langsung tampilkan halaman login
       pindahHalaman('loginPage');
     }
 
-    // 5. Jalankan koneksi Supabase secara terpisah di latar belakang (Background)
-    setTimeout(async () => {
-      try {
-        if (typeof loadSupabaseConfigFromJson === 'function') await loadSupabaseConfigFromJson();
-        if (typeof initSupabaseDB === 'function') await initSupabaseDB();
-        if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
-        if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
-      } catch (bgErr) {
-        console.warn("Background sync berjalan di mode offline:", bgErr);
+    // 4. Inisialisasi background Supabase secara aman
+    setTimeout(() => {
+      if (typeof initSupabaseDB === 'function') {
+        initSupabaseDB().catch(e => console.log("Supabase background status:", e));
       }
     }, 500);
 
-  } catch (fatalErr) {
-    console.error("Fatal boot error caught:", fatalErr);
-    // Darurat: Pastikan halaman login tetap muncul jika terjadi error
-    const loginPage = document.getElementById('loginPage');
-    if (loginPage) loginPage.classList.add('active');
+  } catch (err) {
+    console.error("Kesalahan saat booting:", err);
+    pindahHalaman('loginPage');
   }
 });
 /* ======================================================
@@ -1150,7 +1137,7 @@ function autoLogin() {
   }
 }
 
-async function prosesLogin() {
+function prosesLogin() {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
   if (!uEl || !pEl) return;
@@ -1159,65 +1146,33 @@ async function prosesLogin() {
   const p = pEl.value.trim();
 
   if (!u || !p) {
-    showNotif('USERNAME DAN PASSWORD WAJIB DIISI!', 'warning');
+    alert('USERNAME DAN PASSWORD WAJIB DIISI!');
     return;
   }
 
-  showLoading('MEMPROSES LOGIN...');
-  try {
-    if (u === 'ADMIN') {
-      await initSupabaseDB();
-    }
+  // Akun Default Darurat
+  if (u === 'ADMIN' && p === '1') {
+    currentUser = { username: 'ADMIN', category: 'ADMIN' };
+    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    bukaMainApp();
+  } else {
+    // Cek dari database lokal/Supabase jika ada
+    let users = [];
+    try {
+      users = JSON.parse(localStorage.getItem('USERS_DB_KEY') || '[]');
+    } catch(e) {}
 
-    let users = getUsersFromDB();
-    if (!Array.isArray(users) || !users.length) {
-      users = [...SEED_USERS];
-    }
-    
-    let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-
-    // Fallback match from SEED_USERS
-    if (!user) {
-      user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-      if (user) {
-        users.push(user);
-        saveUsersToDB(users);
-      }
-    }
-
-    // Fallback for ADMIN
-    if (!user && u === 'ADMIN' && p === '1') {
-      user = SEED_USERS[0];
-    }
-
-    if (user) {
-      currentUser = user;
-      
-      // LOGIKA PENYIMPANAN SESI BERDASARKAN KOTAK CENTANG
-      const rememberCheckbox = document.getElementById('rememberMe');
-      if (rememberCheckbox && rememberCheckbox.checked) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
-      } else {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); 
-      }
-      
-      // ========================================================
-      // FITUR BARU: HAPUS JEJAK HALAMAN SAAT LOGIN MANUAL
-      // Ini memastikan setiap kali selesai login, pengguna 
-      // SELALU kembali ke Dashboard.
-      // ========================================================
-      sessionStorage.removeItem('LAST_ACTIVE_PAGE');
-      
+    let found = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
+    if (found) {
+      currentUser = found;
+      localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       bukaMainApp();
     } else {
-      showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
+      alert('USERNAME ATAU PASSWORD SALAH! (Gunakan ADMIN / 1)');
     }
-  } finally {
-    hideLoading();
   }
 }
 window.prosesLogin = prosesLogin;
-
 
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
@@ -1289,62 +1244,24 @@ async function prosesLogin() {
 window.prosesLogin = prosesLogin;
 
 function logout() {
-  showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
-    
-    // HAPUS JEJAK: Agar pengguna selanjutnya mulai dari Dashboard
-    sessionStorage.removeItem('LAST_ACTIVE_PAGE'); 
-
-    currentUser = null;
-    tutupAkun();
-    tutupNotificationModal();
-    const popupBantuan = document.getElementById('popupBantuan');
-    if (popupBantuan) popupBantuan.classList.remove('show');
-    
-    document.getElementById('bottomMenu').style.display = 'none';
-    document.getElementById('helpButton').style.display = 'none';
-    
-    closeAllPopups();
-    pindahHalaman('loginPage');
-    updateNotifBellCounter();
-  });
+  localStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_KEY);
+  currentUser = null;
+  const bottomMenu = document.getElementById('bottomMenu');
+  if (bottomMenu) bottomMenu.style.display = 'none';
+  pindahHalaman('loginPage');
 }
+window.logout = logout;
 function bukaMainApp() {
   const loginPage = document.getElementById('loginPage');
   if (loginPage) loginPage.classList.remove('active');
-  
+
   const bottomMenu = document.getElementById('bottomMenu');
   if (bottomMenu) bottomMenu.style.display = 'flex';
-  
-  if (typeof initAllDraggableButtons === 'function') initAllDraggableButtons();
 
-  const isAdmin = (
-    currentUser.category === 'ADMIN' ||
-    (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN')
-  );
-  
-  const btnUserNav = document.getElementById('btnUserNav');
-  const btnMasterDbNav = document.getElementById('btnMasterDbNav');
-
-  if (btnUserNav) btnUserNav.style.display = isAdmin ? 'flex' : 'none';
-  if (btnMasterDbNav) btnMasterDbNav.style.display = isAdmin ? 'flex' : 'none';
-
-  const btnHelp = document.getElementById('helpButton');
-  if (btnHelp) btnHelp.style.display = 'flex';
-
-  // ================================================================
-  // PERBAIKAN AKSES: Hak akses Chat Bantuan untuk ADMIN dan SERVICE TSM
-  // ================================================================
-  isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
-
-  // FAILSAFE BACA JEJAK: Jika string jejak rusak ('null', 'undefined') atau halamannya tidak ada, 
-  // paksa kembali ke Dashboard agar layar tidak kosong!
-  let savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE');
-  if (!savedPage || savedPage === 'null' || savedPage === 'undefined' || !document.getElementById(savedPage)) {
-    savedPage = 'dashboardPage';
-  }
-  
+  pindahHalaman('dashboardPage');
+  if (typeof loadDashboard === 'function') loadDashboard();
+}
   pindahHalaman(savedPage);
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
@@ -1462,57 +1379,19 @@ function updateBottomMenuHighlight(pageId) {
   });
 }
 
-function pindahHalaman(pageId, pushHistory = true) {
-  try {
-    closeAllPopups(); // Tutup popup sisa secara paksa
-    
-    // Sembunyikan semua halaman
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    
-    // Validasi target halaman, jika tidak valid, amankan ke Dashboard
-    let target = document.getElementById(pageId);
-    if (!target) {
-      console.warn("Halaman tidak valid:", pageId, "- Mengalihkan ke Dashboard.");
-      pageId = 'dashboardPage';
-      target = document.getElementById(pageId);
-    }
-    
-    // Tampilkan halaman
-    if (target) {
-      target.classList.add('active');
-    } else {
-      // Failsafe paling ujung (jika HTML rusak/hilang)
-      const login = document.getElementById('loginPage');
-      if (login) login.classList.add('active');
-      return;
-    }
-    
-    updateBottomMenuHighlight(pageId);
+function pindahHalaman(pageId) {
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.remove('active');
+  });
 
-    // Simpan jejak halaman aktif untuk fitur Reload/Refresh
-    if (pageId !== 'loginPage') {
-      sessionStorage.setItem('LAST_ACTIVE_PAGE', pageId);
-    }
+  let target = document.getElementById(pageId);
+  if (!target) {
+    pageId = 'loginPage';
+    target = document.getElementById(pageId);
+  }
 
-    if (pushHistory && pageId !== 'loginPage') {
-      try { history.pushState({ page: pageId }, '', location.href); } catch(e) {}
-    }
-
-    // Load data spesifik sesuai halaman secara aman
-    if (pageId === 'dashboardPage' && typeof loadDashboard === 'function') loadDashboard();
-    else if (pageId === 'inputPage' && typeof loadForm === 'function') loadForm();
-    else if (pageId === 'riwayatPage' && typeof loadRiwayat === 'function') loadRiwayat();
-    else if (pageId === 'masterDbPage' && typeof loadMasterDbTable === 'function') loadMasterDbTable();
-    else if (pageId === 'userManagementPage' && typeof loadUsersManagement === 'function') {
-      loadFonteToken();
-      loadUsersManagement();
-      updateActivePdfModelBadge();
-    }
-  } catch (err) {
-    console.error('Error saat berpindah halaman:', err);
-    // Paksa ke Dashboard jika gagal me-render komponen agar layar tidak nge-blank hitam
-    const dash = document.getElementById('dashboardPage');
-    if (dash) dash.classList.add('active');
+  if (target) {
+    target.classList.add('active');
   }
 }
 /// DATA ACCESS BY ROLE & AREA (ADMIN & DM HAVE UNRESTRICTED ACCESS TO ALL AREAS)
