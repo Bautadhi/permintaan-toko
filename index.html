@@ -5,25 +5,34 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PERMINTAAN TOKO</title>
 
-  <!-- Google Fonts: Poppins & Material Symbols Rounded -->
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
 
-  <!-- Html5Qrcode Library via CDN for Camera Barcode/QR Scanning -->
+  <!-- Libraries -->
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
-  <!-- SheetJS Library via CDN for Genuine .xlsx Excel Export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
-  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js" defer></script>
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260801_supabase">
+  <link rel="stylesheet" href="styles.css?v=20260803_new">
 </head>
 <body class="dark-mode">
+
+  <div id="app">
+    <!-- LOGIN PAGE (DEFAULT AKTIF AGAR TIDAK BLANK) -->
+    <section id="loginPage" class="page active">
+      <div class="login-card" style="margin-top: 100px; text-align: center;">
+        <div class="logo" style="margin: 0 auto 15px auto; width: 60px; height: 60px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;">
+          <span class="material-symbols-rounded" style="font-size: 30px;">storefront</span>
+        </div>
+        <h2 style="color: #fff; font-size: 18px; margin-bottom: 5px;">PERMINTAAN TOKO</h2>
+        <p style="color: #94a3b8; font-size: 11px; margin-bottom: 20px;">MEMUAT SISTEM...</p>
+      </div>
+    </section>
+  </div>
 
   <!-- FLOATING NOTIFICATION BELL BUTTON (LEFT OF THEME TOGGLE BUTTON) -->
   <button id="notifBellBtn" type="button" class="notif-bell-btn" onclick="bukaNotificationModal()" title="NOTIFIKASI SISTEM REAL-TIME">
