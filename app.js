@@ -4333,9 +4333,38 @@ function hideLoading() {
   document.getElementById('loadingOverlay').style.display = 'none';
 }
 
+let currentZoom = 1;
+
 function zoomFoto(src) {
-  document.getElementById('viewerImage').src = src;
+  currentZoom = 1; // Reset zoom ke awal setiap kali membuka foto baru
+  const img = document.getElementById('viewerImage');
+  if (img) {
+    img.src = src;
+    img.style.transform = `scale(${currentZoom})`;
+  }
   document.getElementById('imageViewer').style.display = 'flex';
+}
+
+function tutupImageViewer() {
+  document.getElementById('imageViewer').style.display = 'none';
+}
+
+function zoomImage(step) {
+  currentZoom += step;
+  if (currentZoom < 0.2) currentZoom = 0.2; // Batas maksimal perkecil
+  if (currentZoom > 5) currentZoom = 5;     // Batas maksimal perbesar
+  const img = document.getElementById('viewerImage');
+  if (img) {
+    img.style.transform = `scale(${currentZoom})`;
+  }
+}
+
+function resetZoom() {
+  currentZoom = 1;
+  const img = document.getElementById('viewerImage');
+  if (img) {
+    img.style.transform = `scale(${currentZoom})`;
+  }
 }
 
 /* ======================================================
