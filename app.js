@@ -648,10 +648,13 @@ function bersihkanCacheAplikasiWeb() {
 
 function startCentralCloudSyncEngine() {
   setOnDataChangeCallback(onSupabaseDataChange);
-  if (!cloudSyncInterval) {
-    cloudSyncInterval = setInterval(() => {
-      pullCentralCloudDB().catch(() => {});
-    }, 5000);
+  
+  // HAPUS INTERVAL 5 DETIK! 
+  // Supabase sudah menggunakan WebSocket Real-Time yang otomatis.
+  // Polling manual hanya akan membuat bentrok data (race condition) saat kita menyimpan data.
+  if (cloudSyncInterval) {
+    clearInterval(cloudSyncInterval);
+    cloudSyncInterval = null;
   }
 }
 
@@ -1330,7 +1333,10 @@ function bukaMainApp() {
   const btnHelp = document.getElementById('helpButton');
   if (btnHelp) btnHelp.style.display = 'flex';
 
-  isAdminChat = isAdmin;
+  // ================================================================
+  // PERBAIKAN AKSES: Hak akses Chat Bantuan untuk ADMIN dan SERVICE TSM
+  // ================================================================
+  isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
 
   // FAILSAFE BACA JEJAK: Jika string jejak rusak ('null', 'undefined') atau halamannya tidak ada, 
   // paksa kembali ke Dashboard agar layar tidak kosong!
@@ -3262,11 +3268,21 @@ function tutupTTD() {
   document.getElementById('popupTTD').classList.remove('show');
 }
 
+// ======================================================================
+// DIGITAL SIGNATURE (TTD) CANVAS ENGINE - FIX KOORDINAT & TOUCH SCROLL
+// ======================================================================
+
 function initCanvasTTD() {
   canvasTTD = document.getElementById('canvasTTD');
   if (!canvasTTD) return;
-  ctxTTD = canvasTTD.getContext('2d');
 
+  // FIX UTAMA: Samakan resolusi internal canvas dengan ukuran aslinya di layar
+  // Ini mencegah garis offset (meleset) dari titik sentuhan jari atau kursor mouse
+  const rect = canvasTTD.getBoundingClientRect();
+  canvasTTD.width = rect.width || canvasTTD.offsetWidth || 540;
+  canvasTTD.height = rect.height || canvasTTD.offsetHeight || 220;
+
+  ctxTTD = canvasTTD.getContext('2d');
   ctxTTD.lineWidth = 2.8;
   ctxTTD.lineCap = 'round';
   ctxTTD.lineJoin = 'round';
@@ -3274,30 +3290,68 @@ function initCanvasTTD() {
 
   ctxTTD.clearRect(0, 0, canvasTTD.width, canvasTTD.height);
 
+  // Hapus listener lama jika ada agar tidak double
+  canvasTTD.onmousedown = null;
+  canvasTTD.onmousemove = null;
+  canvasTTD.onmouseup = null;
+  canvasTTD.onmouseleave = null;
+
+  // Event Mouse (Komputer / Laptop)
   canvasTTD.onmousedown = startDraw;
   canvasTTD.onmousemove = draw;
   canvasTTD.onmouseup = stopDraw;
   canvasTTD.onmouseleave = stopDraw;
 
-  canvasTTD.ontouchstart = startDrawTouch;
-  canvasTTD.ontouchmove = drawTouch;
-  canvasTTD.ontouchend = stopDraw;
+  // Event Touch (HP) - Pakai addEventListener agar touch tidak men-scroll layar
+  canvasTTD.addEventListener('touchstart', startDrawTouch, { passive: false });
+  canvasTTD.addEventListener('touchmove', drawTouch, { passive: false });
+  canvasTTD.addEventListener('touchend', stopDraw);
 }
 
 function getCanvasPointFromEvent(e) {
   if (!canvasTTD) return { x: 0, y: 0 };
 
   const rect = canvasTTD.getBoundingClientRect();
-  const clientX = e.clientX ?? (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-  const clientY = e.clientY ?? (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
+  let clientX, clientY;
 
-  const scaleX = canvasTTD.width / rect.width;
-  const scaleY = canvasTTD.height / rect.height;
+  // Deteksi apakah ini sentuhan HP atau klik Mouse
+  if (e.touches && e.touches.length > 0) {
+    clientX = e.touches[0].clientX;
+    clientY = e.touches[0].clientY;
+  } else {
+    clientX = e.clientX;
+    clientY = e.clientY;
+  }
 
+  // Koordinat langsung dihitung murni berdasarkan batas pinggir (karena skala sudah 1:1)
   return {
-    x: (clientX - rect.left) * scaleX,
-    y: (clientY - rect.top) * scaleY
+    x: clientX - rect.left,
+    y: clientY - rect.top
   };
+}
+
+function startDrawTouch(e) {
+  if (e.cancelable) e.preventDefault(); // Cegah layar ikut ter-scroll saat tanda tangan
+  isDrawing = true;
+  const point = getCanvasPointFromEvent(e);
+  lastX = point.x;
+  lastY = point.y;
+  ctxTTD.beginPath();
+  ctxTTD.moveTo(lastX, lastY);
+}
+
+function drawTouch(e) {
+  if (e.cancelable) e.preventDefault(); // Cegah layar ikut ter-scroll saat tanda tangan
+  if (!isDrawing) return;
+  const point = getCanvasPointFromEvent(e);
+  const x = point.x;
+  const y = point.y;
+  const mx = (lastX + x) / 2;
+  const my = (lastY + y) / 2;
+  ctxTTD.quadraticCurveTo(lastX, lastY, mx, my);
+  ctxTTD.stroke();
+  lastX = x;
+  lastY = y;
 }
 
 function startDraw(e) {
@@ -3312,30 +3366,6 @@ function startDraw(e) {
 function draw(e) {
   if (!isDrawing) return;
   const point = getCanvasPointFromEvent(e);
-  const x = point.x;
-  const y = point.y;
-  const mx = (lastX + x) / 2;
-  const my = (lastY + y) / 2;
-  ctxTTD.quadraticCurveTo(lastX, lastY, mx, my);
-  ctxTTD.stroke();
-  lastX = x;
-  lastY = y;
-}
-
-function startDrawTouch(e) {
-  e.preventDefault();
-  const point = getCanvasPointFromEvent(e.touches[0] || e);
-  lastX = point.x;
-  lastY = point.y;
-  isDrawing = true;
-  ctxTTD.beginPath();
-  ctxTTD.moveTo(lastX, lastY);
-}
-
-function drawTouch(e) {
-  e.preventDefault();
-  if (!isDrawing) return;
-  const point = getCanvasPointFromEvent(e.touches[0] || e);
   const x = point.x;
   const y = point.y;
   const mx = (lastX + x) / 2;
@@ -3391,8 +3421,12 @@ let fastChatInterval = null;
 // LIVE CHAT WIDGET
 function bukaBantuan() {
   if (currentUser) {
-    isAdminChat = (currentUser.category === 'ADMIN' || currentUser.category === 'SERVICE' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+    // ================================================================
+    // PERBAIKAN AKSES: Buka UI Admin Chat khusus ADMIN & SERVICE TSM
+    // ================================================================
+    isAdminChat = (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN') || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM'));
   }
+  
   const popup = document.getElementById('popupBantuan');
   const btnHelp = document.getElementById('helpButton');
   if (btnHelp) btnHelp.style.display = 'none';
@@ -3401,10 +3435,11 @@ function bukaBantuan() {
     popup.classList.add('show');
   }
 
-  // Activate 300ms Sub-second Fast Chat Sync
-  pullCentralCloudDB();
-  if (!fastChatInterval) {
-    fastChatInterval = setInterval(pullCentralCloudDB, 300);
+  // KONEKSI CHAT SUDAH REAL-TIME VIA WEBSOCKET SUPABASE
+  // Hapus interval polling manual agar tidak bentrok saat kirim pesan
+  if (fastChatInterval) {
+    clearInterval(fastChatInterval);
+    fastChatInterval = null;
   }
 
   const chatList = document.getElementById('chatList');
@@ -3429,7 +3464,6 @@ function bukaBantuan() {
     loadChatUser();
   }
 }
-
 function tutupBantuan() {
   const popup = document.getElementById('popupBantuan');
   const btnHelp = document.getElementById('helpButton');
