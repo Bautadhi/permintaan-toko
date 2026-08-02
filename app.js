@@ -1349,13 +1349,16 @@ function pushPopupHistoryState() {
   } catch (e) {}
 }
 
+// ======================================================
+// MOBILE BACK BUTTON ENGINE (DENGAN PENGAMAN MODE EDIT)
+// ======================================================
 function initMobileBackButtonEngine() {
   try {
     history.pushState({ page: 'dashboardPage' }, '', location.href);
   } catch(e) {}
 
   window.addEventListener('popstate', (e) => {
-    // Daftar semua popup yang akan ditutup oleh tombol Back HP
+    // 1. Cek apakah ada popup/modal yang sedang terbuka
     const openModals = [
       document.getElementById('popupDetail'),
       document.getElementById('popupNotifList'),
@@ -1368,8 +1371,8 @@ function initMobileBackButtonEngine() {
       document.getElementById('popupTambahToko'),
       document.getElementById('popupPdfModelsModal'),
       document.getElementById('confirmOverlay'),
-      document.getElementById('imageViewer'),  // <-- Penampil Foto
-      document.getElementById('scannerModal')  // <-- Popup Scanner Kamera
+      document.getElementById('imageViewer'),
+      document.getElementById('scannerModal')
     ];
 
     let closedAnyModal = false;
@@ -1382,28 +1385,42 @@ function initMobileBackButtonEngine() {
     });
 
     if (closedAnyModal) {
-      // Pastikan kamera atau viewer benar-benar mati/reset
       if (typeof tutupScanner === 'function') tutupScanner();
       if (typeof tutupImageViewer === 'function') tutupImageViewer();
-      
       try { history.pushState({ page: getCurrentActivePageId() }, '', location.href); } catch(err) {}
       return;
     }
 
     const currentActivePage = getCurrentActivePageId();
 
-    if (currentActivePage !== 'dashboardPage' && currentActivePage !== 'loginPage') {
-      pindahHalaman('dashboardPage', false);
-      try { history.pushState({ page: 'dashboardPage' }, '', location.href); } catch(err) {}
-      mobileBackspaceCount = 0;
+    // 2. TAMBAHAN: PENGAMAN JIKA TEKAN BACK HP SAAT MODE EDIT
+    if (currentActivePage === 'inputPage' && typeof modeEdit !== 'undefined' && modeEdit) {
+      // Tahan riwayat browser agar tidak benar-benar mundur dulu
+      try { history.pushState({ page: 'inputPage' }, '', location.href); } catch(err) {}
+      
+      showConfirm('KELUAR DARI MENU EDIT?', () => {
+        if (typeof bersihkanForm === 'function') bersihkanForm();
+        closeAllPopups();
+        pindahHalaman('dashboardPage'); // Arahkan kembali ke Dashboard jika pilih YA
+      });
       return;
     }
 
+    // 3. Logika navigasi mundur default
+    if (currentActivePage !== 'dashboardPage' && currentActivePage !== 'loginPage') {
+      pindahHalaman('dashboardPage', false);
+      try { history.pushState({ page: 'dashboardPage' }, '', location.href); } catch(err) {}
+      if (typeof mobileBackspaceCount !== 'undefined') mobileBackspaceCount = 0;
+      return;
+    }
+
+    // 4. Logika keluar aplikasi jika menekan back berkali-kali di Dashboard
     if (currentActivePage === 'dashboardPage') {
+      if (typeof mobileBackspaceCount === 'undefined') window.mobileBackspaceCount = 0;
       mobileBackspaceCount++;
 
-      if (mobileBackspaceTimer) clearTimeout(mobileBackspaceTimer);
-      mobileBackspaceTimer = setTimeout(() => {
+      if (typeof mobileBackspaceTimer !== 'undefined' && mobileBackspaceTimer) clearTimeout(mobileBackspaceTimer);
+      window.mobileBackspaceTimer = setTimeout(() => {
         mobileBackspaceCount = 0;
       }, 3500);
 
