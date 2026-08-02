@@ -1,5 +1,5 @@
 /* ======================================================
-   SUPABASE DATABASE ENGINE (CLOUD ONLY - NO LOCAL STORAGE)
+   SUPABASE DATABASE ENGINE (CLOUD ONLY - AUTO RECONNECT FIX)
 ====================================================== */
 
 let APP_SUPABASE_URL = 'https://ducrykojvabaoioigbgc.supabase.co';
@@ -12,6 +12,7 @@ let pendingWrites = new Map();
 let writeTimer = null;
 let realtimeChannel = null;
 let onDataChangeCallback = null;
+let reconnectTimer = null; // Timer untuk auto-reconnect
 
 // PENTING: Hanya menggunakan RAM (Memory), tidak ada Local Storage
 const memoryCache = new Map();
@@ -19,35 +20,25 @@ const themeKey = window.THEME_KEY || 'STORE_ACTIVE_THEME_V7_CLEAN';
 
 const appStorage = {
   getItem(key) {
-    // Tema tetap diijinkan baca dari local storage agar tidak kedip
     if (key === themeKey && window.localStorage) return window.localStorage.getItem(key);
-    
-    // Semua data aplikasi dibaca murni dari RAM yang telah di-fetch dari Supabase
     if (!memoryCache.has(key)) return null;
     const val = memoryCache.get(key);
     return typeof val === 'string' ? val : JSON.stringify(val);
   },
-
   setItem(key, value) {
     const strVal = String(value);
     memoryCache.set(key, strVal);
-    
-    // Simpan Tema ke local storage, sisanya JANGAN DISIMPAN
     if (key === themeKey && window.localStorage) {
       window.localStorage.setItem(key, strVal);
       return;
     }
-    
-    // Data langsung dikirim ke Cloud Supabase
     schedulePersist(key, parseStorageValue(strVal));
   },
-
   removeItem(key) {
     memoryCache.delete(key);
     if (key === themeKey && window.localStorage) window.localStorage.removeItem(key);
     scheduleDelete(key);
   },
-
   clear() {
     memoryCache.clear();
   }
@@ -72,15 +63,17 @@ async function initSupabaseDB(secretKey = null) {
     return false;
   }
 
-  // Cek agar tidak terjadi double instances
-  if (supabaseClient) return true;
-
   const apiKey = (secretKey && secretKey.trim()) ? secretKey.trim() : APP_SUPABASE_PUBLISHABLE_KEY;
 
   try {
-    supabaseClient = supabase.createClient(APP_SUPABASE_URL, apiKey, {
-      realtime: { params: { eventsPerSecond: 10 } }
-    });
+    if (!supabaseClient) {
+      supabaseClient = supabase.createClient(APP_SUPABASE_URL, apiKey, {
+        realtime: {
+          params: { eventsPerSecond: 10 },
+          timeout: 20000 // Timeout wajar 20 detik
+        }
+      });
+    }
 
     await loadAllFromSupabase();
     setupRealtimeSubscription();
@@ -92,17 +85,17 @@ async function initSupabaseDB(secretKey = null) {
     return true;
   } catch (err) {
     console.error('SUPABASE GAGAL TERHUBUNG:', err.message);
+    isSupabaseOnline = false;
+    updateSupabaseStatusUI(false);
     return false;
   }
 }
 
 async function loadAllFromSupabase() {
   if (!supabaseClient) return;
-
   const { data, error } = await supabaseClient.from('app_storage').select('key, value');
   if (error) throw error;
 
-  // Masukkan data cloud ke RAM (memoryCache)
   if (Array.isArray(data)) {
     data.forEach(row => {
       memoryCache.set(row.key, serializeForCache(row.value));
@@ -114,10 +107,14 @@ function setupRealtimeSubscription() {
   if (!supabaseClient) return;
 
   try {
-    if (realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+    // 1. Bersihkan channel lama yang mungkin sudah mati/zombie
+    if (realtimeChannel) {
+      supabaseClient.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
 
-    realtimeChannel = supabaseClient
-      .channel('app_storage_changes')
+    // 2. Buat channel baru dengan nama unik agar tidak bentrok
+    realtimeChannel = supabaseClient.channel('app_storage_changes_' + Date.now())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'app_storage' }, payload => {
         const row = payload.new || payload.old;
         if (!row || !row.key) return;
@@ -133,14 +130,58 @@ function setupRealtimeSubscription() {
         }
       })
       .subscribe((status) => {
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-          setTimeout(setupRealtimeSubscription, 5000);
+        console.log('Realtime Status:', status);
+        
+        if (status === 'SUBSCRIBED') {
+          isSupabaseOnline = true;
+          updateSupabaseStatusUI(true);
+        }
+
+        // Jika koneksi terputus/error, coba sambung ulang
+        if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+          isSupabaseOnline = false;
+          updateSupabaseStatusUI(false);
+          
+          if (reconnectTimer) clearTimeout(reconnectTimer);
+          reconnectTimer = setTimeout(() => {
+            console.log('Mencoba menyambung kembali ke Supabase Realtime...');
+            setupRealtimeSubscription();
+          }, 3000); // Coba reconnect setelah 3 detik
         }
       });
   } catch (err) {
     console.warn('Realtime subscription error:', err.message);
   }
 }
+
+// ==============================================================
+// FITUR BARU: SENSOR LAYAR HP NYALA (WAKE-UP) & INTERNET KONEK
+// ==============================================================
+document.addEventListener('visibilitychange', () => {
+  // Jika tab kembali aktif / layar HP menyala
+  if (document.visibilityState === 'visible') {
+    console.log('Layar aktif kembali. Menyegarkan koneksi Supabase...');
+    if (isSupabaseReady) {
+      pullFromSupabase(); // Tarik data terbaru yg terlewat saat HP mati
+      setupRealtimeSubscription(); // Reset paksa socket realtime
+    }
+  }
+});
+
+window.addEventListener('online', () => {
+  console.log('Internet terhubung kembali. Reconnecting...');
+  if (isSupabaseReady) {
+    pullFromSupabase();
+    setupRealtimeSubscription();
+  }
+});
+
+window.addEventListener('offline', () => {
+  console.log('Internet terputus!');
+  isSupabaseOnline = false;
+  updateSupabaseStatusUI(false);
+});
+// ==============================================================
 
 function schedulePersist(key, parsedValue) {
   pendingWrites.set(key, parsedValue);
@@ -222,22 +263,16 @@ function startSupabaseKeepalive() {
       isSupabaseOnline = false;
       updateSupabaseStatusUI(false);
     }
-  }, 60000);
+  }, 45000); // Ping dimajukan jadi setiap 45 detik
 }
 
 async function uploadPhotoToSupabaseStorage(file) {
   if (!supabaseClient) return null;
-
   try {
     const ext = (file.name && file.name.split('.').pop()) || 'jpg';
     const fileName = `FOTO_${Date.now()}_${Math.floor(Math.random() * 10000)}.${ext}`;
-
-    const { error } = await supabaseClient.storage
-      .from('photos')
-      .upload(fileName, file, { cacheControl: '3600', upsert: false });
-
+    const { error } = await supabaseClient.storage.from('photos').upload(fileName, file, { cacheControl: '3600', upsert: false });
     if (error) throw error;
-
     const { data } = supabaseClient.storage.from('photos').getPublicUrl(fileName);
     return data?.publicUrl || null;
   } catch (err) {
@@ -259,7 +294,7 @@ function updateSupabaseStatusUI(isOnline) {
     badge.style.background = 'rgba(239, 68, 68, 0.18)';
     badge.style.color = '#ef4444';
     badge.style.borderColor = 'rgba(239, 68, 68, 0.35)';
-    badge.innerHTML = '<span class="material-symbols-rounded" style="font-size: 15px;">cloud_off</span> SUPABASE OFFLINE';
+    badge.innerHTML = '<span class="material-symbols-rounded" style="font-size: 15px;">cloud_off</span> RECONNECTING...';
   }
 }
 
