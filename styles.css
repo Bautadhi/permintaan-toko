@@ -2679,3 +2679,27 @@ table {
 .zoomControls button:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+/* ======================================================
+   FIX: STICKY HEADER PADA FORM INPUT (LAYAR DIAM SAAT SCROLL)
+   ====================================================== */
+#inputPage .box {
+  padding-top: 0;
+  position: relative;
+}
+
+#inputPage .box h3:first-child {
+  position: sticky;
+  top: 0;
+  background: var(--bg-box, #1e293b);
+  padding: 20px 0 15px 0;
+  margin: 0 0 16px 0;
+  z-index: 100;
+  border-bottom: 2px solid var(--border-color, #334155);
+  box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+}
+
+/* Supaya background terang/gelap otomatis menyesuaikan saat ganti tema */
+body.light-mode #inputPage .box h3:first-child,
+body.classic-mode #inputPage .box h3:first-child {
+  background: #ffffff;
+}
