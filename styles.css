@@ -2680,26 +2680,35 @@ table {
   background: rgba(255, 255, 255, 0.2);
 }
 /* ======================================================
-   FIX: STICKY HEADER PADA FORM INPUT (LAYAR DIAM SAAT SCROLL)
+   SUPER STICKY HEADER FORM INPUT (ANTI GAGAL DI HP)
    ====================================================== */
+/* 1. Pastikan bungkusannya mengizinkan efek sticky */
+#inputPage {
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+}
+
 #inputPage .box {
-  padding-top: 0;
-  position: relative;
+  padding-top: 0 !important;
+  overflow: visible !important; 
 }
 
-#inputPage .box h3:first-child {
-  position: sticky;
-  top: 0;
-  background: var(--bg-box, #1e293b);
-  padding: 20px 0 15px 0;
-  margin: 0 0 16px 0;
-  z-index: 100;
-  border-bottom: 2px solid var(--border-color, #334155);
-  box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+/* 2. Bekukan Judul Form */
+#inputPage .box > h3:first-of-type {
+  position: -webkit-sticky !important; /* Wajib untuk HP iPhone/Safari */
+  position: sticky !important;
+  top: -2px !important; /* Menutup celah bocor di atas */
+  background: var(--bg-box, #1e293b) !important;
+  padding: 18px 15px 15px 15px !important;
+  margin: 0 -15px 20px -15px !important; /* Tarik lebar penuh menutupi padding box */
+  z-index: 999 !important; /* Pastikan selalu di lapisan teratas menutupi text lain */
+  border-bottom: 2px solid var(--border-color, #334155) !important;
+  box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.4) !important;
 }
 
-/* Supaya background terang/gelap otomatis menyesuaikan saat ganti tema */
-body.light-mode #inputPage .box h3:first-child,
-body.classic-mode #inputPage .box h3:first-child {
-  background: #ffffff;
+/* 3. Penyesuaian warna otomatis untuk mode Terang / Klasik */
+body.light-mode #inputPage .box > h3:first-of-type,
+body.classic-mode #inputPage .box > h3:first-of-type {
+  background: #ffffff !important;
+  box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.1) !important;
 }
