@@ -419,78 +419,70 @@ function formatDateDDMMYYYYString(input) {
   }
   return str;
 }
-
-// APP INITIALIZATION & BOOT SEQUENCE (ANTI-BLANK)
+// APP INITIALIZATION
 document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    showLoading('MEMUAT APLIKASI...');
-    closeAllPopups();
-
-    if (typeof loadSupabaseConfigFromJson === 'function') {
-      await loadSupabaseConfigFromJson();
-    }
-    if (typeof initSupabaseDB === 'function') {
-      await initSupabaseDB();
-    }
-
-    if (typeof seedSupabaseDefaults === 'function') {
-      await seedSupabaseDefaults({
-        [USERS_DB_KEY]: JSON.stringify([...SEED_USERS]),
-        [REQUESTS_DB_KEY]: JSON.stringify([]),
-        [CHAT_DB_KEY]: JSON.stringify([]),
-        [CHAT_ROOM_DB_KEY]: JSON.stringify([]),
-        [TTD_DB_KEY]: JSON.stringify({}),
-        [KODE_UNIT_MAP_KEY]: JSON.stringify({}),
-        [FEATURE_PHOTOS_KEY]: 'true',
-        [NOTIFICATIONS_DB_KEY]: JSON.stringify([]),
-        [DELETED_USERS_KEY]: JSON.stringify([])
-      });
-    }
-
-    initDatabase();
-    if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
-    if (typeof startSupabaseKeepalive === 'function') startSupabaseKeepalive();
-    loadSavedTheme();
-
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-      loginForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        prosesLogin();
-      });
-    }
-
-    const loginButton = document.getElementById('btnLogin');
-    if (loginButton) {
-      loginButton.addEventListener('click', () => {
-        prosesLogin();
-      });
-    }
-
-    const passwordInput = document.getElementById('password');
-    if (passwordInput) {
-      passwordInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
-          event.preventDefault();
-          prosesLogin();
-        }
-      });
-    }
-
-    autoLogin();
-    initMobileBackButtonEngine();
-    initPullToRefresh();
-    updateAdminReminderUI();
-  } catch (err) {
-    console.error("Boot error:", err);
-  } finally {
-    hideLoading();
-    closeAllPopups();
-    if (!document.querySelector('.page.active')) {
-      const dash = document.getElementById('dashboardPage');
-      if (dash) dash.classList.add('active');
-    }
+  // 1. Tarik konfigurasi Supabase (URL & Key) terlebih dahulu
+  if (typeof loadSupabaseConfigFromJson === 'function') {
+    await loadSupabaseConfigFromJson();
   }
+  
+  // 2. TUNGGU SUPABASE SELESAI MENGUNDUH SEMUA DATA CLOUD KE RAM
+  await initSupabaseDB();
+  
+  // 3. BARU JALANKAN INISIALISASI (Aman, tidak akan menimpa data yang sudah ada)
+  initDatabase(); 
+
+  startCentralCloudSyncEngine();
+  startSupabaseKeepalive();
+  loadSavedTheme();
+
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      if (typeof window.prosesLogin === 'function') {
+        window.prosesLogin();
+      }
+    });
+  }
+
+  const loginButton = document.getElementById('btnLogin');
+  if (loginButton) {
+    loginButton.addEventListener('click', () => {
+      if (typeof window.prosesLogin === 'function') {
+        window.prosesLogin();
+      }
+    });
+  }
+
+  const usernameInput = document.getElementById('username');
+  if (usernameInput) {
+    usernameInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (typeof window.prosesLogin === 'function') {
+          window.prosesLogin();
+        }
+      }
+    });
+  }
+
+  const passwordInput = document.getElementById('password');
+  if (passwordInput) {
+    passwordInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        if (typeof window.prosesLogin === 'function') {
+          window.prosesLogin();
+        }
+      }
+    });
+  }
+
+  autoLogin();
+  initMobileBackButtonEngine();
+  initPullToRefresh();
+  updateAdminReminderUI();
 });
 /* ======================================================
    MOBILE PULL-TO-REFRESH GESTURE ENGINE
