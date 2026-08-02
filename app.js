@@ -4404,6 +4404,9 @@ function hideLoading() {
   document.getElementById('loadingOverlay').style.display = 'none';
 }
 
+// ======================================================
+// LIGHTBOX IMAGE VIEWER & ZOOM ENGINE
+// ======================================================
 let currentZoom = 1;
 
 function zoomFoto(src) {
