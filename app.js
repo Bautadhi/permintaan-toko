@@ -1384,17 +1384,25 @@ function showPage(pageId) {
 // =========================================================================
 // FUNGSI BANTUAN KHUSUS UNTUK MENYEMBUNYIKAN/MENAMPILKAN LONCENG NOTIF
 // =========================================================================
+// =========================================================================
+// FUNGSI PENGATUR TOMBOL MENGAMBANG (SUPER KETAT)
+// =========================================================================
 function aturTampilanLonceng(pageId) {
   const notifBtn = document.getElementById('notifBellBtn');
+  const helpBtn = document.getElementById('helpButton');
+
+  // Cek apakah halaman saat ini adalah Dashboard
+  const isDashboard = (pageId === 'dashboardPage');
+
+  // Gunakan setProperty dengan '!important' agar tidak bisa dibantah oleh fungsi penutup popup
   if (notifBtn) {
-    if (pageId === 'dashboardPage') {
-      notifBtn.style.display = 'flex'; // Munculkan hanya di Dashboard
-    } else {
-      notifBtn.style.display = 'none'; // Sembunyikan di halaman lain
-    }
+    notifBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
+  }
+  
+  if (helpBtn) {
+    helpBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
   }
 }
-
 let mobileBackspaceCount = 0;
 let mobileBackspaceTimer = null;
 
