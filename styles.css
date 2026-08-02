@@ -2683,49 +2683,7 @@ table {
    FIX: KUNCI LAYAR (ANTI-GESER & ANTI CHROME SEMBUNYI)
    ====================================================== */
 
-/* 1. KUNCI LAYAR UTAMA BROWSER SECARA PAKSA */
-html, body {
-  height: 100vh !important;
-  height: 100dvh !important; /* Dynamic Viewport untuk HP modern */
-  overflow: hidden !important; /* Matikan scroll bawaan browser */
-  overscroll-behavior-y: none !important; /* Matikan efek mantul/karet saat ditarik di HP */
-  margin: 0;
-  padding: 0;
-}
 
-/* 2. PINDAHKAN SCROLL HANYA KE DALAM HALAMAN APLIKASI */
-.page {
-  height: 100vh !important;
-  height: 100dvh !important;
-  overflow-y: auto !important; /* Halaman ini yang akan scroll secara internal */
-  overflow-x: hidden !important;
-  -webkit-overflow-scrolling: touch !important; /* Scroll mulus layaknya aplikasi HP */
-  padding-bottom: 85px !important; /* Jarak aman agar bagian bawah tidak tertutup menu */
-}
-
-/* 3. SETTING ULANG JUDUL FORM AGAR MEMBEKU SEMPURNA */
-#inputPage .box {
-  padding-top: 0 !important;
-}
-
-#inputPage .box > h3:first-of-type {
-  position: -webkit-sticky !important; /* Wajib untuk iPhone/Safari */
-  position: sticky !important;
-  top: 0 !important; /* Nempel tepat di atas layar */
-  background: var(--bg-box, #1e293b) !important;
-  padding: 18px 15px 15px 15px !important;
-  margin: 0 -15px 20px -15px !important;
-  z-index: 999 !important;
-  border-bottom: 2px solid var(--border-color, #334155) !important;
-  box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.4) !important;
-}
-
-/* Penyesuaian warna judul untuk mode Terang / Klasik */
-body.light-mode #inputPage .box > h3:first-of-type,
-body.classic-mode #inputPage .box > h3:first-of-type {
-  background: #ffffff !important;
-  box-shadow: 0 8px 12px -5px rgba(0, 0, 0, 0.1) !important;
-}
 /* ======================================================
    POSISI PATEN LONCENG NOTIFIKASI (POJOK KANAN ATAS)
    ====================================================== */
@@ -2735,4 +2693,15 @@ body.classic-mode #inputPage .box > h3:first-of-type {
   right: 20px !important; /* Jarak dari kanan */
   z-index: 9999 !important; /* Pastikan tidak tertutup elemen lain */
   margin: 0 !important;
+}
+/* ======================================================
+   POSISI PATEN LONCENG NOTIFIKASI (POJOK KANAN ATAS)
+   ====================================================== */
+#notifBellBtn {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  z-index: 9999 !important;
+  margin: 0 !important;
+  display: none !important; /* TAMBAHAN: Sembunyikan secara default saat refresh */
 }
