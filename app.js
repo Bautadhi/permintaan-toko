@@ -1281,9 +1281,12 @@ window.prosesLogin = prosesLogin;
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
-    // Hapus kedua penyimpanan saat logout
     localStorage.removeItem(SESSION_KEY);
     sessionStorage.removeItem(SESSION_KEY);
+    
+    // HAPUS JEJAK HALAMAN TERAKHIR SAAT LOGOUT
+    sessionStorage.removeItem('LAST_ACTIVE_PAGE'); 
+
     currentUser = null;
     tutupAkun();
     tutupNotificationModal();
@@ -1315,13 +1318,15 @@ function bukaMainApp() {
 
   isAdminChat = isAdmin;
 
-  pindahHalaman('dashboardPage');
+  // FITUR BARU: Baca halaman terakhir yang dibuka, jika tidak ada default ke dashboardPage
+  const savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE') || 'dashboardPage';
+  pindahHalaman(savedPage);
+
   cekUnreadNotif();
   updateNotifBellCounter();
   updateAdminReminderUI();
   checkAndTriggerPendingReminders();
 }
-
 // PAGE NAVIGATION WITH CONFIRMATION WHEN LEAVING EDIT MODE
 function showPage(pageId) {
   if (modeEdit && pageId !== 'inputPage') {
@@ -1438,6 +1443,11 @@ function pindahHalaman(pageId, pushHistory = true) {
   if (target) target.classList.add('active');
 
   updateBottomMenuHighlight(pageId);
+
+  // FITUR BARU: Simpan halaman aktif agar tidak kembali ke Dashboard saat refresh
+  if (pageId !== 'loginPage') {
+    sessionStorage.setItem('LAST_ACTIVE_PAGE', pageId);
+  }
 
   if (pushHistory && pageId !== 'loginPage') {
     try {
