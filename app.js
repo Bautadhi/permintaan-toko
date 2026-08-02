@@ -4308,21 +4308,31 @@ function showNotif(msg, type = 'info') {
   const notifOverlay = document.getElementById('popupNotif');
   const notifMessage = document.getElementById('popupNotifMessage');
   const notifCard = document.getElementById('popupNotifCard');
+  
+  const notifIcon = document.getElementById('popupNotifIcon');
+  const notifTitle = document.getElementById('popupNotifTitle');
 
   if (!notifOverlay) return;
-
   if (notifMessage) notifMessage.textContent = msg || 'INFORMASI SISTEM';
 
   const lowerType = (type || 'info').toLowerCase();
   if (notifCard) {
     if (lowerType.includes('error') || lowerType.includes('salah') || lowerType.includes('gagal') || lowerType.includes('danger')) {
       notifCard.className = 'popupNotifCard notif-error';
+      if(notifIcon) notifIcon.textContent = 'cancel';
+      if(notifTitle) notifTitle.textContent = 'GAGAL';
     } else if (lowerType.includes('warning') || lowerType.includes('peringatan')) {
       notifCard.className = 'popupNotifCard notif-warning';
+      if(notifIcon) notifIcon.textContent = 'warning';
+      if(notifTitle) notifTitle.textContent = 'PERINGATAN';
     } else if (lowerType.includes('success') || lowerType.includes('berhasil')) {
       notifCard.className = 'popupNotifCard notif-success';
+      if(notifIcon) notifIcon.textContent = 'check_circle';
+      if(notifTitle) notifTitle.textContent = 'BERHASIL';
     } else {
       notifCard.className = 'popupNotifCard notif-info';
+      if(notifIcon) notifIcon.textContent = 'info';
+      if(notifTitle) notifTitle.textContent = 'INFORMASI';
     }
   }
 
