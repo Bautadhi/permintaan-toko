@@ -1125,25 +1125,20 @@ function updateThemeIcon() {
 }
 
 // AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
+// AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
 function autoLogin() {
-  // Ambil sesi login
+  // Cek localStorage (Jika dicentang 'Ingat Saya') atau sessionStorage (Jika tidak dicentang)
   const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
   
   if (sess) {
-    try {
-      currentUser = JSON.parse(sess);
-      bukaMainApp();
-    } catch (e) {
-      currentUser = null;
-      pindahHalaman('loginPage');
-    }
+    currentUser = JSON.parse(sess);
+    bukaMainApp();
   } else {
-    currentUser = null;
     pindahHalaman('loginPage');
   }
 }
 
-function prosesLogin() {
+async function prosesLogin() {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
   if (!uEl || !pEl) return;
@@ -1152,33 +1147,59 @@ function prosesLogin() {
   const p = pEl.value.trim();
 
   if (!u || !p) {
-    alert('USERNAME DAN PASSWORD WAJIB DIISI!');
+    showNotif('USERNAME DAN PASSWORD WAJIB DIISI!', 'warning');
     return;
   }
 
-  // Akun Default Darurat
-  if (u === 'ADMIN' && p === '1') {
-    currentUser = { username: 'ADMIN', category: 'ADMIN' };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-    bukaMainApp();
-  } else {
-    // Cek dari database lokal/Supabase jika ada
-    let users = [];
-    try {
-      users = JSON.parse(localStorage.getItem('USERS_DB_KEY') || '[]');
-    } catch(e) {}
+  showLoading('MEMPROSES LOGIN...');
+  try {
+    if (u === 'ADMIN') {
+      await initSupabaseDB();
+    }
 
-    let found = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-    if (found) {
-      currentUser = found;
-      localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+    let users = getUsersFromDB();
+    if (!Array.isArray(users) || !users.length) {
+      users = [...SEED_USERS];
+    }
+    
+    let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
+
+    // Fallback match from SEED_USERS
+    if (!user) {
+      user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
+      if (user) {
+        users.push(user);
+        saveUsersToDB(users);
+      }
+    }
+
+    // Fallback for ADMIN
+    if (!user && u === 'ADMIN' && p === '1') {
+      user = SEED_USERS[0];
+    }
+
+    if (user) {
+      currentUser = user;
+      
+      // LOGIKA PENYIMPANAN SESI BERDASARKAN KOTAK CENTANG
+      const rememberCheckbox = document.getElementById('rememberMe');
+      if (rememberCheckbox && rememberCheckbox.checked) {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Permanen (tersimpan di HP)
+      } else {
+        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user)); // Sementara (hilang saat browser/tab ditutup)
+      }
+      
       bukaMainApp();
     } else {
-      alert('USERNAME ATAU PASSWORD SALAH! (Gunakan ADMIN / 1)');
+      showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
     }
+  } finally {
+    hideLoading();
   }
 }
 window.prosesLogin = prosesLogin;
+
+
 
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
@@ -1249,14 +1270,21 @@ async function prosesLogin() {
 window.prosesLogin = prosesLogin;
 
 function logout() {
-  localStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(SESSION_KEY);
-  currentUser = null;
-  const bottomMenu = document.getElementById('bottomMenu');
-  if (bottomMenu) bottomMenu.style.display = 'none';
-  pindahHalaman('loginPage');
+  showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
+    // Hapus kedua penyimpanan saat logout
+    localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    currentUser = null;
+    tutupAkun();
+    tutupNotificationModal();
+    const popupBantuan = document.getElementById('popupBantuan');
+    if (popupBantuan) popupBantuan.classList.remove('show');
+    document.getElementById('bottomMenu').style.display = 'none';
+    document.getElementById('helpButton').style.display = 'none';
+    pindahHalaman('loginPage');
+    updateNotifBellCounter();
+  });
 }
-window.logout = logout;
 function bukaMainApp() {
   const loginPage = document.getElementById('loginPage');
   if (loginPage) loginPage.classList.remove('active');
