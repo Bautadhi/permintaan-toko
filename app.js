@@ -1362,6 +1362,7 @@ function initMobileBackButtonEngine() {
   } catch(e) {}
 
   window.addEventListener('popstate', (e) => {
+    // Daftar semua popup yang akan ditutup oleh tombol Back HP
     const openModals = [
       document.getElementById('popupDetail'),
       document.getElementById('popupNotifList'),
@@ -1373,7 +1374,9 @@ function initMobileBackButtonEngine() {
       document.getElementById('popupTTD'),
       document.getElementById('popupTambahToko'),
       document.getElementById('popupPdfModelsModal'),
-      document.getElementById('confirmOverlay')
+      document.getElementById('confirmOverlay'),
+      document.getElementById('imageViewer'),  // <-- Penampil Foto
+      document.getElementById('scannerModal')  // <-- Popup Scanner Kamera
     ];
 
     let closedAnyModal = false;
@@ -1386,6 +1389,10 @@ function initMobileBackButtonEngine() {
     });
 
     if (closedAnyModal) {
+      // Pastikan kamera atau viewer benar-benar mati/reset
+      if (typeof tutupScanner === 'function') tutupScanner();
+      if (typeof tutupImageViewer === 'function') tutupImageViewer();
+      
       try { history.pushState({ page: getCurrentActivePageId() }, '', location.href); } catch(err) {}
       return;
     }
@@ -1413,7 +1420,6 @@ function initMobileBackButtonEngine() {
     }
   });
 }
-
 function getCurrentActivePageId() {
   const activeEl = document.querySelector('.page.active');
   return activeEl ? activeEl.id : 'dashboardPage';
@@ -4410,13 +4416,18 @@ function hideLoading() {
 let currentZoom = 1;
 
 function zoomFoto(src) {
-  currentZoom = 1; // Reset zoom ke awal setiap kali membuka foto baru
+  currentZoom = 1; // Reset zoom ke awal
   const img = document.getElementById('viewerImage');
   if (img) {
     img.src = src;
     img.style.transform = `scale(${currentZoom})`;
   }
   document.getElementById('imageViewer').style.display = 'flex';
+  
+  // TAMBAHAN: Beri tahu HP bahwa ada popup terbuka (agar tombol back berfungsi)
+  if (typeof pushPopupHistoryState === 'function') {
+    pushPopupHistoryState();
+  }
 }
 
 function tutupImageViewer() {
