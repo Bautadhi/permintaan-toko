@@ -673,46 +673,55 @@
     </div>
   </div>
 
-  <!-- 3. POPUP CONFIRMATION MODAL -->
-  <div id="confirmOverlay" class="popupOverlay">
+ <!-- 3. POPUP CONFIRMATION MODAL (MINIMALIST) -->
+  <div id="confirmOverlay" class="popupOverlay" style="z-index: 999999;">
     <div class="confirmBox">
-      <h3><span class="material-symbols-rounded text-primary">help</span> KONFIRMASI</h3>
-      <p id="confirmMessage">YAKIN INGIN MELANJUTKAN KAN?</p>
-      <div class="confirmButton">
+      <div class="up-header">
+        <span class="material-symbols-rounded">help</span>
+        <h3>KONFIRMASI</h3>
+      </div>
+      <div class="up-body">
+        <p id="confirmMessage">YAKIN INGIN MELANJUTKAN KAN?</p>
+      </div>
+      <div class="up-footer">
         <button type="button" class="btnBatal" onclick="closeConfirm()">BATAL</button>
-        <button type="button" class="btnHapus" style="background: var(--primary);" onclick="confirmYes()">YA, LANJUTKAN</button>
+        <button type="button" class="btnAction" onclick="confirmYes()">YA, LANJUTKAN</button>
       </div>
     </div>
   </div>
 
-  <!-- 4. CLEAN & ATTRACTIVE NOTIFICATION DIALOG MODAL (NO ICON, NO HEADER TITLE) -->
+  <!-- 4. NOTIFICATION DIALOG MODAL (MINIMALIST) -->
   <div id="popupNotif" class="popupOverlay" style="z-index: 10000000;">
     <div class="popupNotifCard" id="popupNotifCard">
-      <div class="popupNotifBody" style="padding: 24px 24px 18px 24px;">
-        <p id="popupNotifMessage" style="font-size: 14px; font-weight: 700; line-height: 1.5; color: var(--text-main); margin: 0;">MEMPROSES...</p>
+      <div class="up-header">
+        <span class="material-symbols-rounded" id="popupNotifIcon">info</span>
+        <h3 id="popupNotifTitle">INFORMASI</h3>
       </div>
-      <div class="popupNotifFooter" style="padding: 0 20px 20px 20px;">
+      <div class="up-body">
+        <p id="popupNotifMessage">MEMPROSES...</p>
+      </div>
+      <div class="up-footer">
         <button type="button" class="btnOkNotif" id="btnOkNotif" onclick="closePopup()">OK</button>
       </div>
     </div>
   </div>
 
-  <!-- 5. POPUP REJECT REASON MODAL -->
-  <div id="rejectOverlay" class="popupOverlay">
+  <!-- 5. POPUP REJECT REASON MODAL (MINIMALIST) -->
+  <div id="rejectOverlay" class="popupOverlay" style="z-index: 999999;">
     <div class="rejectBoxPopup">
-      <div class="rejectHeaderPopup">
+      <div class="up-header">
         <span class="material-symbols-rounded">cancel</span>
-        <span id="rejectTitle">TOLAK PERMINTAAN</span>
+        <h3 id="rejectTitle">TOLAK PERMINTAAN</h3>
       </div>
-      <div class="rejectBodyPopup">
+      <div class="up-body">
         <input type="hidden" id="rejectNoSurat">
         <input type="hidden" id="rejectRoleType">
-        <p>MASUKKAN ALASAN PENOLAKAN:</p>
-        <textarea id="rejectReason" rows="4" placeholder=""></textarea>
-        <div class="confirmButton">
-          <button type="button" class="btnBatal" onclick="closeReject()">BATAL</button>
-          <button type="button" class="btnHapus" onclick="kirimReject()">KIRIM</button>
-        </div>
+        <p>MASUKKAN ALASAN PENOLAKAN INI:</p>
+        <textarea id="rejectReason" rows="3" placeholder="CONTOH: STOK DUS TIDAK TERSEDIA..."></textarea>
+      </div>
+      <div class="up-footer">
+        <button type="button" class="btnBatal" onclick="closeReject()">BATAL</button>
+        <button type="button" class="btnAction" onclick="kirimReject()">KIRIM</button>
       </div>
     </div>
   </div>
