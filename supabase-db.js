@@ -14,36 +14,59 @@ let realtimeChannel = null;
 let onDataChangeCallback = null;
 let reconnectTimer = null; // Timer untuk auto-reconnect
 
-// PENTING: Hanya menggunakan RAM (Memory), tidak ada Local Storage
+// PENTING: Menggunakan LocalStorage sebagai cache instan agar tidak blank saat refresh
 const memoryCache = new Map();
 const themeKey = window.THEME_KEY || 'STORE_ACTIVE_THEME_V7_CLEAN';
 
 const appStorage = {
   getItem(key) {
-    if (key === themeKey && window.localStorage) return window.localStorage.getItem(key);
-    if (!memoryCache.has(key)) return null;
-    const val = memoryCache.get(key);
-    return typeof val === 'string' ? val : JSON.stringify(val);
+    // 1. Cek dulu di memory cache RAM
+    if (memoryCache.has(key)) {
+      const val = memoryCache.get(key);
+      return typeof val === 'string' ? val : JSON.stringify(val);
+    }
+    // 2. FALLBACK UTAMA: Cek langsung ke localStorage browser agar data sesi/login tidak hilang saat refresh!
+    if (window.localStorage) {
+      const localVal = window.localStorage.getItem(key);
+      if (localVal !== null) {
+        memoryCache.set(key, localVal); // Simpan juga ke RAM
+        return localVal;
+      }
+    }
+    return null;
   },
   setItem(key, value) {
     const strVal = String(value);
     memoryCache.set(key, strVal);
-    if (key === themeKey && window.localStorage) {
-      window.localStorage.setItem(key, strVal);
-      return;
+    // Selalu simpan ke localStorage browser agar aman dari blank/reset saat refresh
+    if (window.localStorage) {
+      try {
+        window.localStorage.setItem(key, strVal);
+      } catch (e) {
+        console.warn('LocalStorage quota exceeded:', e);
+      }
     }
     schedulePersist(key, parseStorageValue(strVal));
   },
   removeItem(key) {
     memoryCache.delete(key);
-    if (key === themeKey && window.localStorage) window.localStorage.removeItem(key);
+    if (window.localStorage) {
+      window.localStorage.removeItem(key);
+    }
     scheduleDelete(key);
   },
   clear() {
     memoryCache.clear();
+    if (window.localStorage) {
+      // Hanya hapus kunci yang berkaitan dengan aplikasi toko agar aman
+      Object.keys(window.localStorage).forEach(k => {
+        if (k.startsWith('STORE_') || k.startsWith('PERMINTAAN_')) {
+          window.localStorage.removeItem(k);
+        }
+      });
+    }
   }
 };
-
 function parseStorageValue(strVal) {
   try { return JSON.parse(strVal); } catch { return strVal; }
 }
