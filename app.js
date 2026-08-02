@@ -1755,12 +1755,10 @@ function getKodeUnitMap() {
 // CAMERA SCANNER ENGINE (FIXED & INSTANT INPUT)
 // ======================================================
 function bukaScanner(btn) {
-  // 1. Cari input "NO SERI" secara absolut pada baris tombol yang diklik
   const row = btn.closest('.detailRow');
   if (row) {
     activeScanInput = row.querySelector('.seriBarang');
   } else {
-    // Fallback darurat jika DOM meleset
     activeScanInput = btn.parentElement.querySelector('.seriBarang');
   }
 
@@ -1781,19 +1779,14 @@ function bukaScanner(btn) {
           { facingMode: "environment" },
           config,
           (decodedText) => {
-            // JIKA BERHASIL SCAN:
             if (activeScanInput) {
               const cleanCode = String(decodedText || '').trim().toUpperCase();
               
-              // Paksa masukkan nilai ke kotak input
+              // Masukkan nilai ke kotak input TANPA notifikasi
               activeScanInput.value = cleanCode;
               activeScanInput.setAttribute('value', cleanCode);
-              
-              // Picu event 'input' agar form sadar ada data baru
               activeScanInput.dispatchEvent(new Event('input', { bubbles: true }));
               
-              showNotif(`BERHASIL SCAN: ${cleanCode}`, 'success');
-
               // Otomatis pindah fokus ke kolom 'PERMINTAAN BARANG'
               const targetRow = activeScanInput.closest('.detailRow');
               if (targetRow) {
@@ -1804,15 +1797,12 @@ function bukaScanner(btn) {
                   }, 300);
                 }
               }
-            } else {
-              showNotif('GAGAL MENEMUKAN KOTAK INPUT!', 'error');
             }
-
-            // Langsung tutup kamera
+            // Langsung tutup kamera seketika
             tutupScanner();
           },
           (errorMessage) => {
-            // Abaikan peringatan frame-by-frame agar console tidak penuh
+            // Abaikan error frame agar tidak nyepam
           }
         ).catch(err => {
           showNotif('KAMERA TIDAK TERSEDIA ATAU DIBLOKIR BROWSER!', 'warning');
@@ -1821,12 +1811,11 @@ function bukaScanner(btn) {
       } catch(err) {
         console.warn("Kesalahan inisialisasi kamera:", err);
       }
-    }, 200); // Beri sedikit jeda agar popup benar-benar terbuka
+    }, 200);
   } else {
     showNotif('MODUL SCANNER BELUM SIAP!', 'warning');
   }
 }
-
 function tutupScanner() {
   const modal = document.getElementById('scannerModal');
   if (modal) modal.style.display = 'none';
@@ -4012,8 +4001,28 @@ function prosesUploadExcelLookup(event) {
 }
 
 // PROFILE MODAL
+// ======================================================
+// PROFILE MODAL (DENGAN PENGAMAN MODE EDIT)
+// ======================================================
 function bukaAkun() {
   if (!currentUser) return;
+
+  // PENGAMAN: Munculkan notifikasi jika user sedang dalam Mode Edit
+  if (modeEdit) {
+    showConfirm('KELUAR DARI MENU EDIT?', () => {
+      bersihkanForm();  // Hapus sisa editan
+      closeAllPopups();
+      prosesBukaAkun(); // Lanjutkan buka akun setelah dikonfirmasi
+    });
+    return;
+  }
+
+  // Jika tidak sedang mengedit, langsung buka seperti biasa
+  prosesBukaAkun();
+}
+
+// Fungsi lanjutan untuk mengisi dan menampilkan popup Akun
+function prosesBukaAkun() {
   document.getElementById('akunNama').value = currentUser.fullName;
   document.getElementById('akunHP').value = currentUser.phone || '-';
   document.getElementById('akunArea').value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
@@ -4026,9 +4035,8 @@ function bukaAkun() {
   }
 
   document.getElementById('popupAkun').classList.add('show');
-  pushPopupHistoryState();
+  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 }
-
 function tutupAkun() {
   document.getElementById('popupAkun').classList.remove('show');
 }
