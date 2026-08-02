@@ -2654,40 +2654,28 @@ table {
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 12px;
-  z-index: 1001;
-  background: rgba(15, 23, 42, 0.65);
-  padding: 8px 14px;
+  gap: 15px;
+  background: rgba(15, 23, 42, 0.85); /* Background gelap transparan */
+  padding: 10px 20px;
   border-radius: 30px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  z-index: 1000;
 }
 
 .zoomControls button {
-  background: var(--primary) !important;
-  color: #ffffff !important;
-  border: none !important;
-  border-radius: 50% !important;
-  width: 42px !important;
-  height: 42px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  transition: transform 0.2s ease, background 0.2s ease !important;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background 0.2s;
 }
 
 .zoomControls button:hover {
-  background: var(--primary-hover) !important;
-  transform: scale(1.15) !important;
+  background: rgba(255, 255, 255, 0.2);
 }
-
-#viewerImage {
-  max-width: none !important; /* Di-override agar bisa lebih besar dari layar saat di-zoom */
-  max-height: none !important;
-  cursor: grab;
-}
-
