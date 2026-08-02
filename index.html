@@ -107,7 +107,7 @@
         <h2>PERMINTAAN TOKO</h2>
         <p>SISTEM PERMINTAAN TOKO AREA JAWA BARAT</p>
 
-        <form id="loginForm" novalidate>
+       <form id="loginForm" novalidate>
           <div class="input-group">
             <span><span class="material-symbols-rounded">person</span></span>
             <input type="text" id="username" placeholder="USERNAME" autocomplete="off">
@@ -116,6 +116,12 @@
           <div class="input-group">
             <span><span class="material-symbols-rounded">lock</span></span>
             <input type="password" id="password" placeholder="PASSWORD">
+          </div>
+
+          <!-- FITUR BARU: KOTAK CENTANG INGAT SANDI -->
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; margin-top: -4px;">
+            <input type="checkbox" id="rememberMe" style="width: 16px; height: 16px; margin: 0; cursor: pointer;">
+            <label for="rememberMe" style="margin: 0; font-size: 12px; color: var(--text-muted); cursor: pointer;">INGAT SANDI & SESI SAYA</label>
           </div>
 
           <button type="button" class="btn-primary" id="btnLogin">MASUK APLIKASI</button>
