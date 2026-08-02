@@ -356,7 +356,7 @@
         </p>
 
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="fonteTokenInput" placeholder="MASUKKAN FONTE / FONNTE API TOKEN DI SINI (CONTOH: 9kXj...)" style="flex: 1; min-width: 280px; padding: 12px;">
+          <input type="text" id="fonteTokenInput" placeholder="MASUKKAN TOKEN FONTE" style="flex: 1; min-width: 280px; padding: 12px;">
           <button type="button" class="btnDownload" style="background: #16a34a; height: 44px;" onclick="simpanFonteToken()">
             <span class="material-symbols-rounded">save</span> SIMPAN TOKEN WA
           </button>
@@ -707,8 +707,8 @@
       <div class="rejectBodyPopup">
         <input type="hidden" id="rejectNoSurat">
         <input type="hidden" id="rejectRoleType">
-        <p>MASUKKAN ALASAN PENOLAKAN PERMINTAAN BARANG INI:</p>
-        <textarea id="rejectReason" rows="4" placeholder="CONTOH: STOK DUS TIDAK TERSEDIA / FISIK BARANG TIDAK COCOK..."></textarea>
+        <p>MASUKKAN ALASAN PENOLAKAN:</p>
+        <textarea id="rejectReason" rows="4" placeholder=""></textarea>
         <div class="confirmButton">
           <button type="button" class="btnBatal" onclick="closeReject()">BATAL</button>
           <button type="button" class="btnHapus" onclick="kirimReject()">KIRIM</button>
@@ -734,7 +734,7 @@
   <div id="popupTTD" class="popupTTD">
     <div class="ttdBox">
       <h3>TANDA TANGAN DIGITAL (TTD)</h3>
-      <div class="ttdInfo">BUAT / GAMBAR TANDA TANGAN ANDA DI BAWAH INI UNTUK SURAT DOKUMEN PERMINTAAN</div>
+      <div class="ttdInfo">BUAT / GAMBAR TANDA TANGAN</div>
       <canvas id="canvasTTD" width="540" height="220"></canvas>
       <div class="ttdButton">
         <button type="button" class="btnBack" onclick="tutupTTD()">BATAL</button>
