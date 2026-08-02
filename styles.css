@@ -2684,23 +2684,14 @@ table {
    ====================================================== */
 
 
-/* ======================================================
-   POSISI PATEN LONCENG NOTIFIKASI (POJOK KANAN ATAS)
-   ====================================================== */
-#notifBellBtn {
-  position: fixed !important;
-  top: 20px !important;  /* Jarak dari atas */
-  right: 20px !important; /* Jarak dari kanan */
-  z-index: 9999 !important; /* Pastikan tidak tertutup elemen lain */
-  margin: 0 !important;
-}
+
 /* ======================================================
    POSISI PATEN LONCENG NOTIFIKASI (POJOK KANAN ATAS)
    ====================================================== */
 #notifBellBtn {
   position: fixed !important;
   top: 20px !important;
-  right: 20px !important;
+  right: 30px !important;
   z-index: 9999 !important;
   margin: 0 !important;
   display: none !important; /* TAMBAHAN: Sembunyikan secara default saat refresh */
@@ -2719,11 +2710,7 @@ table {
   padding-bottom: 90px !important; /* Beri jarak untuk menu bawah */
 }
 
-/* 2. Format Judul Form agar Sticky Sempurna */
-#inputPage .box {
-  padding-top: 0 !important;
-  min-height: 100% !important;
-}
+
 
 #inputPage .box > h3:first-of-type {
   position: -webkit-sticky !important; /* Khusus Safari/iPhone */
