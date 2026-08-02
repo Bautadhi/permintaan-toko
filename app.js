@@ -178,13 +178,16 @@ function updateNotifBellCounter() {
 }
 
 function bukaNotificationModal() {
-  const popup = document.getElementById('popupNotifList');
-  if (!popup) return;
-
-  loadNotificationList();
-  popup.style.display = 'flex';
-  popup.classList.add('show');
-  pushPopupHistoryState();
+  const modal = document.getElementById('popupNotifList');
+  if (modal) {
+    modal.classList.add('show');
+    modal.style.display = 'flex';
+    
+    // PENGAMAN: Beri tahu HP bahwa ada popup terbuka (agar bisa di-back)
+    try { history.pushState({ popup: 'notif' }, '', location.href); } catch(e) {}
+  }
+  
+  if (typeof renderNotifList === 'function') renderNotifList();
 }
 
 function tutupNotificationModal() {
@@ -3410,6 +3413,11 @@ function bukaBantuan() {
   if (popup) {
     popup.style.display = 'block';
     popup.classList.add('show');
+    
+    // ================================================================
+    // TAMBAHAN FIX: Beritahu HP bahwa popup terbuka (agar tombol Back berfungsi)
+    // ================================================================
+    try { history.pushState({ popup: 'bantuan' }, '', location.href); } catch(e) {}
   }
 
   // KONEKSI CHAT SUDAH REAL-TIME VIA WEBSOCKET SUPABASE
