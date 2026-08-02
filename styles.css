@@ -26,7 +26,7 @@ body.light-mode {
   --text-main: #374151;
   --text-muted: #6b7280;
   --border-color: #d1d5db;
-  --input-bg: #fffdf9;
+  --input-bg: #ffffff;
   --input-text: #000000;
   --table-hover: #f8fafc;
   --table-border: #e5e7eb;
@@ -203,6 +203,16 @@ body {
   transition: background 0.3s, color 0.3s;
   min-height: 100vh;
 }
+
+/* Popup contrast: ensure popup text contrasts with popup background
+   - Dark themes: popup text will be white
+   - Light theme: popup text will be dark
+*/
+.popupNotifCard, .popupBantuan, .chatBox, .login-card, .popupOverlay, .popupTableScroll, .popupNotifCard * {
+  color: var(--popup-text, var(--text-main));
+}
+body.light-mode .popupNotifCard, body.light-mode .popupBantuan, body.light-mode .chatBox, body.light-mode .login-card { --popup-text: #111; }
+body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body:not(.light-mode) .chatBox, body:not(.light-mode) .login-card { --popup-text: #fff; }
 
 /* UTILITY CLASSES */
 .text-primary { color: var(--primary) !important; }
@@ -1380,7 +1390,158 @@ input:focus, select:focus, textarea:focus {
   animation: fade .25s ease-out;
 }
 
-popupNotifCard
+/* ULTRA-LUXURIOUS STUNNING GLASSMORPHIC NOTIFICATION POPUP DIALOG WITH STANDARDIZED 500PX WIDTH & 5MM PADDING */
+.popupNotifCard {
+  width: 500px !important;
+  max-width: 92vw !important;
+  background: var(--bg-box) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  overflow: hidden !important;
+  border: 1.5px solid var(--border-color) !important;
+  backdrop-filter: blur(24px) !important;
+  -webkit-backdrop-filter: blur(24px) !important;
+  animation: popupNotifPop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+  text-align: center !important;
+  padding: 5mm !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+@keyframes popupNotifPop {
+  0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.popupNotifHeader {
+  padding: 5mm 5mm 2mm 5mm !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 12px !important;
+}
+
+.popupNotifIconBadge {
+  width: 64px !important;
+  height: 64px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35) !important;
+}
+
+.popupNotifIconBadge .material-symbols-rounded {
+  font-size: 36px !important;
+  color: #ffffff !important;
+}
+
+.popupNotifHeader h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.8px !important;
+  text-transform: uppercase !important;
+}
+
+.popupNotifBody {
+  padding: 5mm !important;
+}
+
+.popupNotifBody p,
+#popupNotifText,
+#popupNotifMessage {
+  margin: 0 !important;
+  padding: 5mm !important;
+  font-size: 14.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.55 !important;
+  color: #f8fafc !important;
+  letter-spacing: 0.2px !important;
+}
+
+.popupNotifFooter {
+  padding: 2mm 5mm 5mm 5mm !important;
+}
+
+.btnOkNotif {
+  width: 100% !important;
+  height: 46px !important;
+  border-radius: 14px !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btnOkNotif:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  filter: brightness(1.15) !important;
+}
+
+/* ERROR STATE */
+.popupNotifCard.notif-error {
+  border-top: 5px solid #ef4444 !important;
+}
+.popupNotifCard.notif-error .popupNotifIconBadge {
+  background: linear-gradient(135deg, #ef4444, #b91c1c) !important;
+  box-shadow: 0 10px 25px rgba(239, 68, 68, 0.45) !important;
+}
+.popupNotifCard.notif-error .popupNotifHeader h3 { color: #ef4444 !important; }
+.popupNotifCard.notif-error .btnOkNotif {
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  box-shadow: 0 8px 22px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* WARNING STATE */
+.popupNotifCard.notif-warning {
+  border-top: 5px solid #f59e0b !important;
+}
+.popupNotifCard.notif-warning .popupNotifIconBadge {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.45) !important;
+}
+.popupNotifCard.notif-warning .popupNotifHeader h3 { color: #f59e0b !important; }
+.popupNotifCard.notif-warning .btnOkNotif {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  box-shadow: 0 8px 22px rgba(245, 158, 11, 0.4) !important;
+}
+
+/* SUCCESS STATE */
+.popupNotifCard.notif-success {
+  border-top: 5px solid #10b981 !important;
+}
+.popupNotifCard.notif-success .popupNotifIconBadge {
+  background: linear-gradient(135deg, #10b981, #047857) !important;
+  box-shadow: 0 10px 25px rgba(16, 185, 129, 0.45) !important;
+}
+.popupNotifCard.notif-success .popupNotifHeader h3 { color: #10b981 !important; }
+.popupNotifCard.notif-success .btnOkNotif {
+  background: linear-gradient(135deg, #10b981, #059669) !important;
+  box-shadow: 0 8px 22px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* INFO STATE */
+.popupNotifCard.notif-info {
+  border-top: 5px solid #0284c7 !important;
+}
+.popupNotifCard.notif-info .popupNotifIconBadge {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  box-shadow: 0 10px 25px rgba(2, 132, 199, 0.45) !important;
+}
+.popupNotifCard.notif-info .popupNotifHeader h3 { color: #0284c7 !important; }
+.popupNotifCard.notif-info .btnOkNotif {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  box-shadow: 0 8px 22px rgba(2, 132, 199, 0.4) !important;
+}
 
 /* UNIFORM PATENT LAYOUT FOR ALL MENU PAGES & CARDS (#dashboardPage / #inputPage / #riwayatPage / #masterDbPage / #userManagementPage) */
 .box,
@@ -1460,7 +1621,7 @@ popupNotifCard
 .popupNotifCard.notif-error #popupNotifMessage,
 .popupNotifCard.notif-info .popupNotifBody p,
 .popupNotifCard.notif-info #popupNotifMessage {
- color: var(--text-main) !important;
+  color: #f8fafc !important;
 }
 
 /* COMPACT POPUP DIMENSIONS FOR CONFIRM & REJECT POPUPS */
@@ -2484,49 +2645,3 @@ button, input, select, textarea, .box, .box-full, .popupBox, .akunBox, .confirmB
 table {
   border-radius: 12px !important;
 }
-/* ======================================================
-   IMAGE VIEWER ZOOM CONTROLS
-   ====================================================== */
-.zoomControls {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 12px;
-  z-index: 1001;
-  background: rgba(15, 23, 42, 0.65);
-  padding: 8px 14px;
-  border-radius: 30px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-.zoomControls button {
-  background: var(--primary) !important;
-  color: #ffffff !important;
-  border: none !important;
-  border-radius: 50% !important;
-  width: 42px !important;
-  height: 42px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  cursor: pointer !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-  transition: transform 0.2s ease, background 0.2s ease !important;
-}
-
-.zoomControls button:hover {
-  background: var(--primary-hover) !important;
-  transform: scale(1.15) !important;
-}
-
-#viewerImage {
-  max-width: none !important; /* Di-override agar bisa lebih besar dari layar saat di-zoom */
-  max-height: none !important;
-  cursor: grab;
-}
-
