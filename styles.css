@@ -1457,7 +1457,7 @@ input:focus, select:focus, textarea:focus {
   font-size: 14.5px !important;
   font-weight: 700 !important;
   line-height: 1.55 !important;
-  color: #f8fafc !important;
+  color: var(--text-main) !important;
   letter-spacing: 0.2px !important;
 }
 
@@ -1470,7 +1470,7 @@ input:focus, select:focus, textarea:focus {
   height: 46px !important;
   border-radius: 14px !important;
   border: none !important;
-  color: #ffffff !important;
+ color: var(--text-main) !important;
   font-size: 15px !important;
   font-weight: 900 !important;
   letter-spacing: 0.5px !important;
@@ -1621,7 +1621,7 @@ input:focus, select:focus, textarea:focus {
 .popupNotifCard.notif-error #popupNotifMessage,
 .popupNotifCard.notif-info .popupNotifBody p,
 .popupNotifCard.notif-info #popupNotifMessage {
-  color: #f8fafc !important;
+  color: var(--text-main) !important;
 }
 
 /* COMPACT POPUP DIMENSIONS FOR CONFIRM & REJECT POPUPS */
