@@ -2713,4 +2713,33 @@ table {
   z-index: 1000;
 }
 
+/* ======================================================
+   ULTIMATE KILL SWITCH: MATIKAN PAKSA SEMUA EFEK GERAK
+   ====================================================== */
+/* 1. Paksa buang animasi 'transform' dari sifat dasarnya */
+.theme-toggle-btn,
+.notif-bell-btn,
+#notifBellBtn,
+.helpButton,
+#helpButton {
+  transition: background 0.2s, color 0.2s !important; /* Hanya warna yang boleh berubah */
+  transform: none !important;
+}
 
+/* 2. Matikan paksa efek membesar saat disentuh/diklik */
+.theme-toggle-btn:hover,
+.theme-toggle-btn:active,
+.theme-toggle-btn:focus,
+.notif-bell-btn:hover,
+.notif-bell-btn:active,
+.notif-bell-btn:focus,
+#notifBellBtn:hover,
+#notifBellBtn:active,
+.helpButton:hover,
+.helpButton:active,
+.helpButton:focus,
+#helpButton:hover,
+#helpButton:active {
+  transform: none !important;
+  scale: 1 !important; /* Pengaman ekstra */
+}
