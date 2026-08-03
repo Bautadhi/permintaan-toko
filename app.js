@@ -1631,10 +1631,8 @@ function loadForm() {
   if (currentUser.category === 'TOKO') {
     tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
   } else {
-    // Admin, DM, Service, Sales
-    const allStores = getStoresFromDB();
-    const stores = (currentUser.category === 'DM' || currentUser.category === 'ADMIN') ? allStores : allStores.filter(s => s.area === currentUser.area);
-    
+    const users = getUsersFromDB();
+    const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
     if (stores.length > 0) {
       stores.forEach(s => {
         tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
@@ -1645,14 +1643,12 @@ function loadForm() {
   }
 
   // =========================================================================
-  // TAMBAHAN FIX: Sembunyikan tombol pintasan "Tambah Toko" di halaman input
+  // KUNCI: Sembunyikan tombol Tambah Toko jika yang login adalah TOKO
   // =========================================================================
-  const btnTambahTokoInput = document.getElementById('btnTambahTokoInput'); // Berikan ID ini pada tombol tambah toko di HTML jika ada
-  if (btnTambahTokoInput) {
-    btnTambahTokoInput.style.display = (currentUser.category === 'TOKO') ? 'none' : 'inline-flex';
+  const containerTambahToko = document.getElementById('containerTambahToko');
+  if (containerTambahToko) {
+    containerTambahToko.style.display = (currentUser.category === 'TOKO') ? 'none' : 'flex';
   }
-
-  updatePhotoSectionVisibility();
 
   if (!modeEdit) {
     bersihkanForm();
