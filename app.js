@@ -1397,14 +1397,17 @@ function showPage(pageId) {
 // =========================================================================
 // FUNGSI PENGATUR TOMBOL MENGAMBANG (SUPER KETAT)
 // =========================================================================
+// =========================================================================
+// FUNGSI PENGATUR TOMBOL MENGAMBANG (SUPER KETAT & ANTI HILANG)
+// =========================================================================
 function aturTampilanLonceng(pageId) {
   const notifBtn = document.getElementById('notifBellBtn');
   const helpBtn = document.getElementById('helpButton');
 
-  // Cek apakah halaman saat ini adalah Dashboard
-  const isDashboard = (pageId === 'dashboardPage');
+  // Pastikan user benar-benar login dan berada di Dashboard
+  const isUserLoggedIn = (typeof currentUser !== 'undefined' && currentUser !== null);
+  const isDashboard = (pageId === 'dashboardPage' && isUserLoggedIn);
 
-  // Gunakan setProperty dengan '!important' agar tidak bisa dibantah oleh fungsi penutup popup
   if (notifBtn) {
     notifBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
   }
@@ -3526,20 +3529,19 @@ function tutupBantuan() {
     setTimeout(() => popup.style.display = 'none', 250); 
   }
   
-  // 1. Pastikan tombol ikon bantuan TETAP MUNCUL setelah kotak ditutup
-  const helpBtn = document.getElementById('helpButton');
-  if (helpBtn && typeof getCurrentActivePageId === 'function' && getCurrentActivePageId() === 'dashboardPage') {
-    helpBtn.style.display = 'flex'; 
+  // Panggil pengatur tampilan agar ikon kembali muncul jika di Dashboard
+  const activePage = typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage';
+  if (typeof aturTampilanLonceng === 'function') {
+    aturTampilanLonceng(activePage);
   }
 
-  // 2. Reset angka notifikasi chat secara visual agar langsung hilang saat ditutup
+  // Reset angka notifikasi chat secara visual
   const badge = document.getElementById('unreadBadge');
   if (badge) {
     badge.innerText = '0';
     badge.style.display = 'none';
   }
 
-  // 3. Panggil fungsi bawaan Anda untuk sinkronisasi dengan database
   if (typeof cekUnreadNotif === 'function') {
     cekUnreadNotif();
   }
