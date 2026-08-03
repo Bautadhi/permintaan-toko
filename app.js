@@ -1384,24 +1384,14 @@ function showPage(pageId) {
   aturTampilanLonceng(pageId); // Sesuaikan lonceng untuk perpindahan normal
 }
 
-// =========================================================================
-// FUNGSI BANTUAN KHUSUS UNTUK MENYEMBUNYIKAN/MENAMPILKAN LONCENG NOTIF
-// =========================================================================
-// =========================================================================
-// FUNGSI PENGATUR TOMBOL MENGAMBANG (SUPER KETAT)
-// =========================================================================
-// =========================================================================
-// FUNGSI PENGATUR TOMBOL MENGAMBANG (SUPER KETAT & ANTI HILANG)
-// =========================================================================
 function aturTampilanLonceng(pageId) {
   const notifBtn = document.getElementById('notifBellBtn');
   const helpBtn = document.getElementById('helpButton');
 
-  // Pastikan user benar-benar login dan berada di Dashboard
-  const isUserLoggedIn = (typeof currentUser !== 'undefined' && currentUser !== null);
-  const isDashboard = (pageId === 'dashboardPage' && isUserLoggedIn);
+  const isDashboard = (pageId === 'dashboardPage' && typeof currentUser !== 'undefined' && currentUser !== null);
 
   if (notifBtn) {
+    // Jika di dashboard, tampilkan. Jika di halaman lain, sembunyikan paksa.
     notifBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
   }
   
