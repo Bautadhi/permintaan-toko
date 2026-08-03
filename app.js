@@ -1190,7 +1190,7 @@ async function prosesLogin() {
     return;
   }
 
-  // Notifikasi loading dihapus agar masuknya instan
+  showLoading('MEMPROSES LOGIN...');
   try {
     if (u === 'ADMIN') {
       await initSupabaseDB();
@@ -1227,17 +1227,32 @@ async function prosesLogin() {
       sessionStorage.removeItem('LAST_ACTIVE_PAGE');
       
       bukaMainApp();
+
+      // =========================================================================
+      // SOLUSI UTAMA: Paksa aktifkan ikon & notifikasi tepat setelah login manual
+      // =========================================================================
+      setTimeout(() => {
+        if (typeof aturTampilanLonceng === 'function') {
+          aturTampilanLonceng('dashboardPage');
+        }
+        if (typeof cekUnreadNotif === 'function') {
+          cekUnreadNotif();
+        }
+        if (typeof updateNotifBellCounter === 'function') {
+          updateNotifBellCounter();
+        }
+      }, 150);
+
     } else {
       showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
     }
-  } catch (err) {
-    console.error("Login Error:", err);
   } finally {
     hideLoading();
   }
 }
-
 window.prosesLogin = prosesLogin;
+
+
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
