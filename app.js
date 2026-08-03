@@ -4078,33 +4078,30 @@ function prosesUploadExcelLookup(event) {
   event.target.value = '';
 }
 
-// PROFILE MODAL
-// ======================================================
-// PROFILE MODAL (DENGAN PENGAMAN MODE EDIT)
-// ======================================================
-function bukaAkun() {
+
+function prosesBukaAkun(forceOpen = false) {
   if (!currentUser) return;
 
-  // PENGAMAN: Munculkan notifikasi jika user sedang dalam Mode Edit
-  if (modeEdit) {
+  // =========================================================================
+  // 1. PENGAMAN MODE EDIT (Super Ketat)
+  // =========================================================================
+  // Jika sedang mode edit, tahan dulu dan minta konfirmasi user
+  if (modeEdit && !forceOpen) {
     showConfirm('KELUAR DARI MENU EDIT?', () => {
-      bersihkanForm();  // Hapus sisa editan
+      bersihkanForm(); // Bersihkan sisa form yang diedit
       closeAllPopups();
-      prosesBukaAkun(); // Lanjutkan buka akun setelah dikonfirmasi
+      prosesBukaAkun(true); // Lanjutkan buka akun secara paksa (forceOpen = true)
     });
-    return;
+    return; // Hentikan eksekusi kode di bawah ini sampai user menekan "YA"
   }
 
-  // Jika tidak sedang mengedit, langsung buka seperti biasa
-  prosesBukaAkun();
-}
-
-// Fungsi lanjutan untuk mengisi dan menampilkan popup Akun
-function prosesBukaAkun() {
-  document.getElementById('akunNama').value = currentUser.fullName;
+  // =========================================================================
+  // 2. PENGISIAN DATA PROFIL
+  // =========================================================================
+  document.getElementById('akunNama').value = currentUser.fullName || '';
   document.getElementById('akunHP').value = currentUser.phone || '-';
   document.getElementById('akunArea').value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
-  document.getElementById('akunKategori').value = currentUser.category;
+  document.getElementById('akunKategori').value = currentUser.category || '';
   document.getElementById('akunPassword').value = '';
 
   const menuTTD = document.getElementById('menuTTD');
@@ -4113,16 +4110,26 @@ function prosesBukaAkun() {
   }
 
   // =========================================================================
-  // TAMBAHAN FIX: Sembunyikan tombol / menu tambah toko jika kategori TOKO
+  // 3. SAPU BERSIH: Sembunyikan "Tambah Toko" jika kategori TOKO
   // =========================================================================
-  const menuTambahTokoAkun = document.getElementById('menuTambahTokoAkun'); // Sesuaikan ID elemen di HTML jika ada
-  if (menuTambahTokoAkun) {
-    menuTambahTokoAkun.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
+  const isToko = (currentUser.category === 'TOKO');
+  const popupAkun = document.getElementById('popupAkun');
+  
+  if (popupAkun) {
+    const semuaElemen = popupAkun.querySelectorAll('button, div, a');
+    semuaElemen.forEach(el => {
+      const teks = (el.innerText || '').trim().toUpperCase();
+      if (teks.includes('TAMBAH TOKO') && (el.tagName === 'BUTTON' || el.onclick)) {
+        el.style.display = isToko ? 'none' : ''; 
+      }
+    });
   }
 
+  // Tampilkan popup
   document.getElementById('popupAkun').classList.add('show');
   if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 }
+window.prosesBukaAkun = prosesBukaAkun;
 function tutupAkun() {
   document.getElementById('popupAkun').classList.remove('show');
 }
