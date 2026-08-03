@@ -293,7 +293,7 @@ body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body
   padding: 0 5px;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.6);
   border: 2px solid var(--bg-box);
-  z-index: 99 !important;
+  z-index: 999999999!important;
 }
 
 /* FLOATING THEME TOGGLE BUTTON (STANDARDIZED KOTAK PRESI / SQUARE BOX 48X48PX) */
