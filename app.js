@@ -4769,4 +4769,29 @@ function initAutoSync() {
     }
   }, 5000); // 5000ms = 5 detik
 }
+let globalDataSyncInterval = null;
 
+function startAutoDataSync() {
+  if (globalDataSyncInterval) clearInterval(globalDataSyncInterval);
+
+  globalDataSyncInterval = setInterval(() => {
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      
+      // 1. Refresh notifikasi lonceng
+      if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
+      if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+
+      // 2. Refresh halaman yang sedang aktif (Trik muat ulang data)
+      // Ini akan memicu ulang fungsi pembuat tabel/dashboard Anda
+      const activePage = document.querySelector('.page.active');
+      if (activePage && typeof pindahHalaman === 'function') {
+        const pageId = activePage.id;
+        // Hanya refresh jika sedang di halaman yang butuh update real-time
+        if (pageId === 'dashboardPage' || pageId === 'requestListPage' || pageId === 'statusPage') {
+           pindahHalaman(pageId); 
+        }
+      }
+
+    }
+  }, 5000); // 5000 = 5 detik
+}
