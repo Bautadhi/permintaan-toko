@@ -954,7 +954,7 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-  margin: 12px 0 18px 0;
+  margin: 8px 0 10px 0;
 }
 
 .cardStat {
