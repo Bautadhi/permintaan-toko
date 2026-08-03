@@ -1718,37 +1718,52 @@ function loadForm() {
   document.getElementById('tanggal').value = getFormattedDateDDMMYYYY();
 
   const tokoSelect = document.getElementById('toko');
-  tokoSelect.innerHTML = '';
+  if (tokoSelect) tokoSelect.innerHTML = '';
 
   if (currentUser.category === 'TOKO') {
-    tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
+    if (tokoSelect) tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
   } else {
     const users = getUsersFromDB();
-    // Filter toko khusus sesuai area user yang sedang login (hanya muncul area user saja)
     const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
     if (stores.length > 0) {
       stores.forEach(s => {
-        tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
+        if (tokoSelect) tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
       });
     } else {
-      tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
+      if (tokoSelect) tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
     }
   }
 
   // =========================================================================
-  // FIX: Sembunyikan ikon / tombol "Tambah Toko" di Halaman Input jika kategori TOKO
+  // JURUS PAMUNGKAS: Cari semua tombol bukaModalTambahToko() & Eksekusi Mati
   // =========================================================================
-  // Pastikan ID tombol di file HTML Anda adalah id="btnTambahTokoForm"
-  const btnTambahTokoForm = document.getElementById('btnTambahTokoForm'); 
-  if (btnTambahTokoForm) {
-    btnTambahTokoForm.style.display = (currentUser.category === 'TOKO') ? 'none' : 'inline-flex'; // Gunakan inline-flex, block, atau inline-block sesuai desain CSS Anda
+  const isToko = (currentUser.category === 'TOKO');
+  
+  // 1. Sembunyikan Container ID (Jika ada)
+  const containerTambahToko = document.getElementById('containerTambahToko');
+  if (containerTambahToko) {
+    containerTambahToko.style.setProperty('display', isToko ? 'none' : 'block', 'important');
+  }
+
+  // 2. Sapu Bersih semua tombol yang punya aksi klik bukaModalTambahToko
+  const tombolTambahList = document.querySelectorAll('[onclick*="bukaModalTambahToko"]');
+  tombolTambahList.forEach(tombol => {
+    if (isToko) {
+      tombol.style.setProperty('display', 'none', 'important');
+    } else {
+      tombol.style.setProperty('display', 'flex', 'important');
+    }
+  });
+
+  // Fitur Foto Tetap Normal
+  if (typeof updatePhotoSectionVisibility === 'function') {
+    updatePhotoSectionVisibility();
   }
 
   if (!modeEdit) {
     bersihkanForm();
   }
 }
-
 function gantiJenis() {
   const container = document.getElementById('detailContainer');
   if (container.children.length > 0 && !modeEdit) {
