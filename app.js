@@ -1256,7 +1256,7 @@ function fillLogin(u, p) {
   const pEl = document.getElementById('password');
   if (uEl) uEl.value = u;
   if (pEl) pEl.value = p;
-  in();
+  prosesLogin();
 }
 
 function logout() {
