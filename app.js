@@ -1780,26 +1780,26 @@ function tambahRow() {
 
   if (jenis === 'DUS') {
     div.innerHTML = `
-      <input class="typeBarang" placeholder="TYPE BARANG" autocomplete="off">
+      <input type="text" inputmode="text" class="typeBarang" placeholder="TYPE BARANG" autocomplete="off">
       <div style="display:flex; gap:4px; align-items:center;">
-        <input class="seriBarang" placeholder="NO SERI" autocomplete="off" oninput="lookupTypeRow(this)" onkeyup="lookupTypeRow(this)" onblur="lookupTypeRow(this)">
+        <input type="text" inputmode="text" class="seriBarang" placeholder="NO SERI" autocomplete="off" oninput="lookupTypeRow(this)" onkeyup="lookupTypeRow(this)" onblur="lookupTypeRow(this)">
         ${scanButtonHtml}
       </div>
-      <input class="namaBarang" placeholder="PERMINTAAN" autocomplete="off">
-      <input class="seriDusBarang" placeholder="NO SERI DUS" autocomplete="off">
-      <input class="alasan" placeholder="ALASAN" autocomplete="off">
+      <input type="text" inputmode="text" class="namaBarang" placeholder="PERMINTAAN" autocomplete="off">
+      <input type="text" inputmode="text" class="seriDusBarang" placeholder="NO SERI DUS" autocomplete="off">
+      <input type="text" inputmode="text" class="alasan" placeholder="ALASAN" autocomplete="off">
       <input type="number" class="qty" value="1" min="1" style="text-align: center;" autocomplete="off">
       <button type="button" class="btnHapusRow" onclick="hapusRow(this)"><span class="material-symbols-rounded">remove</span></button>
     `;
   } else {
     div.innerHTML = `
-      <input class="typeBarang" placeholder="TYPE BARANG" autocomplete="off">
+      <input type="text" inputmode="text" class="typeBarang" placeholder="TYPE BARANG" autocomplete="off">
       <div style="display:flex; gap:4px; align-items:center;">
-        <input class="seriBarang" placeholder="NO SERI" autocomplete="off" oninput="lookupTypeRow(this)" onkeyup="lookupTypeRow(this)" onblur="lookupTypeRow(this)">
+        <input type="text" inputmode="text" class="seriBarang" placeholder="NO SERI" autocomplete="off" oninput="lookupTypeRow(this)" onkeyup="lookupTypeRow(this)" onblur="lookupTypeRow(this)">
         ${scanButtonHtml}
       </div>
-      <input class="namaBarang" placeholder="PERMINTAAN" autocomplete="off">
-      <input class="alasan" placeholder="ALASAN" autocomplete="off">
+      <input type="text" inputmode="text" class="namaBarang" placeholder="PERMINTAAN" autocomplete="off">
+      <input type="text" inputmode="text" class="alasan" placeholder="ALASAN" autocomplete="off">
       <input type="number" class="qty" value="1" min="1" style="text-align: center;" autocomplete="off">
       <button type="button" class="btnHapusRow" onclick="hapusRow(this)"><span class="material-symbols-rounded">remove</span></button>
     `;
