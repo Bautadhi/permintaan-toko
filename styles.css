@@ -2770,7 +2770,7 @@ table {
 
 /* Letak awal berdampingan (Lonceng di sebelah kiri Bantuan) */
 .notif-bell-btn, #notifBellBtn {
-  right: 72px !important; /* Posisi agak ke tengah dikit */
+  right: 90px !important; /* Posisi agak ke tengah dikit */
 }
 
 .helpButton, #helpButton {
