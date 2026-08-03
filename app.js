@@ -1692,31 +1692,26 @@ function loadForm() {
 
   if (currentUser.category === 'TOKO') {
     tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
-  } else if (
-    currentUser.category === 'ADMIN' ||
-    currentUser.category === 'DM' ||
-    (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN')
-  ) {
-    // ADMIN & DM can select all stores across all areas
-    const allStores = getStoresFromDB();
-    if (allStores.length > 0) {
-      allStores.forEach(s => {
-        tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
-      });
-    } else {
-      tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (BDG)</option>`;
-    }
   } else {
-    // Service & Sales dibatasi khusus area user sendiri
+    // Admin, DM, Service, Sales
     const allStores = getStoresFromDB();
-    const areaStores = allStores.filter(s => s.area === currentUser.area);
-    if (areaStores.length > 0) {
-      areaStores.forEach(s => {
+    const stores = (currentUser.category === 'DM' || currentUser.category === 'ADMIN') ? allStores : allStores.filter(s => s.area === currentUser.area);
+    
+    if (stores.length > 0) {
+      stores.forEach(s => {
         tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
       });
     } else {
       tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
     }
+  }
+
+  // =========================================================================
+  // TAMBAHAN FIX: Sembunyikan tombol pintasan "Tambah Toko" di halaman input
+  // =========================================================================
+  const btnTambahTokoInput = document.getElementById('btnTambahTokoInput'); // Berikan ID ini pada tombol tambah toko di HTML jika ada
+  if (btnTambahTokoInput) {
+    btnTambahTokoInput.style.display = (currentUser.category === 'TOKO') ? 'none' : 'inline-flex';
   }
 
   updatePhotoSectionVisibility();
@@ -1725,7 +1720,6 @@ function loadForm() {
     bersihkanForm();
   }
 }
-
 // PLAIN TEXT STATUS WITH ROLE-BASED CONDITIONAL LABELS
 function getBadgeStatus(r) {
   if (typeof r === 'string') {
@@ -1790,6 +1784,15 @@ function loadForm() {
     }
   }
 
+  // =========================================================================
+  // FIX: Sembunyikan ikon / tombol "Tambah Toko" di Halaman Input jika kategori TOKO
+  // =========================================================================
+  // Pastikan ID tombol di file HTML Anda adalah id="btnTambahTokoForm"
+  const btnTambahTokoForm = document.getElementById('btnTambahTokoForm'); 
+  if (btnTambahTokoForm) {
+    btnTambahTokoForm.style.display = (currentUser.category === 'TOKO') ? 'none' : 'inline-flex'; // Gunakan inline-flex, block, atau inline-block sesuai desain CSS Anda
+  }
+
   if (!modeEdit) {
     bersihkanForm();
   }
@@ -1802,7 +1805,6 @@ function gantiJenis() {
     tambahRow();
   }
 }
-
 function tambahRow() {
   const jenis = document.getElementById('jenisPermintaan').value;
   const container = document.getElementById('detailContainer');
@@ -3354,7 +3356,11 @@ function bukaTTD() {
 }
 
 function tutupTTD() {
-  document.getElementById('popupTTD').classList.remove('show');
+  const modalTTD = document.getElementById('popupTTD');
+  if (modalTTD) {
+    modalTTD.classList.remove('show');
+    modalTTD.style.display = 'none'; // Pastikan display-nya disembunyikan
+  }
 }
 
 // ======================================================================
@@ -4166,6 +4172,14 @@ function prosesBukaAkun() {
   const menuTTD = document.getElementById('menuTTD');
   if (menuTTD) {
     menuTTD.style.display = (currentUser.category === 'SERVICE' || currentUser.category === 'DM') ? 'block' : 'none';
+  }
+
+  // =========================================================================
+  // TAMBAHAN FIX: Sembunyikan tombol / menu tambah toko jika kategori TOKO
+  // =========================================================================
+  const menuTambahTokoAkun = document.getElementById('menuTambahTokoAkun'); // Sesuaikan ID elemen di HTML jika ada
+  if (menuTambahTokoAkun) {
+    menuTambahTokoAkun.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
   }
 
   document.getElementById('popupAkun').classList.add('show');
