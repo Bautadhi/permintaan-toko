@@ -216,13 +216,16 @@
 
         <label>TANGGAL</label>
         <input id="tanggal" readonly>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <label style="margin-bottom: 0;">NAMA TOKO</label>
-          <button type="button" style="background: none; border: none; color: var(--primary); font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="bukaModalTambahToko()">
-            <span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> TAMBAH TOKO
-          </button>
-        </div>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+  <label style="margin-bottom: 0;">NAMA TOKO</label>
+  
+  <!-- Bungkus dengan ID containerTambahToko -->
+  <div id="containerTambahToko">
+    <button type="button" style="background: none; border: none; color: var(--primary); font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="bukaModalTambahToko()">
+      <span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> TAMBAH TOKO
+    </button>
+  </div>
+</div>
         <select id="toko"></select>
 
         <label>JENIS PERMINTAAN</label>
