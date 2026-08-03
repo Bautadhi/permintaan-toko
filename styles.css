@@ -2392,19 +2392,22 @@ input:focus, select:focus, textarea:focus {
    FINAL FIX: KUNCI LAYAR HP & PINDAH SCROLL KE DALAM (ANTI CHROME SEMBUNYI)
    ====================================================== */
 @media(max-width: 768px) {
-/* ======================================================
-   FINAL FIX: KUNCI LAYAR HP & PINDAH SCROLL KE DALAM (ANTI CHROME SEMBUNYI)
-   ====================================================== */
-
-html, body {
-  height: 100vh !important;
-  height: 100dvh !important;
+  html, body {
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow: hidden !important; /* <--- UBAH JADI HIDDEN */
+    overscroll-behavior-y: none !important; /* <--- UBAH JADI NONE */
+  }
   
-  /* UBAH DUA BARIS INI: */
-  overflow: visible !important; /* Biarkan browser mendeteksi tarikan */
-  overscroll-behavior-y: auto !important; /* Aktifkan animasi muter refresh Chrome */
+  .page {
+    height: 100vh !important;
+    height: 100dvh !important;
+    overflow-y: auto !important; /* Biarkan isi halaman saja yang scroll di dalam */
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 14px 12px 90px 12px !important;
+  }
 }
-
 /* 2. PINDAHKAN SCROLL KE MASING-MASING HALAMAN */
 #app {
   height: 100% !important;
