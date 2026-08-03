@@ -1360,16 +1360,6 @@ function bukaMainApp() {
   if (btnUserNav) btnUserNav.style.display = isAdmin ? 'flex' : 'none';
   if (btnMasterDbNav) btnMasterDbNav.style.display = isAdmin ? 'flex' : 'none';
 
-  const btnHelp = document.getElementById('helpButton');
-  if (btnHelp) btnHelp.style.display = 'flex';
-
-  // =========================================================================
-  // PASTIKAN TOMBOL LONCENG LANGSUNG DIPAKSA MUNCUL SAAT LOGIN SELESAI
-  // =========================================================================
-  if (typeof aturTampilanLonceng === 'function') {
-    aturTampilanLonceng('dashboardPage');
-  }
-
   isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
 
   let savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE');
@@ -1378,6 +1368,19 @@ function bukaMainApp() {
   }
   
   pindahHalaman(savedPage);
+
+  // LAPISAN PENGAMAN GANDA: Paksa munculkan ikon dengan jeda waktu render
+  setTimeout(() => {
+    if (typeof aturTampilanLonceng === 'function') {
+      aturTampilanLonceng('dashboardPage');
+    }
+  }, 100);
+
+  setTimeout(() => {
+    if (typeof aturTampilanLonceng === 'function') {
+      aturTampilanLonceng('dashboardPage');
+    }
+  }, 400);
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
   if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
@@ -2778,12 +2781,10 @@ function lihatDetail(noSurat, fromDashboard = false) {
   `).join('');
 
   let bottomActionsHtml = '';
-
   let actionButtons = [];
   const role = currentUser.category;
   const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
 
-  // 1. APPROVE & TOLAK BUTTONS FOR PENDING
   if (req.status === 'PENDING') {
     if (role === 'SERVICE' || isAdminUser) {
       if (!req.serviceApprove) {
@@ -2811,23 +2812,20 @@ function lihatDetail(noSurat, fromDashboard = false) {
       }
     }
     
-    if (role === 'DM') {
-      if (req.serviceApprove) {
-        actionButtons.push(`
-          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveDM('${req.noSurat}');">
-            <span class="material-symbols-rounded">check_circle</span>
-          </button>
-        `);
-        actionButtons.push(`
-          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
-            <span class="material-symbols-rounded">cancel</span>
-          </button>
-        `);
-      }
+    if (role === 'DM' && req.serviceApprove) {
+      actionButtons.push(`
+        <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveDM('${req.noSurat}');">
+          <span class="material-symbols-rounded">check_circle</span>
+        </button>
+      `);
+      actionButtons.push(`
+        <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
+          <span class="material-symbols-rounded">cancel</span>
+        </button>
+      `);
     }
   }
 
-  // 2. DONE & PDF BUTTONS WHEN STATUS IS APPROVE / DONE
   const isPdfVisible = (req.status === 'APPROVE' || req.status === 'DONE' || (isAdminUser && req.status !== 'REJECT'));
   if (isPdfVisible) {
     actionButtons.push(`
@@ -2845,7 +2843,6 @@ function lihatDetail(noSurat, fromDashboard = false) {
     `);
   }
 
-  // 3. EDIT & HAPUS BUTTONS ACCORDING TO EXACT WORKFLOW
   const isCreator = currentUser && (req.userId === currentUser.id || req.createdBy === currentUser.fullName || (currentUser.category === 'TOKO' && req.toko.toUpperCase() === currentUser.fullName.toUpperCase()));
   const canCreatorEditDelete = isCreator && !req.serviceApprove && req.status === 'PENDING';
   const canServiceEditDelete = (role === 'SERVICE' && !req.serviceApprove && req.status === 'PENDING');
@@ -2896,10 +2893,31 @@ function lihatDetail(noSurat, fromDashboard = false) {
   `;
 
   document.getElementById('popupDetail').style.display = 'flex';
-}
 
+  // PASTIKAN IKON TETAP MUNCUL SAAT DETAIL DIBUKA DI DASHBOARD
+  const notifBtn = document.getElementById('notifBellBtn');
+  const helpBtn = document.getElementById('helpButton');
+  if (notifBtn) notifBtn.style.setProperty('display', 'flex', 'important');
+  if (helpBtn) helpBtn.style.setProperty('display', 'flex', 'important');
+}
 function closeDetail() {
-  document.getElementById('popupDetail').style.display = 'none';
+  const detailModal = document.getElementById('popupDetail');
+  if (detailModal) {
+    detailModal.style.display = 'none';
+    detailModal.classList.remove('show');
+  }
+
+  // PAKSA MUNCULKAN KEMBALI IKON LONCENG DAN BANTUAN DI DASHBOARD
+  setTimeout(() => {
+    const notifBtn = document.getElementById('notifBellBtn');
+    const helpBtn = document.getElementById('helpButton');
+    const dashboardPage = document.getElementById('dashboardPage');
+    
+    if (dashboardPage && dashboardPage.classList.contains('active')) {
+      if (notifBtn) notifBtn.style.setProperty('display', 'flex', 'important');
+      if (helpBtn) helpBtn.style.setProperty('display', 'flex', 'important');
+    }
+  }, 100);
 }
 
 // PDF TEMPLATE 5-MODEL SELECTION & SINGLE FULL POPUP PREVIEW ENGINE
