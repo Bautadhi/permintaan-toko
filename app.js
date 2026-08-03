@@ -263,22 +263,42 @@ function loadNotificationList() {
 }
 
 function clickNotificationItem(notifId, noSurat) {
-  // 1. Tandai notifikasi sebagai sudah dibaca
+
   markNotifAsRead(notifId);
+
   
-  // 2. Perbarui daftar notifikasi secara langsung agar background-nya berubah jadi dibaca 
-  // (TANPA menutup popup daftar notifikasinya)
-  if (typeof loadNotificationList === 'function') {
-    loadNotificationList();
+
+  // Tutup HANYA popup daftar notifikasinya saja, jangan pakai closeAllPopups()
+
+  const notifListPopup = document.getElementById('popupNotifList');
+
+  if (notifListPopup) {
+
+    notifListPopup.style.display = 'none';
+
+    notifListPopup.classList.remove('show');
+
   }
 
-  // 3. Langsung buka popup detail barangnya menumpuk di atasnya
+
+
+  // Beri jeda sepersekian detik agar popup notif benar-benar tertutup mulus, 
+
+  // lalu baru buka popup detail barangnya
+
   if (noSurat) {
+
     setTimeout(() => {
+
       lihatDetail(noSurat, true);
-    }, 100);
+
+    }, 150);
+
   }
-}
+
+} 
+
+
 function markNotifAsRead(notifId) {
   const notifs = getSystemNotifications();
   const idx = notifs.findIndex(n => n.id === notifId);
@@ -1276,6 +1296,9 @@ function logout() {
     updateNotifBellCounter();
   });
 }
+// Deklarasikan variabel global penanda agar auto-sync tidak berjalan double
+let autoSyncInterval = null;
+
 function bukaMainApp() {
   const loginPage = document.getElementById('loginPage');
   if (loginPage) loginPage.classList.remove('active');
@@ -1317,6 +1340,13 @@ function bukaMainApp() {
       aturTampilanLonceng('dashboardPage');
     }
   }, 400);
+
+  // =========================================================================
+  // AKTIFKAN AUTO-SYNC DI SINI (Jalankan sinkronisasi otomatis tiap 5 detik)
+  // =========================================================================
+  if (!autoSyncInterval && typeof initAutoSync === 'function') {
+    initAutoSync();
+  }
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
   if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
@@ -4710,3 +4740,34 @@ function initAllDraggableButtons() {
   `;
   document.head.appendChild(styleTag);
 })();
+// =========================================================================
+// AUTO-SYNC: Cek data baru secara otomatis setiap 5 detik tanpa refresh
+// =========================================================================
+function initAutoSync() {
+  // Jalankan pengecekan setiap 5000 milidetik (5 detik)
+  setInterval(() => {
+    // Pastikan user sedang login dan aplikasi tidak sedang dalam mode edit/input berat
+    if (typeof currentUser !== 'undefined' && currentUser) {
+      
+      // 1. Cek unread notifikasi secara otomatis
+      if (typeof cekUnreadNotif === 'function') {
+        cekUnreadNotif();
+      }
+      
+      // 2. Jika popup daftar notifikasi sedang terbuka, update list-nya otomatis
+      const notifListPopup = document.getElementById('popupNotifList');
+      if (notifListPopup && notifListPopup.classList.contains('show')) {
+        if (typeof loadNotificationList === 'function') {
+          loadNotificationList();
+        }
+      }
+
+      // 3. Jika sedang di halaman dashboard atau tabel data, refresh datanya
+      // (Opsional: sesuaikan dengan fungsi pemuat tabel utama Anda, contoh: muatDataTabel())
+      if (typeof muatDataDashboard === 'function') {
+        // muatDataDashboard(); // Nyalakan jika ingin dashboard ikut update otomatis
+      }
+    }
+  }, 5000); // 5000ms = 5 detik
+}
+
