@@ -2665,7 +2665,7 @@ table {
 
 #viewerImage {
   max-width: 90%;
-  max-height: 75vh;
+  max-height: 90vh;
   object-fit: contain;
   transition: transform 0.1s ease-out;
   transform-origin: center center;
