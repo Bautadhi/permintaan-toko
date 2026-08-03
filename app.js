@@ -1259,66 +1259,6 @@ function fillLogin(u, p) {
   in();
 }
 
-async function in() {
-  const uEl = document.getElementById('username');
-  const pEl = document.getElementById('password');
-  if (!uEl || !pEl) return;
-
-  const u = uEl.value.trim().toUpperCase();
-  const p = pEl.value.trim();
-
-  if (!u || !p) {
-    showNotif('USERNAME DAN PASSWORD WAJIB DIISI!', 'warning');
-    return;
-  }
-
-  showLoading('MEMPROSES LOGIN...');
-  try {
-    if (u === 'ADMIN') {
-      await initSupabaseDB();
-    }
-
-    let users = getUsersFromDB();
-    if (!Array.isArray(users) || !users.length) {
-      users = [...SEED_USERS];
-    }
-    
-    let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-
-    if (!user) {
-      user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-      if (user) {
-        users.push(user);
-        saveUsersToDB(users);
-      }
-    }
-
-    if (!user && u === 'ADMIN' && p === '1') {
-      user = SEED_USERS[0];
-    }
-
-    if (user) {
-      currentUser = user;
-      const rememberCheckbox = document.getElementById('rememberMe');
-      if (rememberCheckbox && rememberCheckbox.checked) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      } else {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      }
-      
-      // Hapus memori halaman terakhir agar login manual selalu ke Dashboard
-      sessionStorage.removeItem('LAST_ACTIVE_PAGE');
-      
-      bukaMainApp();
-    } else {
-      showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
-    }
-  } finally {
-    hideLoading();
-  }
-}
-window.in = in;
-
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
     localStorage.removeItem(SESSION_KEY);
