@@ -2646,17 +2646,39 @@ table {
   border-radius: 12px !important;
 }
 /* ======================================================
-   IMAGE VIEWER ZOOM CONTROLS
+   TAMPILAN TOMBOL ZOOM DI POPUP FOTO
    ====================================================== */
+.image-viewer-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+#viewerImage {
+  max-width: 90%;
+  max-height: 75vh;
+  object-fit: contain;
+  transition: transform 0.1s ease-out;
+  transform-origin: center center;
+}
+
 .zoomControls {
   position: absolute;
-  bottom: 20px;
+  bottom: 25px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
-  gap: 15px;
-  background: rgba(15, 23, 42, 0.85); /* Background gelap transparan */
-  padding: 10px 20px;
+  gap: 20px;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 10px 25px;
   border-radius: 30px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.5);
   z-index: 1000;
@@ -2666,18 +2688,93 @@ table {
   background: none;
   border: none;
   color: #fff;
-  font-size: 24px;
+  font-size: 26px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
+  padding: 8px;
   border-radius: 50%;
   transition: background 0.2s;
 }
 
 .zoomControls button:hover {
   background: rgba(255, 255, 255, 0.2);
+}
+
+.closeViewer {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  color: #fff;
+  font-size: 40px;
+  cursor: pointer;
+  z-index: 1000;
+}/* ======================================================
+   TAMPILAN TOMBOL ZOOM DI POPUP FOTO
+   ====================================================== */
+.image-viewer-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+}
+
+#viewerImage {
+  max-width: 90%;
+  max-height: 75vh;
+  object-fit: contain;
+  transition: transform 0.1s ease-out;
+  transform-origin: center center;
+}
+
+.zoomControls {
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 20px;
+  background: rgba(15, 23, 42, 0.85);
+  padding: 10px 25px;
+  border-radius: 30px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+  z-index: 1000;
+}
+
+.zoomControls button {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 26px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.zoomControls button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.closeViewer {
+  position: absolute;
+  top: 20px;
+  right: 25px;
+  color: #fff;
+  font-size: 40px;
+  cursor: pointer;
+  z-index: 1000;
 }
 /* ======================================================
    FIX: KUNCI LAYAR (ANTI-GESER & ANTI CHROME SEMBUNYI)
