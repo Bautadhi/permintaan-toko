@@ -2396,12 +2396,13 @@ input:focus, select:focus, textarea:focus {
    FINAL FIX: KUNCI LAYAR HP & PINDAH SCROLL KE DALAM (ANTI CHROME SEMBUNYI)
    ====================================================== */
 
-/* 1. KUNCI MATI BODY BROWSER (DI SEMUA UKURAN LAYAR) */
 html, body {
   height: 100vh !important;
   height: 100dvh !important;
-  overflow: hidden !important; /* Matikan scroll bawaan browser */
-  overscroll-behavior-y: none !important; /* Matikan efek karet saat ditarik */
+  
+  /* UBAH DUA BARIS INI: */
+  overflow: visible !important; /* Biarkan browser mendeteksi tarikan */
+  overscroll-behavior-y: auto !important; /* Aktifkan animasi muter refresh Chrome */
 }
 
 /* 2. PINDAHKAN SCROLL KE MASING-MASING HALAMAN */
