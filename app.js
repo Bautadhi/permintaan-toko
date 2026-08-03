@@ -3521,21 +3521,17 @@ function bukaBantuan() {
 }
 function tutupBantuan() {
   const popup = document.getElementById('popupBantuan');
-  const btnHelp = document.getElementById('helpButton');
   if (popup) {
-    popup.style.display = 'none';
-    popup.classList.remove('show');
+    popup.classList.remove('show'); 
+    setTimeout(() => popup.style.display = 'none', 250); 
   }
-  if (btnHelp && currentUser) {
-    btnHelp.style.display = 'flex';
+  
+  // Memaksa tombol ikon bantuan TETAP MUNCUL setelah kotak ditutup
+  const helpBtn = document.getElementById('helpButton');
+  if (helpBtn && getCurrentActivePageId() === 'dashboardPage') {
+    helpBtn.style.display = 'flex'; 
   }
-  if (fastChatInterval) {
-    clearInterval(fastChatInterval);
-    fastChatInterval = null;
-  }
-  cekUnreadNotif();
 }
-
 function loadDaftarChatAdmin() {
   const chatList = document.getElementById('chatList');
   if (!chatList) return;
