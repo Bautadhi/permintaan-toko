@@ -253,7 +253,7 @@ body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body
   position: fixed;
   top: 20px;
   right: 78px;
-  z-index: 5999;
+  z-index: 59999;
   width: 48px !important;
   height: 48px !important;
   border-radius: 12px !important;
