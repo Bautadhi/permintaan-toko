@@ -474,14 +474,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loginForm) {
       loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        if (typeof window.in === 'function') window.in();
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
       });
     }
 
     const loginButton = document.getElementById('btnLogin');
     if (loginButton) {
       loginButton.addEventListener('click', () => {
-        if (typeof window.in === 'function') window.in();
+        if (typeof window.prosesLogin === 'function') window.prosesLogin();
       });
     }
 
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       usernameInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
           event.preventDefault();
-          if (typeof window.in === 'function') window.in();
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
         }
       });
     }
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       passwordInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
           event.preventDefault();
-          if (typeof window.in === 'function') window.in();
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
         }
       });
     }
