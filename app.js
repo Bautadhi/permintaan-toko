@@ -4611,22 +4611,20 @@ function initDraggableElement(element, storageKey) {
       if (e.cancelable) e.preventDefault();
 
       let newLeft = initialLeft + deltaX;
-      let newTop = initialTop + deltaY;
+      
+      // KUNCI: Biarkan posisi atas (top) tetap diam, hanya geser kiri-kanan (left)
+      let newTop = initialTop; 
 
       const maxX = window.innerWidth - (el.offsetWidth || 48);
-      const maxY = window.innerHeight - (el.offsetHeight || 48);
-
       newLeft = Math.max(0, Math.min(newLeft, maxX));
-      newTop = Math.max(0, Math.min(newTop, maxY));
 
       el.style.position = 'fixed';
       el.style.left = newLeft + 'px';
-      el.style.top = newTop + 'px';
+      el.style.top = newTop + 'px'; // Tetap di garis lurus
       el.style.right = 'auto';
       el.style.bottom = 'auto';
     }
   }
-
   function onPointerUp(e) {
     window.removeEventListener('mousemove', onPointerMove);
     window.removeEventListener('mouseup', onPointerUp);
@@ -4654,10 +4652,10 @@ function initDraggableElement(element, storageKey) {
 
 function initAllDraggableButtons() {
   setTimeout(() => {
+    // Keduanya menggunakan fungsi draggable yang sama agar bisa digeser horizontal/bebas
     initDraggableElement('helpButton', 'POS_HELP_BUTTON_V5');
-    initDraggableElement(document.querySelector('.theme-toggle-btn'), 'POS_THEME_BUTTON_V5');
     initDraggableElement('notifBellBtn', 'POS_NOTIF_BELL_BUTTON_V5');
+    initDraggableElement(document.querySelector('.theme-toggle-btn'), 'POS_THEME_BUTTON_V5');
   }, 100);
 }
-
 
