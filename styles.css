@@ -2743,3 +2743,10 @@ table {
   transform: none !important;
   scale: 1 !important; /* Pengaman ekstra */
 }
+/* Pastikan ikon tersembunyi total secara default sebelum diizinkan JS */
+#notifBellBtn,
+.notif-bell-btn,
+#helpButton,
+.helpButton {
+  display: none !important;
+}
