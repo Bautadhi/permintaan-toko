@@ -313,7 +313,8 @@ body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body
   align-items: center;
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35) !important;
-  transition: transform 0.2s, background 0.2s;
+  /* transition diubah agar hanya efek warna, tidak ada efek gerak */
+  transition: background 0.2s; 
   box-sizing: border-box !important;
 }
 
@@ -326,13 +327,13 @@ body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body
 
 .draggable-btn:active, .draggable-btn.is-dragging {
   cursor: grabbing !important;
-  transform: scale(1.12) !important;
+  /* transform dihapus agar saat diseret tombol tidak membesar */
   box-shadow: 0 12px 30px rgba(0,0,0,0.45) !important;
 }
 
 .theme-toggle-btn:hover {
-  transform: scale(1.1);
   background: var(--primary-hover);
+  /* transform: scale dihapus agar diam paten */
 }
 
 .theme-toggle-btn .material-symbols-rounded {
@@ -356,12 +357,13 @@ body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body
   align-items: center;
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
-  transition: transform 0.2s;
+  /* transition gerak dihapus */
   box-sizing: border-box !important;
 }
 
 .helpButton:hover {
-  transform: scale(1.1);
+  /* transform: scale dihapus agar diam paten */
+  background: linear-gradient(135deg, #059669, #065f46) !important; /* Tambahan agar warnanya saja yang merespon */
 }
 
 .helpButton .material-symbols-rounded {
@@ -384,7 +386,6 @@ body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body
   padding: 0 4px;
   border: 2px solid var(--bg-body);
 }
-
 /* CHAT WIDGET POPUP - PENDEKKAN TINGGI POPUP BANTUAN SAJA (380PX) */
 .popupBantuan {
   position: fixed;
