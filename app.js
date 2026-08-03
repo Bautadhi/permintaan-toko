@@ -1630,7 +1630,7 @@ function bukaDetailDariDashboard(noSurat) {
 
 // DYNAMIC FORM MULTI-ROW ENGINE WITH CAMERA SCANNER TOOL IN EVERY SERIAL COLUMN
 // DYNAMIC FORM MULTI-ROW ENGINE
-function loadForm() {
+function lssoadForm() {
   document.getElementById('tanggal').value = getFormattedDateDDMMYYYY();
 
   const tokoSelect = document.getElementById('toko');
