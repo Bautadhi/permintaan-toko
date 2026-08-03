@@ -4097,56 +4097,28 @@ function bukaAkun() {
 }
 
 function prosesBukaAkun() {
-  const elNama = document.getElementById('akunNama');
-  const elHP = document.getElementById('akunHP');
-  const elArea = document.getElementById('akunArea');
-  const elKat = document.getElementById('akunKategori');
-  const elPass = document.getElementById('akunPassword');
-
-  if (elNama) elNama.value = currentUser.fullName || '';
-  if (elHP) elHP.value = currentUser.phone || '-';
-  if (elArea) elArea.value = `${currentUser.area || ''} - ${AREA_MAP[currentUser.area] || currentUser.area || ''}`;
-  if (elKat) elKat.value = currentUser.category || '';
-  if (elPass) elPass.value = '';
+  document.getElementById('akunNama').value = currentUser.fullName;
+  document.getElementById('akunHP').value = currentUser.phone || '-';
+  document.getElementById('akunArea').value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
+  document.getElementById('akunKategori').value = currentUser.category;
+  document.getElementById('akunPassword').value = '';
 
   const menuTTD = document.getElementById('menuTTD');
   if (menuTTD) {
-    menuTTD.style.display = (currentUser.category === 'SERVICE' || currentUser.category === 'DM' || currentUser.category === 'ADMIN') ? 'block' : 'none';
+    menuTTD.style.display = (currentUser.category === 'SERVICE' || currentUser.category === 'DM') ? 'block' : 'none';
   }
 
   // =========================================================================
-  // PENGAMAN: Sembunyikan tombol / menu tambah toko jika kategori akun adalah TOKO
+  // TAMBAHAN FIX: Sembunyikan tombol / menu tambah toko jika kategori TOKO
   // =========================================================================
-  const isToko = (currentUser.category === 'TOKO');
-  
-  // Sembunyikan elemen tombol tambah toko di modal akun (jika ada)
-  const btnTambahTokoAkun = document.getElementById('btnTambahTokoAkun') || document.querySelector('.btn-tambah-toko-akun');
-  if (btnTambahTokoAkun) {
-    btnTambahTokoAkun.style.display = isToko ? 'none' : 'block';
+  const menuTambahTokoAkun = document.getElementById('menuTambahTokoAkun'); // Sesuaikan ID elemen di HTML jika ada
+  if (menuTambahTokoAkun) {
+    menuTambahTokoAkun.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
   }
 
-  // Cari elemen lain yang mungkin mengandung teks/tombol tambah toko di dalam popup akun
-  const popupAkunEl = document.getElementById('popupAkun');
-  if (popupAkunEl) {
-    const allButtons = popupAkunEl.querySelectorAll('button, a, div');
-    allButtons.forEach(el => {
-      const text = el.innerText ? el.innerText.toUpperCase() : '';
-      if (text.includes('TAMBAH TOKO') || text.includes('REGISTRASI TOKO')) {
-        el.style.display = isToko ? 'none' : '';
-      }
-    });
-  }
-
-  if (popupAkunEl) {
-    popupAkunEl.classList.add('show');
-    popupAkunEl.style.display = 'flex';
-  }
-  
+  document.getElementById('popupAkun').classList.add('show');
   if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 }
-window.bukaAkun = bukaAkun;
-window.prosesBukaAkun = prosesBukaAkun;
-
 function tutupAkun() {
   document.getElementById('popupAkun').classList.remove('show');
 }
