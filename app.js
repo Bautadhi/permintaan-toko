@@ -4079,57 +4079,74 @@ function prosesUploadExcelLookup(event) {
 }
 
 
-function prosesBukaAkun(forceOpen = false) {
+function bukaAkun() {
   if (!currentUser) return;
 
-  // =========================================================================
-  // 1. PENGAMAN MODE EDIT (Super Ketat)
-  // =========================================================================
-  // Jika sedang mode edit, tahan dulu dan minta konfirmasi user
-  if (modeEdit && !forceOpen) {
+  // PENGAMAN: Munculkan notifikasi jika user sedang dalam Mode Edit
+  if (modeEdit) {
     showConfirm('KELUAR DARI MENU EDIT?', () => {
-      bersihkanForm(); // Bersihkan sisa form yang diedit
+      bersihkanForm();  // Hapus sisa editan
       closeAllPopups();
-      prosesBukaAkun(true); // Lanjutkan buka akun secara paksa (forceOpen = true)
+      prosesBukaAkun(); // Lanjutkan buka akun setelah dikonfirmasi
     });
-    return; // Hentikan eksekusi kode di bawah ini sampai user menekan "YA"
+    return;
   }
 
-  // =========================================================================
-  // 2. PENGISIAN DATA PROFIL
-  // =========================================================================
-  document.getElementById('akunNama').value = currentUser.fullName || '';
-  document.getElementById('akunHP').value = currentUser.phone || '-';
-  document.getElementById('akunArea').value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
-  document.getElementById('akunKategori').value = currentUser.category || '';
-  document.getElementById('akunPassword').value = '';
+  // Jika tidak sedang mengedit, langsung buka seperti biasa
+  prosesBukaAkun();
+}
+
+function prosesBukaAkun() {
+  const elNama = document.getElementById('akunNama');
+  const elHP = document.getElementById('akunHP');
+  const elArea = document.getElementById('akunArea');
+  const elKat = document.getElementById('akunKategori');
+  const elPass = document.getElementById('akunPassword');
+
+  if (elNama) elNama.value = currentUser.fullName || '';
+  if (elHP) elHP.value = currentUser.phone || '-';
+  if (elArea) elArea.value = `${currentUser.area || ''} - ${AREA_MAP[currentUser.area] || currentUser.area || ''}`;
+  if (elKat) elKat.value = currentUser.category || '';
+  if (elPass) elPass.value = '';
 
   const menuTTD = document.getElementById('menuTTD');
   if (menuTTD) {
-    menuTTD.style.display = (currentUser.category === 'SERVICE' || currentUser.category === 'DM') ? 'block' : 'none';
+    menuTTD.style.display = (currentUser.category === 'SERVICE' || currentUser.category === 'DM' || currentUser.category === 'ADMIN') ? 'block' : 'none';
   }
 
   // =========================================================================
-  // 3. SAPU BERSIH: Sembunyikan "Tambah Toko" jika kategori TOKO
+  // PENGAMAN: Sembunyikan tombol / menu tambah toko jika kategori akun adalah TOKO
   // =========================================================================
   const isToko = (currentUser.category === 'TOKO');
-  const popupAkun = document.getElementById('popupAkun');
   
-  if (popupAkun) {
-    const semuaElemen = popupAkun.querySelectorAll('button, div, a');
-    semuaElemen.forEach(el => {
-      const teks = (el.innerText || '').trim().toUpperCase();
-      if (teks.includes('TAMBAH TOKO') && (el.tagName === 'BUTTON' || el.onclick)) {
-        el.style.display = isToko ? 'none' : ''; 
+  // Sembunyikan elemen tombol tambah toko di modal akun (jika ada)
+  const btnTambahTokoAkun = document.getElementById('btnTambahTokoAkun') || document.querySelector('.btn-tambah-toko-akun');
+  if (btnTambahTokoAkun) {
+    btnTambahTokoAkun.style.display = isToko ? 'none' : 'block';
+  }
+
+  // Cari elemen lain yang mungkin mengandung teks/tombol tambah toko di dalam popup akun
+  const popupAkunEl = document.getElementById('popupAkun');
+  if (popupAkunEl) {
+    const allButtons = popupAkunEl.querySelectorAll('button, a, div');
+    allButtons.forEach(el => {
+      const text = el.innerText ? el.innerText.toUpperCase() : '';
+      if (text.includes('TAMBAH TOKO') || text.includes('REGISTRASI TOKO')) {
+        el.style.display = isToko ? 'none' : '';
       }
     });
   }
 
-  // Tampilkan popup
-  document.getElementById('popupAkun').classList.add('show');
+  if (popupAkunEl) {
+    popupAkunEl.classList.add('show');
+    popupAkunEl.style.display = 'flex';
+  }
+  
   if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 }
+window.bukaAkun = bukaAkun;
 window.prosesBukaAkun = prosesBukaAkun;
+
 function tutupAkun() {
   document.getElementById('popupAkun').classList.remove('show');
 }
