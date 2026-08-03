@@ -2780,3 +2780,12 @@ table {
 #helpButton:active {
   transform: none !important;
 }
+/* ======================================================
+   FIX: ANTI KEDIP / MUNCUL KILAT SAAT HALAMAN DI-REFRESH
+   ====================================================== */
+.notif-bell-btn,
+#notifBellBtn,
+.helpButton,
+#helpButton {
+  display: none !important; /* Wajib disembunyikan sejak detik pertama web dimuat */
+}
