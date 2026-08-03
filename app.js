@@ -474,14 +474,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loginForm) {
       loginForm.addEventListener('submit', (event) => {
         event.preventDefault();
-        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+        if (typeof window.in === 'function') window.in();
       });
     }
 
     const loginButton = document.getElementById('btnLogin');
     if (loginButton) {
       loginButton.addEventListener('click', () => {
-        if (typeof window.prosesLogin === 'function') window.prosesLogin();
+        if (typeof window.in === 'function') window.in();
       });
     }
 
@@ -490,7 +490,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       usernameInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
           event.preventDefault();
-          if (typeof window.prosesLogin === 'function') window.prosesLogin();
+          if (typeof window.in === 'function') window.in();
         }
       });
     }
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       passwordInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
           event.preventDefault();
-          if (typeof window.prosesLogin === 'function') window.prosesLogin();
+          if (typeof window.in === 'function') window.in();
         }
       });
     }
@@ -1190,7 +1190,8 @@ async function prosesLogin() {
     return;
   }
 
-  showLoading('MEMPROSES LOGIN...');
+  // Efek loading dihapus dari sini
+  
   try {
     if (u === 'ADMIN') {
       await initSupabaseDB();
@@ -1228,9 +1229,6 @@ async function prosesLogin() {
       
       bukaMainApp();
 
-      // =========================================================================
-      // SOLUSI UTAMA: Paksa aktifkan ikon & notifikasi tepat setelah login manual
-      // =========================================================================
       setTimeout(() => {
         if (typeof aturTampilanLonceng === 'function') {
           aturTampilanLonceng('dashboardPage');
@@ -1246,22 +1244,22 @@ async function prosesLogin() {
     } else {
       showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
     }
-  } finally {
-    hideLoading();
-  }
+  } catch (error) {
+    console.error("Login error:", error);
+  } 
+  // Blok "finally { hideLoading(); }" juga dihapus dari sini
 }
 window.prosesLogin = prosesLogin;
-
 
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
   if (uEl) uEl.value = u;
   if (pEl) pEl.value = p;
-  prosesLogin();
+  in();
 }
 
-async function prosesLogin() {
+async function in() {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
   if (!uEl || !pEl) return;
@@ -1319,7 +1317,7 @@ async function prosesLogin() {
     hideLoading();
   }
 }
-window.prosesLogin = prosesLogin;
+window.in = in;
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
@@ -2258,7 +2256,7 @@ function simpanData() {
 }
 
 function prosesSimpanKeDB(toko, jenis, catatan, items) {
-  showLoading('MENYIMPAN DATA...');
+  
   setTimeout(() => {
     hideLoading();
     const requests = getRequestsFromDB();
