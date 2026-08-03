@@ -1334,21 +1334,14 @@ function bukaMainApp() {
   if (btnUserNav) btnUserNav.style.display = isAdmin ? 'flex' : 'none';
   if (btnMasterDbNav) btnMasterDbNav.style.display = isAdmin ? 'flex' : 'none';
 
-  const btnHelp = document.getElementById('helpButton');
-  if (btnHelp) btnHelp.style.display = 'flex';
-
-  // ================================================================
-  // PERBAIKAN AKSES: Hak akses Chat Bantuan untuk ADMIN dan SERVICE TSM
-  // ================================================================
-  isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
-
-  // FAILSAFE BACA JEJAK: Jika string jejak rusak ('null', 'undefined') atau halamannya tidak ada, 
-  // paksa kembali ke Dashboard agar layar tidak kosong!
-  let savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE');
-  if (!savedPage || savedPage === 'null' || savedPage === 'undefined' || !document.getElementById(savedPage)) {
-    savedPage = 'dashboardPage';
+  // =========================================================================
+  // KUNCI UTAMA: Langsung sembunyikan ikon saat aplikasi dibuka (Cegah kedip)
+  // =========================================================================
+  const savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE') || 'dashboardPage';
+  if (typeof aturTampilanLonceng === 'function') {
+    aturTampilanLonceng(savedPage);
   }
-  
+
   pindahHalaman(savedPage);
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
