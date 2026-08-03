@@ -263,24 +263,22 @@ function loadNotificationList() {
 }
 
 function clickNotificationItem(notifId, noSurat) {
+  // 1. Tandai notifikasi sebagai sudah dibaca
   markNotifAsRead(notifId);
   
-  // Tutup HANYA popup daftar notifikasinya saja, jangan pakai closeAllPopups()
-  const notifListPopup = document.getElementById('popupNotifList');
-  if (notifListPopup) {
-    notifListPopup.style.display = 'none';
-    notifListPopup.classList.remove('show');
+  // 2. Perbarui daftar notifikasi secara langsung agar background-nya berubah jadi dibaca 
+  // (TANPA menutup popup daftar notifikasinya)
+  if (typeof loadNotificationList === 'function') {
+    loadNotificationList();
   }
 
-  // Beri jeda sepersekian detik agar popup notif benar-benar tertutup mulus, 
-  // lalu baru buka popup detail barangnya
+  // 3. Langsung buka popup detail barangnya menumpuk di atasnya
   if (noSurat) {
     setTimeout(() => {
       lihatDetail(noSurat, true);
-    }, 150);
+    }, 100);
   }
 }
-
 function markNotifAsRead(notifId) {
   const notifs = getSystemNotifications();
   const idx = notifs.findIndex(n => n.id === notifId);
