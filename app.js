@@ -4476,15 +4476,19 @@ function showNotif(msg, type = 'info') {
 }
 
 function closePopup() {
-   // Tambahkan baris ini di dalam fungsi closePopup() Anda
-  if (typeof aturTampilanLonceng === 'function' && typeof getCurrentActivePageId === 'function') {
-    aturTampilanLonceng(getCurrentActivePageId());
-  }
   const notifOverlay = document.getElementById('popupNotif');
   if (notifOverlay) notifOverlay.style.display = 'none';
+
+  // Bersihkan form jika sedang di halaman input
   const inputPage = document.getElementById('inputPage');
   if (inputPage && inputPage.classList.contains('active')) {
     bersihkanForm();
+  }
+
+  // Paksa periksa dan tampilkan kembali ikon lonceng/bantuan jika sedang di Dashboard
+  const activePage = typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage';
+  if (typeof aturTampilanLonceng === 'function') {
+    aturTampilanLonceng(activePage);
   }
 }
 
