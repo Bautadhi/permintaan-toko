@@ -2072,7 +2072,6 @@ async function previewFoto(event) {
 
   if (currentPhotos.length + files.length > 5) {
     showNotif('MAKSIMAL FOTO DIBATASI HINGGA 5 FOTO!', 'warning');
-    return;
   }
 
   const previewText = document.getElementById('previewText');
