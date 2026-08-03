@@ -1137,7 +1137,7 @@ input:focus, select:focus, textarea:focus {
   width: 100% !important;
   min-width: 680px !important;
   align-items: center;
-  padding: 14px 16px;
+  padding: 5px 5px;
   font-size: 13px;
   white-space: nowrap !important;
   word-break: keep-all !important;
