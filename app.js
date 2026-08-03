@@ -1622,12 +1622,14 @@ function bukaDetailDariDashboard(noSurat) {
 }
 
 // DYNAMIC FORM MULTI-ROW ENGINE WITH CAMERA SCANNER TOOL IN EVERY SERIAL COLUMN
+// DYNAMIC FORM MULTI-ROW ENGINE
 function loadForm() {
   document.getElementById('tanggal').value = getFormattedDateDDMMYYYY();
 
   const tokoSelect = document.getElementById('toko');
   if (tokoSelect) tokoSelect.innerHTML = '';
 
+  // Pengisian Dropdown Toko
   if (currentUser.category === 'TOKO') {
     if (tokoSelect) tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
   } else {
@@ -1644,14 +1646,20 @@ function loadForm() {
   }
 
   // =========================================================================
-  // TEMBAK LANGSUNG: Sembunyikan ID containerTambahToko jika kategori TOKO
+  // KUNCI FINAL: Sembunyikan container + TAMBAH TOKO khusus kategori TOKO
   // =========================================================================
   const containerTambahToko = document.getElementById('containerTambahToko');
   if (containerTambahToko) {
-    // Jika TOKO -> hilangkan (none). Jika bukan TOKO -> tampilkan (block)
+    // Jika TOKO -> hilangkan (none). Jika BUKAN TOKO -> tampilkan (block)
     containerTambahToko.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
   }
 
+  // Pastikan fitur foto tetap dirender sesuai pengaturan pusat
+  if (typeof updatePhotoSectionVisibility === 'function') {
+    updatePhotoSectionVisibility();
+  }
+
+  // Bersihkan inputan jika bukan sedang mengedit data
   if (!modeEdit) {
     bersihkanForm();
   }
