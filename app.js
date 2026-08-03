@@ -1626,28 +1626,30 @@ function loadForm() {
   document.getElementById('tanggal').value = getFormattedDateDDMMYYYY();
 
   const tokoSelect = document.getElementById('toko');
-  tokoSelect.innerHTML = '';
+  if (tokoSelect) tokoSelect.innerHTML = '';
 
   if (currentUser.category === 'TOKO') {
-    tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
+    if (tokoSelect) tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
   } else {
     const users = getUsersFromDB();
+    // Filter toko khusus sesuai area user yang sedang login
     const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
     if (stores.length > 0) {
       stores.forEach(s => {
-        tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
+        if (tokoSelect) tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
       });
     } else {
-      tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
+      if (tokoSelect) tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
     }
   }
 
   // =========================================================================
-  // KUNCI: Sembunyikan tombol Tambah Toko jika yang login adalah TOKO
+  // TEMBAK LANGSUNG: Sembunyikan ID containerTambahToko jika kategori TOKO
   // =========================================================================
   const containerTambahToko = document.getElementById('containerTambahToko');
   if (containerTambahToko) {
-    containerTambahToko.style.display = (currentUser.category === 'TOKO') ? 'none' : 'flex';
+    // Jika TOKO -> hilangkan (none). Jika bukan TOKO -> tampilkan (block)
+    containerTambahToko.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
   }
 
   if (!modeEdit) {
