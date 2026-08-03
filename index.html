@@ -849,13 +849,24 @@
     </div>
   </div>
 
-  <!-- 10. LIGHTBOX IMAGE VIEWER -->
-  <div id="imageViewer" onclick="this.style.display='none'">
-    <div class="imageViewerBox" onclick="event.stopPropagation()">
-      <button type="button" class="btnCloseImageViewer" onclick="document.getElementById('imageViewer').style.display='none'">&times;</button>
-      <img id="viewerImage" src="" alt="Zoom Foto">
-    </div>
+ <!-- LIGHTBOX IMAGE VIEWER DENGAN KONTROL ZOOM -->
+<div id="imageViewer" class="image-viewer-modal" style="display: none;">
+  <span class="closeViewer" onclick="tutupImageViewer()">&times;</span>
+  <img id="viewerImage" src="" alt="Bukti Foto">
+  
+  <!-- TOMBOL + , - , DAN RESET ZOOM -->
+  <div class="zoomControls">
+    <button onclick="zoomImage(0.25)" title="Perbesar (+)">
+      <span class="material-symbols-rounded">zoom_in</span>
+    </button>
+    <button onclick="resetZoom()" title="Reset Ukuran">
+      <span class="material-symbols-rounded">restart_alt</span>
+    </button>
+    <button onclick="zoomImage(-0.25)" title="Perkecil (-)">
+      <span class="material-symbols-rounded">zoom_out</span>
+    </button>
   </div>
+</div>
 
   <!-- 11. GLOBAL LOADING OVERLAY -->
   <div id="loadingOverlay">
