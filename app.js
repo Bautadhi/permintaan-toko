@@ -4702,4 +4702,20 @@ function initAllDraggableButtons() {
     initDraggableElement(document.querySelector('.theme-toggle-btn'), 'POS_THEME_BUTTON_V5');
   }, 100);
 }
-
+/* ======================================================
+   PENGAMAN ANTI-KEDIP: SEMBUNYIKAN IKON SAAT SCRIPT DIMUAT
+   ====================================================== */
+(function() {
+  const currentPath = window.location.hash || '';
+  // Jika tidak di dashboard, pastikan di-hidden secara instan
+  const styleTag = document.createElement('style');
+  styleTag.innerHTML = `
+    body:not(:has(#dashboardPage.active)) #notifBellBtn,
+    body:not(:has(#dashboardPage.active)) .notif-bell-btn,
+    body:not(:has(#dashboardPage.active)) #helpButton,
+    body:not(:has(#dashboardPage.active)) .helpButton {
+      display: none !important;
+    }
+  `;
+  document.head.appendChild(styleTag);
+})();
