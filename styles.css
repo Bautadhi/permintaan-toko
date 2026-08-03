@@ -2768,11 +2768,13 @@ table {
   box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
 }
 
-/* Letak awal berdampingan (Lonceng di sebelah kiri Bantuan) */
-.notif-bell-btn, #notifBellBtn {
-  right: 90px !important; /* Posisi agak ke tengah dikit */
+/* ======================================================
+   JARAK AMAN ANTARA IKON NOTIFIKASI DAN BANTUAN
+   ====================================================== */
+.helpButton, #helpButton {
+  right: 16px !important; /* Posisi ikon bantuan menempel di kanan */
 }
 
-.helpButton, #helpButton {
-  right: 16px !important; /* Posisi di pojok kanan */
+.notif-bell-btn, #notifBellBtn {
+  right: 80px !important; /* Diberi jarak 80px dari kanan agar tidak menumpuk dengan ikon bantuan */
 }
