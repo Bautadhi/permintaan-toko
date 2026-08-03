@@ -1334,14 +1334,23 @@ function bukaMainApp() {
   if (btnUserNav) btnUserNav.style.display = isAdmin ? 'flex' : 'none';
   if (btnMasterDbNav) btnMasterDbNav.style.display = isAdmin ? 'flex' : 'none';
 
+  const btnHelp = document.getElementById('helpButton');
+  if (btnHelp) btnHelp.style.display = 'flex';
+
   // =========================================================================
-  // KUNCI UTAMA: Langsung sembunyikan ikon saat aplikasi dibuka (Cegah kedip)
+  // PASTIKAN TOMBOL LONCENG LANGSUNG DIPAKSA MUNCUL SAAT LOGIN SELESAI
   // =========================================================================
-  const savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE') || 'dashboardPage';
   if (typeof aturTampilanLonceng === 'function') {
-    aturTampilanLonceng(savedPage);
+    aturTampilanLonceng('dashboardPage');
   }
 
+  isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
+
+  let savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE');
+  if (!savedPage || savedPage === 'null' || savedPage === 'undefined' || !document.getElementById(savedPage)) {
+    savedPage = 'dashboardPage';
+  }
+  
   pindahHalaman(savedPage);
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
