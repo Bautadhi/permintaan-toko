@@ -2759,9 +2759,24 @@ table {
 #notifBellBtn {
   position: fixed !important;
   top: 20px !important;
-  right: 10px !important;
+  right: 80px !important;
   z-index: 9999 !important;
   margin: 0 !important;
   display: none !important; /* TAMBAHAN: Sembunyikan secara default saat refresh */
 }
 
+/* ======================================================
+   KILL SWITCH: MATIKAN PAKSA SEMUA EFEK GERAK DI TOMBOL
+   ====================================================== */
+.notif-bell-btn:hover,
+.notif-bell-btn:active,
+.notif-bell-btn:focus,
+#notifBellBtn:hover,
+#notifBellBtn:active,
+.helpButton:hover,
+.helpButton:active,
+.helpButton:focus,
+#helpButton:hover,
+#helpButton:active {
+  transform: none !important;
+}
