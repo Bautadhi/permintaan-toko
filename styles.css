@@ -2750,3 +2750,29 @@ table {
 .helpButton {
   display: none !important;
 }
+/* ======================================================
+   POSISI SEJAJAR: LONCENG & BANTUAN
+   ====================================================== */
+.notif-bell-btn,
+.helpButton {
+  position: fixed !important;
+  top: 16px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 12px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 99999 !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+}
+
+/* Letak awal berdampingan (Lonceng di sebelah kiri Bantuan) */
+.notif-bell-btn, #notifBellBtn {
+  right: 72px !important; /* Posisi agak ke tengah dikit */
+}
+
+.helpButton, #helpButton {
+  right: 16px !important; /* Posisi di pojok kanan */
+}
