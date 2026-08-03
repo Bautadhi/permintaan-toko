@@ -3526,10 +3526,22 @@ function tutupBantuan() {
     setTimeout(() => popup.style.display = 'none', 250); 
   }
   
-  // Memaksa tombol ikon bantuan TETAP MUNCUL setelah kotak ditutup
+  // 1. Pastikan tombol ikon bantuan TETAP MUNCUL setelah kotak ditutup
   const helpBtn = document.getElementById('helpButton');
-  if (helpBtn && getCurrentActivePageId() === 'dashboardPage') {
+  if (helpBtn && typeof getCurrentActivePageId === 'function' && getCurrentActivePageId() === 'dashboardPage') {
     helpBtn.style.display = 'flex'; 
+  }
+
+  // 2. Reset angka notifikasi chat secara visual agar langsung hilang saat ditutup
+  const badge = document.getElementById('unreadBadge');
+  if (badge) {
+    badge.innerText = '0';
+    badge.style.display = 'none';
+  }
+
+  // 3. Panggil fungsi bawaan Anda untuk sinkronisasi dengan database
+  if (typeof cekUnreadNotif === 'function') {
+    cekUnreadNotif();
   }
 }
 function loadDaftarChatAdmin() {
