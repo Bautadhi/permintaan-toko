@@ -23,11 +23,10 @@
 <body class="dark-mode">
 
   <!-- FLOATING NOTIFICATION BELL BUTTON (LEFT OF THEME TOGGLE BUTTON) -->
-<!-- FLOATING NOTIFICATION BELL BUTTON -->
-  <button id="notifBellBtn" type="button" class="notif-bell-btn" onclick="bukaNotificationModal()" title="NOTIFIKASI SISTEM REAL-TIME">
-    <span class="material-symbols-rounded">notifications</span>
-    <span id="notifBellBadge" class="notif-bell-badge" style="display:none;">0</span>
-  </button>
+<button id="notifBellBtn" type="button" class="notif-bell-btn" onclick="bukaNotificationModal()" title="NOTIFIKASI SISTEM REAL-TIME" style="display: none !important;">
+  <span class="material-symbols-rounded">notifications</span>
+  <span id="notifBellBadge" class="notif-bell-badge" style="display:none;">0</span>
+</button>
 
   <!-- POPUP DAFTAR NOTIFIKASI SISTEM (STANDAR SAMA DENGAN POPUP NOTIFCARD) -->
   <div id="popupNotifList" class="popupOverlay">
@@ -56,11 +55,10 @@
     </div>
   </div>
 
- <!-- FLOATING HELP CHAT BUTTON & UNREAD BADGE -->
-  <button id="helpButton" class="helpButton" onclick="bukaBantuan()" title="PUSAT BANTUAN & CHAT" style="display: none;">
-    <span class="material-symbols-rounded">support_agent</span>
-    <span id="unreadBadge" class="unreadBadge" style="display:none;">0</span>
-  </button>
+ <button id="helpButton" class="helpButton" onclick="bukaBantuan()" title="PUSAT BANTUAN & CHAT" style="display: none !important;">
+  <span class="material-symbols-rounded">support_agent</span>
+  <span id="unreadBadge" class="unreadBadge" style="display:none;">0</span>
+</button>
 
   <!-- CHAT WIDGET POPUP - SHORTER 380PX HEIGHT -->
   <div id="popupBantuan" class="popupBantuan">
