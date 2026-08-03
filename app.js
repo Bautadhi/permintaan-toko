@@ -1724,6 +1724,7 @@ function loadForm() {
     if (tokoSelect) tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
   } else {
     const users = getUsersFromDB();
+    // Filter toko khusus sesuai area user yang sedang login
     const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
     if (stores.length > 0) {
       stores.forEach(s => {
@@ -1735,29 +1736,12 @@ function loadForm() {
   }
 
   // =========================================================================
-  // JURUS PAMUNGKAS: Cari semua tombol bukaModalTambahToko() & Eksekusi Mati
+  // TEMBAK LANGSUNG: Sembunyikan ID containerTambahToko jika kategori TOKO
   // =========================================================================
-  const isToko = (currentUser.category === 'TOKO');
-  
-  // 1. Sembunyikan Container ID (Jika ada)
   const containerTambahToko = document.getElementById('containerTambahToko');
   if (containerTambahToko) {
-    containerTambahToko.style.setProperty('display', isToko ? 'none' : 'block', 'important');
-  }
-
-  // 2. Sapu Bersih semua tombol yang punya aksi klik bukaModalTambahToko
-  const tombolTambahList = document.querySelectorAll('[onclick*="bukaModalTambahToko"]');
-  tombolTambahList.forEach(tombol => {
-    if (isToko) {
-      tombol.style.setProperty('display', 'none', 'important');
-    } else {
-      tombol.style.setProperty('display', 'flex', 'important');
-    }
-  });
-
-  // Fitur Foto Tetap Normal
-  if (typeof updatePhotoSectionVisibility === 'function') {
-    updatePhotoSectionVisibility();
+    // Jika TOKO -> hilangkan (none). Jika bukan TOKO -> tampilkan (block)
+    containerTambahToko.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
   }
 
   if (!modeEdit) {
