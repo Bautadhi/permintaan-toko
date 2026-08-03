@@ -1527,6 +1527,7 @@ function pindahHalaman(pageId, pushHistory = true) {
   }
 }
 /// DATA ACCESS BY ROLE & AREA (ADMIN & DM HAVE UNRESTRICTED ACCESS TO ALL AREAS)
+/// DATA ACCESS BY ROLE & AREA (ADMIN & DM HAVE UNRESTRICTED ACCESS TO ALL AREAS)
 function getAccessibleRequests() {
   const requests = getRequestsFromDB();
   if (!currentUser) return [];
@@ -1540,14 +1541,20 @@ function getAccessibleRequests() {
     return requests;
   }
 
+  // =========================================================================
+  // FIX KEBOCORAN TOKO: Toko HANYA boleh melihat datanya sendiri (Berdasarkan ID atau Nama)
+  // Tidak boleh melihat berdasarkan Area (nanti bisa lihat toko lain di kota yang sama)
+  // =========================================================================
   if (currentUser.category === 'TOKO') {
-    return requests.filter(r => r.userId === currentUser.id || r.toko.toUpperCase() === currentUser.fullName.toUpperCase() || r.area === currentUser.area);
+    return requests.filter(r => 
+      r.userId === currentUser.id || 
+      r.toko.toUpperCase() === currentUser.fullName.toUpperCase()
+    );
   }
 
   // All SERVICE users (including TSM) and SALES are scoped strictly to their own area
   return requests.filter(r => r.area === currentUser.area);
 }
-
 // DASHBOARD: FILTER LIST BY METRIC CARDS (DEFAULT: PENDING)
 function filterDashboardRecent(status) {
   dashboardFilterStatus = status;
