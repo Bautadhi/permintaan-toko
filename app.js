@@ -4831,7 +4831,7 @@ function startAutoDataSync() {
 function hapusSemuaDataLokal() {
   showConfirm('YAKIN INGIN MENGHAPUS SEMUA DATA LOKAL & CACHE? (Aplikasi akan keluar dan dimuat ulang)', () => {
     
-    showLoading('MENGHAPUS SEMUA DATA LOKAL...');
+    showLoading('');
     
     setTimeout(async () => {
       try {
