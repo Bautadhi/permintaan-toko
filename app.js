@@ -3666,6 +3666,17 @@ function loadChatUser() {
   if (!body) return;
   body.innerHTML = '';
 
+  // Reset / Hapus Notif Badge User karena chat sudah dibuka/dibaca
+  const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
+  const roomName = 'ROOM_' + currentUser.username;
+  const rIdx = rooms.findIndex(x => x.room === roomName);
+  if (rIdx !== -1 && rooms[rIdx].unreadUser > 0) {
+    rooms[rIdx].unreadUser = 0;
+    appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
+    pushCentralCloudDB(); 
+    cekUnreadNotif(); // Sembunyikan badge
+  }
+
   if (userChats.length === 0) {
     body.innerHTML = `<div class="chatAdmin"><div class="chatText">HALO 👋<br>ADA YANG BISA KAMI BANTU?</div></div>`;
     return;
@@ -3682,9 +3693,7 @@ function loadChatUser() {
     body.appendChild(div);
   });
 
-  body.scrollTop = body.scrollHeight;
-}
-
+  body.scrollTop
 function kirimPesanChat() {
   const txt = document.getElementById('chatPesan');
   if (!txt) return;
@@ -3702,6 +3711,14 @@ function kirimPesanChat() {
       pesan,
       tanggal: getFormattedDateDDMMYYYY() + ' ' + new Date().toLocaleTimeString('id-ID')
     });
+    
+    // Tambahkan angka notif untuk User yang dituju!
+    const rIdx = rooms.findIndex(x => x.room === currentRoom);
+    if (rIdx !== -1) {
+      rooms[rIdx].last = pesan;
+      rooms[rIdx].unreadUser = (rooms[rIdx].unreadUser || 0) + 1; // <--- FIX NOTIF USER
+    }
+
     appStorage.setItem(CHAT_DB_KEY, JSON.stringify(allChats));
     appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
     pushCentralCloudDB();
@@ -3724,7 +3741,7 @@ function kirimPesanChat() {
       rooms[rIdx].last = pesan;
       rooms[rIdx].unreadAdmin = (rooms[rIdx].unreadAdmin || 0) + 1;
     } else {
-      rooms.push({ room, user: currentUser.username, last: pesan, unreadAdmin: 1 });
+      rooms.push({ room, user: currentUser.username, last: pesan, unreadAdmin: 1, unreadUser: 0 });
     }
     appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
     pushCentralCloudDB();
@@ -3748,8 +3765,10 @@ function cekUnreadNotif() {
   const badge = document.getElementById('unreadBadge');
   if (!badge) return;
 
+  const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
+
   if (isAdminChat) {
-    const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
+    // Hitung jumlah pesan belum dibaca untuk ADMIN
     const total = rooms.reduce((acc, curr) => acc + (curr.unreadAdmin || 0), 0);
     if (total > 0) {
       badge.textContent = total > 99 ? '99+' : total;
@@ -3758,10 +3777,16 @@ function cekUnreadNotif() {
       badge.style.display = 'none';
     }
   } else {
-    badge.style.display = 'none';
+    // Hitung jumlah pesan belum dibaca untuk USER (TOKO)
+    const myRoom = rooms.find(r => r.room === 'ROOM_' + currentUser.username);
+    if (myRoom && myRoom.unreadUser > 0) {
+      badge.textContent = myRoom.unreadUser > 99 ? '99+' : myRoom.unreadUser;
+      badge.style.display = 'flex';
+    } else {
+      badge.style.display = 'none';
+    }
   }
 }
-
 // USER MANAGEMENT ENGINE
 function loadUsersManagement() {
   loadAdminScriptUrlInput();
