@@ -1796,37 +1796,44 @@ function getBadgeStatus(r) {
 
 // DYNAMIC FORM MULTI-ROW ENGINE WITH CAMERA SCANNER TOOL IN EVERY SERIAL COLUMN
 function loadForm() {
-  document.getElementById('tanggal').value = getFormattedDateDDMMYYYY();
+  const tglEl = document.getElementById('tanggal');
+  if (tglEl && !tglEl.value) {
+    tglEl.value = getFormattedDateDDMMYYYY();
+  }
 
   const tokoSelect = document.getElementById('toko');
-  if (tokoSelect) tokoSelect.innerHTML = '';
-
-  if (currentUser.category === 'TOKO') {
-    if (tokoSelect) tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
-  } else {
-    const users = getUsersFromDB();
-    // Filter toko khusus sesuai area user yang sedang login
-    const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
-    if (stores.length > 0) {
-      stores.forEach(s => {
-        if (tokoSelect) tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
-      });
+  // Cegah kedap-kedip: Hanya render ulang daftar toko jika masih kosong
+  if (tokoSelect && tokoSelect.options.length === 0) {
+    if (currentUser.category === 'TOKO') {
+      tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
     } else {
-      if (tokoSelect) tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
+      const users = getUsersFromDB();
+      const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
+      if (stores.length > 0) {
+        stores.forEach(s => {
+          tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
+        });
+      } else {
+        tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
+      }
     }
   }
 
-  // =========================================================================
-  // TEMBAK LANGSUNG: Sembunyikan ID containerTambahToko jika kategori TOKO
-  // =========================================================================
   const containerTambahToko = document.getElementById('containerTambahToko');
   if (containerTambahToko) {
-    // Jika TOKO -> hilangkan (none). Jika bukan TOKO -> tampilkan (block)
     containerTambahToko.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
   }
 
-  if (!modeEdit) {
-    bersihkanForm();
+  if (typeof updatePhotoSectionVisibility === 'function') {
+    updatePhotoSectionVisibility();
+  }
+
+  // KUNCI PERBAIKAN: 
+  // Jangan panggil bersihkanForm() di sini!
+  // Cukup tambahkan baris input baru JIKA form benar-benar kosong dan bukan mode edit
+  const detailContainer = document.getElementById('detailContainer');
+  if (detailContainer && detailContainer.children.length === 0 && !modeEdit) {
+    tambahRow();
   }
 }
 function gantiJenis() {
