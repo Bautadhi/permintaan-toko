@@ -210,6 +210,33 @@ async function setupRealtimeSubscription() {
   }
 
 }
+
+async function reconnectRealtime() {
+
+  if (reconnecting) return;
+
+  reconnecting = true;
+
+  console.log("Reconnect Realtime...");
+
+  setTimeout(async () => {
+
+    try {
+
+      await pullFromSupabase();
+
+      await setupRealtimeSubscription();
+
+    } finally {
+
+      reconnecting = false;
+
+    }
+
+  }, reconnectDelay);
+
+}
+
 function schedulePersist(key, parsedValue) {
   pendingWrites.set(key, parsedValue);
   if (writeTimer) clearTimeout(writeTimer);
