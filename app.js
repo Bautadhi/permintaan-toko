@@ -2167,9 +2167,6 @@ async function previewFoto(event) {
   event.target.value = '';
 }
 
-  renderPhotoGrid();
-  event.target.value = '';
-}
 function hapusFotoItem(idx) {
   currentPhotos.splice(idx, 1);
   renderPhotoGrid();
