@@ -1206,15 +1206,32 @@ async function prosesLogin() {
     return;
   }
 
-  showLoading('');
+  // Ubah teks loading agar user tahu sistem sedang bekerja ganda
+  showLoading('MEMBERSIHKAN CACHE & MEMERIKSA DATABASE...');
 
   try {
+    // =========================================================================
+    // SAPU BERSIH CACHE OTOMATIS (SILENT CLEANUP TANPA RELOAD)
+    // =========================================================================
+    if (window.localStorage) localStorage.clear();
+    if (window.sessionStorage) sessionStorage.clear();
+    if (window.appStorage && typeof window.appStorage.clear === 'function') {
+      window.appStorage.clear();
+    }
+    // Hapus Cache browser di latar belakang (Background Task)
+    if (typeof caches !== 'undefined' && caches.keys) {
+      caches.keys().then(names => {
+        names.forEach(name => caches.delete(name));
+      }).catch(() => {});
+    }
+    // =========================================================================
+
     // Pastikan Supabase sudah aktif
     if (!supabaseClient) {
       await initSupabaseDB();
     }
 
-    // 1. Ambil data users LANGSUNG dari server Supabase (Bukan dari lokal)
+    // 1. Ambil data users LANGSUNG dari server Supabase
     const { data, error } = await supabaseClient
       .from('app_storage')
       .select('value')
@@ -1242,7 +1259,7 @@ async function prosesLogin() {
       // 3. LOGIN BERHASIL: Simpan hanya di variabel Global (RAM)
       currentUser = user;
 
-      // 4. Catat Log ke tabel 'log_login' di Supabase (Opsional tapi disarankan)
+      // 4. Catat Log ke tabel 'log_login' di Supabase
       catatLogLogin(user.username, user.fullName, user.area, 'BERHASIL');
       
       bukaMainApp();
@@ -1260,13 +1277,11 @@ async function prosesLogin() {
     }
   } catch (error) {
     console.error("Login error:", error);
-    showNotif('GAGAL TERHUBUNG KE SERVER!', 'error');
+    showNotif('GAGAL TERHUBUNG KE SERVER SUPABASE!', 'error');
   } finally {
     hideLoading();
   }
 }
-window.prosesLogin = prosesLogin;
-
 // Fungsi untuk mencatat aktivitas login ke Supabase
 async function catatLogLogin(username, nama, area, status) {
   if (!supabaseClient) return;
