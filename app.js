@@ -3693,7 +3693,8 @@ function loadChatUser() {
     body.appendChild(div);
   });
 
-  body.scrollTop
+  body.scrollTop = body.scrollHeight;
+}
 function kirimPesanChat() {
   const txt = document.getElementById('chatPesan');
   if (!txt) return;
