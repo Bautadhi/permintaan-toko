@@ -2473,7 +2473,7 @@ function lihatFotoByNoSurat(noSurat) {
 // APPROVAL ACTIONS WITH WA AUTOMATION TRIGGERS
 function approveService(noSurat) {
   showConfirm(`APPROVE PERMINTAAN?`, () => {
-    showLoading('MEMPROSES...');
+    showLoading('');
     setTimeout(() => {
       hideLoading();
       const requests = getRequestsFromDB();
@@ -2526,7 +2526,7 @@ function approveDM(noSurat) {
   }
 
   showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, () => {
-    showLoading('MEMPROSES...');
+    showLoading('');
     setTimeout(() => {
       hideLoading();
       const requests = getRequestsFromDB();
@@ -2576,7 +2576,7 @@ function approveDM(noSurat) {
 
 function doneService(noSurat) {
   showConfirm(`UBAH STATUS PERMINTAAN #${noSurat} MENJADI DONE?`, () => {
-    showLoading('MEMPROSES...');
+    showLoading('');
     setTimeout(() => {
       hideLoading();
       const requests = getRequestsFromDB();
@@ -2633,7 +2633,7 @@ function kirimReject() {
   }
 
   closeReject();
-  showLoading('MEMPROSES PENOLAKAN...');
+  showLoading('');
   setTimeout(() => {
     hideLoading();
     const requests = getRequestsFromDB();
@@ -4572,7 +4572,7 @@ function closePopup() {
 
 function showLoading(text) {
   const textEl = document.getElementById('loadingText');
-  if (textEl) textEl.textContent = text || 'MEMPROSES...';
+  if (textEl) textEl.textContent = text || '';
   document.getElementById('loadingOverlay').style.display = 'flex';
 }
 
