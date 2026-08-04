@@ -701,10 +701,10 @@ let cloudSyncInterval = null;
 function onSupabaseDataChange(keyChanged) {
   if (!currentUser) return;
 
-  // 1. Perbarui halaman utama yang sedang aktif
   const activePage = document.querySelector('.page.active');
   const pageId = activePage ? activePage.id : '';
 
+  // HANYA REFRESH TABEL/DASHBOARD. JANGAN REFRESH INPUT PAGE!
   if (pageId === 'dashboardPage' && typeof loadDashboard === 'function') {
     loadDashboard();
   } else if (pageId === 'riwayatPage' && typeof loadRiwayat === 'function') {
@@ -713,16 +713,11 @@ function onSupabaseDataChange(keyChanged) {
     loadMasterDbTable();
   } else if (pageId === 'userManagementPage' && typeof loadUsersManagement === 'function') {
     loadUsersManagement();
-  } else if (pageId === 'inputPage') {
-    // Gunakan loadForm yang sudah ada di aplikasi Anda sebagai pengganti
-    if (typeof loadForm === 'function') loadForm();
   }
 
-  // 2. SELALU UPDATE NOTIFIKASI LONCENG & BADGE CHAT DI LATAR BELAKANG
   if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
 
-  // 3. UPDATE CHAT REAL-TIME JIKA POP-UP TERBUKA
   const popupBantuan = document.getElementById('popupBantuan');
   if (popupBantuan && (popupBantuan.classList.contains('show') || popupBantuan.style.display === 'block')) {
     if (typeof isAdminChat !== 'undefined' && isAdminChat) {
@@ -738,7 +733,6 @@ function onSupabaseDataChange(keyChanged) {
     }
   }
 
-  // 4. UPDATE NOTIFIKASI LIST JIKA TERBUKA
   const notifListPopup = document.getElementById('popupNotifList');
   if (notifListPopup && notifListPopup.classList.contains('show')) {
     if (typeof loadNotificationList === 'function') loadNotificationList();
