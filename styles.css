@@ -2778,3 +2778,59 @@ table {
 .notif-bell-btn, #notifBellBtn {
   right: 80px !important; /* Diberi jarak 80px dari kanan agar tidak menumpuk dengan ikon bantuan */
 }
+/* =========================================================================
+   KUNCI LAYAR UTAMA (MENCEGAH SCROLL BROWSER & EFEK MANTUL DI HP)
+   ========================================================================= */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100dvh; /* Menggunakan dvh (Dynamic Viewport Height) agar pas di HP */
+  overflow: hidden; /* Matikan scroll utama browser secara mutlak */
+  overscroll-behavior-y: none; /* Matikan efek mantul / tarik ke bawah (pull-to-refresh) Chrome */
+  background-color: var(--bg-body); /* Sesuaikan variabel warna Anda */
+  touch-action: pan-x pan-y; /* Mencegah zoom layar yang tidak disengaja */
+}
+
+/* =========================================================================
+   PENGATURAN HALAMAN (SCROLL HANYA BERLAKU DI DALAM KONTEN INI)
+   ========================================================================= */
+.page {
+  display: none;
+  position: absolute;
+  top: 60px; /* Beri jarak dari atas sesuai tinggi Header Anda */
+  bottom: 60px; /* Beri jarak dari bawah agar tidak tertutup Bottom Menu */
+  left: 0;
+  width: 100%;
+  overflow-y: auto; /* Aktifkan scroll khusus HANYA di dalam halaman ini */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Efek scroll mulus (momentum) di iPhone/iOS */
+}
+
+.page.active {
+  display: block; /* Hanya tampilkan halaman yang aktif */
+}
+
+/* =========================================================================
+   HEADER TERKUNCI DI ATAS
+   ========================================================================= */
+.header-app { /* Sesuaikan dengan class/id header Anda */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 60px; /* Tinggi header */
+  z-index: 999;
+}
+
+/* =========================================================================
+   BOTTOM MENU TERKUNCI DI BAWAH
+   ========================================================================= */
+#bottomMenu {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 60px; /* Tinggi menu bawah */
+  z-index: 999;
+}
