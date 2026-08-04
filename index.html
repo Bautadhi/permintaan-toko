@@ -860,13 +860,29 @@
     </div>
   </div>
 
- <!-- LIGHTBOX IMAGE VIEWER DENGAN KONTROL ZOOM -->
+<!-- LIGHTBOX IMAGE VIEWER DENGAN KONTROL SLIDER & ZOOM -->
 <div id="imageViewer" class="image-viewer-modal" style="display: none;">
   <span class="closeViewer" onclick="tutupImageViewer()">&times;</span>
+  
+  <!-- Indikator Angka (Contoh: 1 / 5) -->
+  <div id="viewerCounter" style="position: absolute; top: 20px; left: 20px; color: #fff; font-size: 14px; font-weight: 800; background: rgba(0,0,0,0.6); padding: 6px 14px; border-radius: 20px; z-index: 1002;">
+    1 / 1
+  </div>
+
+  <!-- Tombol Kiri (<) -->
+  <button id="navViewerLeft" onclick="gantiFotoViewer(-1)" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1002; transition: 0.2s;">
+    <span class="material-symbols-rounded" style="font-size: 32px;">chevron_left</span>
+  </button>
+
   <img id="viewerImage" src="" alt="Bukti Foto">
+
+  <!-- Tombol Kanan (>) -->
+  <button id="navViewerRight" onclick="gantiFotoViewer(1)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1002; transition: 0.2s;">
+    <span class="material-symbols-rounded" style="font-size: 32px;">chevron_right</span>
+  </button>
   
   <!-- TOMBOL + , - , DAN RESET ZOOM -->
-  <div class="zoomControls">
+  <div class="zoomControls" style="z-index: 1002;">
     <button onclick="zoomImage(0.25)" title="Perbesar (+)">
       <span class="material-symbols-rounded">zoom_in</span>
     </button>
@@ -879,6 +895,7 @@
   </div>
 </div>
 
+  
   <!-- 11. GLOBAL LOADING OVERLAY -->
   <div id="loadingOverlay">
     <div style="text-align: center;">
