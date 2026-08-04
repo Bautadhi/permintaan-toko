@@ -1184,11 +1184,9 @@ function updateThemeIcon() {
 // AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
 // AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
 function autoLogin() {
-  // Cek localStorage (Jika dicentang 'Ingat Saya') atau sessionStorage (Jika tidak dicentang)
-  const sess = localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY);
-  
-  if (sess) {
-    currentUser = JSON.parse(sess);
+  // Hanya membaca dari memori RAM yang sedang berjalan.
+  // Jika browser di-refresh, currentUser otomatis hilang dan kembali ke halaman login (Lebih Aman).
+  if (typeof currentUser !== 'undefined' && currentUser !== null) {
     bukaMainApp();
   } else {
     pindahHalaman('loginPage');
@@ -1208,67 +1206,83 @@ async function prosesLogin() {
     return;
   }
 
-  // Efek loading dihapus dari sini
-  
+  showLoading('MEMERIKSA DATABASE SUPABASE...');
+
   try {
-    if (u === 'ADMIN') {
+    // Pastikan Supabase sudah aktif
+    if (!supabaseClient) {
       await initSupabaseDB();
     }
 
-    let users = getUsersFromDB();
+    // 1. Ambil data users LANGSUNG dari server Supabase (Bukan dari lokal)
+    const { data, error } = await supabaseClient
+      .from('app_storage')
+      .select('value')
+      .eq('key', USERS_DB_KEY)
+      .single();
+
+    let users = [];
+    if (data && data.value) {
+      users = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
+    }
+
     if (!Array.isArray(users) || !users.length) {
       users = [...SEED_USERS];
     }
     
+    // 2. Verifikasi Username & Password
     let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
 
-    if (!user) {
-      user = SEED_USERS.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
-      if (user) {
-        users.push(user);
-        saveUsersToDB(users);
-      }
-    }
-
+    // Bypass khusus Admin Master
     if (!user && u === 'ADMIN' && p === '1') {
       user = SEED_USERS[0];
     }
 
     if (user) {
+      // 3. LOGIN BERHASIL: Simpan hanya di variabel Global (RAM)
       currentUser = user;
-      const rememberCheckbox = document.getElementById('rememberMe');
-      if (rememberCheckbox && rememberCheckbox.checked) {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      } else {
-        sessionStorage.setItem(SESSION_KEY, JSON.stringify(user));
-      }
-      
-      sessionStorage.removeItem('LAST_ACTIVE_PAGE');
+
+      // 4. Catat Log ke tabel 'log_login' di Supabase (Opsional tapi disarankan)
+      catatLogLogin(user.username, user.fullName, user.area, 'BERHASIL');
       
       bukaMainApp();
 
       setTimeout(() => {
-        if (typeof aturTampilanLonceng === 'function') {
-          aturTampilanLonceng('dashboardPage');
-        }
-        if (typeof cekUnreadNotif === 'function') {
-          cekUnreadNotif();
-        }
-        if (typeof updateNotifBellCounter === 'function') {
-          updateNotifBellCounter();
-        }
+        if (typeof aturTampilanLonceng === 'function') aturTampilanLonceng('dashboardPage');
+        if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
+        if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
       }, 150);
 
     } else {
+      // 5. LOGIN GAGAL
+      catatLogLogin(u, '-', '-', 'GAGAL - PASSWORD SALAH');
       showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
     }
   } catch (error) {
     console.error("Login error:", error);
-  } 
-  // Blok "finally { hideLoading(); }" juga dihapus dari sini
+    showNotif('GAGAL TERHUBUNG KE SERVER SUPABASE!', 'error');
+  } finally {
+    hideLoading();
+  }
 }
 window.prosesLogin = prosesLogin;
 
+// Fungsi untuk mencatat aktivitas login ke Supabase
+async function catatLogLogin(username, nama, area, status) {
+  if (!supabaseClient) return;
+  try {
+    // Pastikan Anda membuat tabel "log_login" di dashboard Supabase
+    // dengan kolom: username (text), nama_lengkap (text), area (text), status (text)
+    await supabaseClient.from('log_login').insert([{
+      username: username,
+      nama_lengkap: nama,
+      area: area,
+      status: status
+    }]);
+  } catch (e) {
+    console.warn('Gagal mencatat log login. Pastikan tabel log_login sudah dibuat di Supabase.');
+  }
+}
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
@@ -1279,21 +1293,21 @@ function fillLogin(u, p) {
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
-    
-    // HAPUS JEJAK HALAMAN TERAKHIR SAAT LOGOUT
-    sessionStorage.removeItem('LAST_ACTIVE_PAGE'); 
-
+    // Kosongkan memori RAM
     currentUser = null;
+    
+    // Bersihkan UI
     tutupAkun();
     tutupNotificationModal();
     const popupBantuan = document.getElementById('popupBantuan');
     if (popupBantuan) popupBantuan.classList.remove('show');
     document.getElementById('bottomMenu').style.display = 'none';
     document.getElementById('helpButton').style.display = 'none';
+    
     pindahHalaman('loginPage');
-    updateNotifBellCounter();
+    if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+    
+    showNotif('BERHASIL LOGOUT DARI SISTEM', 'success');
   });
 }
 // Deklarasikan variabel global penanda agar auto-sync tidak berjalan double
