@@ -879,6 +879,27 @@ function initFirebaseDB() {
             console.warn("[FIRESTORE NOTICE]:", err.message);
           });
 
+          // REAL-TIME SNAPSHOT LISTENER UNTUK CHAT & SETTINGS PUSAT
+          dbFirestore.collection('app_settings').doc('config').onSnapshot(doc => {
+            if (doc.exists) {
+              const cfg = doc.data() || {};
+              if (cfg.notifications) appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(cfg.notifications));
+              if (cfg.chatMessages) appStorage.setItem(CHAT_DB_KEY, JSON.stringify(cfg.chatMessages));
+              if (cfg.chatRooms) appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(cfg.chatRooms));
+              if (cfg.theme) {
+                appStorage.setItem(THEME_KEY, cfg.theme);
+                if (typeof loadSavedTheme === 'function') loadSavedTheme();
+              }
+              if (cfg.fonteToken) appStorage.setItem(FONTE_TOKEN_KEY, cfg.fonteToken);
+
+              if (typeof refreshActiveChatUI === 'function') {
+                refreshActiveChatUI();
+              }
+            }
+          }, err => {
+            console.warn("[FIRESTORE CONFIG SNAPSHOT NOTICE]:", err.message);
+          });
+
           // JIKA FIRESTORE BERHASIL DIINISIALISASI, SET BULAT HIJAU
           const dot = document.getElementById('firebaseOnlineDot');
           if (dot) {
@@ -994,12 +1015,13 @@ async function syncAllDataToCache() {
           }
         }
 
-        // 3. SYNC APP SETTINGS, NOTIFICATIONS, CHATS, THEMES, TOKENS
+        // 3. SYNC APP SETTINGS, NOTIFICATIONS, CHATS, ROOMS, THEMES, TOKENS
         const configDoc = await dbFirestore.collection('app_settings').doc('config').get();
         if (configDoc.exists) {
           const cfg = configDoc.data() || {};
           if (cfg.notifications) appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(cfg.notifications));
-          if (cfg.chatMessages) appStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(cfg.chatMessages));
+          if (cfg.chatMessages) appStorage.setItem(CHAT_DB_KEY, JSON.stringify(cfg.chatMessages));
+          if (cfg.chatRooms) appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(cfg.chatRooms));
           if (cfg.theme) {
             appStorage.setItem(THEME_KEY, cfg.theme);
             if (typeof loadSavedTheme === 'function') loadSavedTheme();
@@ -1051,9 +1073,10 @@ async function pushCentralCloudDB() {
         });
         await userBatch.commit();
 
-        // 3. PUSH APP CONFIG, NOTIFICATIONS, CHAT MESSAGES, THEME, FONTE TOKEN, KODE UNIT MAP
+        // 3. PUSH APP CONFIG, NOTIFICATIONS, CHAT MESSAGES, CHAT ROOMS, THEME, FONTE TOKEN, KODE UNIT MAP
         const notifs = getSystemNotifications();
-        const chatMsgs = JSON.parse(appStorage.getItem(CHAT_MESSAGES_KEY) || '[]');
+        const chatMsgs = JSON.parse(appStorage.getItem(CHAT_DB_KEY) || '[]');
+        const chatRooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
         const theme = appStorage.getItem(THEME_KEY) || 'dark-mode';
         const fonteToken = getFonteToken();
         const adminReminder = getAdminReminderEnabled();
@@ -1064,6 +1087,7 @@ async function pushCentralCloudDB() {
         await dbFirestore.collection('app_settings').doc('config').set({
           notifications: notifs,
           chatMessages: chatMsgs,
+          chatRooms: chatRooms,
           theme: theme,
           fonteToken: fonteToken,
           adminReminder: adminReminder,
@@ -1574,7 +1598,7 @@ function bukaMainApp() {
   if (btnUserNav) btnUserNav.style.display = isAdmin ? 'flex' : 'none';
   if (btnMasterDbNav) btnMasterDbNav.style.display = isAdmin ? 'flex' : 'none';
 
-  isAdminChat = isAdmin || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM');
+  isAdminChat = typeof isServiceTSMUser === 'function' ? isServiceTSMUser() : (isAdmin || currentUser.category === 'SERVICE');
 
   let savedPage = sessionStorage.getItem('LAST_ACTIVE_PAGE');
   if (!savedPage || savedPage === 'null' || savedPage === 'undefined' || !document.getElementById(savedPage)) {
@@ -3778,14 +3802,69 @@ function loadTTD() {
   }
 }
 
-function isServiceTSMUser() {
-  if (!currentUser) return false;
-  const isSrv = currentUser.category === 'SERVICE' || currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
-  const isTSM = currentUser.area === 'TSM' || currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
-  return isSrv && isTSM;
+let activeChatRefreshInterval = null;
+
+function refreshActiveChatUI() {
+  if (!currentUser) return;
+  const popupBantuan = document.getElementById('popupBantuan');
+  if (popupBantuan && (popupBantuan.classList.contains('show') || popupBantuan.style.display === 'block')) {
+    const chatBody = document.getElementById('chatBody');
+    if (typeof isAdminChat !== 'undefined' && isAdminChat) {
+      if (typeof currentRoom !== 'undefined' && currentRoom && chatBody && chatBody.style.display !== 'none') {
+        loadChatAdmin(currentRoom);
+      } else {
+        loadDaftarChatAdmin();
+      }
+    } else {
+      loadChatUser();
+    }
+  }
+  if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+  if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
 }
 
-function bukaBantuan() {
+function startActiveChatRefresh() {
+  if (activeChatRefreshInterval) return;
+  activeChatRefreshInterval = setInterval(() => {
+    const popupBantuan = document.getElementById('popupBantuan');
+    if (popupBantuan && (popupBantuan.classList.contains('show') || popupBantuan.style.display === 'block')) {
+      if (typeof syncAllDataToCache === 'function') {
+        syncAllDataToCache().then(() => {
+          refreshActiveChatUI();
+        }).catch(() => {
+          refreshActiveChatUI();
+        });
+      } else {
+        refreshActiveChatUI();
+      }
+    } else {
+      stopActiveChatRefresh();
+    }
+  }, 2000);
+}
+
+function stopActiveChatRefresh() {
+  if (activeChatRefreshInterval) {
+    clearInterval(activeChatRefreshInterval);
+    activeChatRefreshInterval = null;
+  }
+}
+
+window.addEventListener('storage', (e) => {
+  if (e.key === CHAT_DB_KEY || e.key === CHAT_ROOM_DB_KEY) {
+    refreshActiveChatUI();
+  }
+});
+
+function isServiceTSMUser() {
+  if (!currentUser) return false;
+  const cat = String(currentUser.category || '').trim().toUpperCase();
+  const uname = String(currentUser.username || '').trim().toUpperCase();
+
+  return cat === 'SERVICE' || cat === 'ADMIN' || uname === 'ADMIN';
+}
+
+async function bukaBantuan() {
   if (!currentUser) return;
   
   // SERVICE TSM or ADMIN acts as Customer Service Support Receiver
@@ -3798,6 +3877,11 @@ function bukaBantuan() {
     popup.style.display = 'block';
     popup.classList.add('show');
     try { history.pushState({ popup: 'bantuan' }, '', location.href); } catch(e) {}
+  }
+
+  // SINKRONKAN CHAT & ROOM TERBARU DARI CLOUD DB PADA SAAT MENU CHAT DIBUKA
+  if (typeof syncAllDataToCache === 'function') {
+    await syncAllDataToCache().catch(() => {});
   }
 
   const chatList = document.getElementById('chatList');
@@ -3821,9 +3905,14 @@ function bukaBantuan() {
     if (headerTitle) headerTitle.innerText = 'SERVICE TSM SUPPORT';
     loadChatUser();
   }
+
+  // AKTIFKAN REFRESH CHAT REALTIME JIKA KOLOM CHAT SEDANG DIBUKA
+  startActiveChatRefresh();
 }
 
 function tutupBantuan() {
+  stopActiveChatRefresh();
+
   const popup = document.getElementById('popupBantuan');
   if (popup) {
     popup.classList.remove('show'); 
@@ -3859,11 +3948,11 @@ function loadDaftarChatAdmin() {
   rooms.forEach(r => {
     const item = document.createElement('div');
     item.style.cssText = 'padding:12px 14px; border-bottom:1px solid var(--border-color); cursor:pointer; transition:background 0.2s;';
-    const unreadBadgeHtml = r.unreadAdmin > 0 ? `<span style="background:#ef4444; color:#fff; border-radius:10px; padding:2px 8px; font-size:10px; font-weight:bold;">${r.unreadAdmin}</span>` : '';
+    const unreadBadgeHtml = r.unreadAdmin > 0 ? `<span style="background:#ef4444; color:#fff; border-radius:10px; padding:2px 8px; font-size:10px; font-weight:bold;">${r.unreadAdmin} UNREAD</span>` : '';
     item.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
         <div style="font-size:13px; font-weight:700; color:var(--text-main);">
-          ${r.user} <span style="font-size:11px; font-weight:normal; color:var(--primary);">(${r.userArea || 'TSM'})</span>
+          ${r.user} <span style="font-size:11px; font-weight:bold; color:var(--primary); background:rgba(59,130,246,0.15); padding:2px 6px; border-radius:4px;">(${r.userArea || 'TSM'})</span>
         </div>
         ${unreadBadgeHtml}
       </div>
