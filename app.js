@@ -2095,15 +2095,47 @@ async function uploadPhotoToDriveCloud(file) {
   }
 }
 
+// =========================================================================
+// PREVIEW & PROSES UPLOAD FOTO (BATAS MAKSIMAL 5 FOTO)
+// =========================================================================
 async function previewFoto(event) {
   const files = Array.from(event.target.files);
   if (!files.length) return;
 
+  // Validasi batas maksimal 5 foto
   if (currentPhotos.length + files.length > 5) {
-    showNotif('MAKSIMAL DIBATASI HINGGA 5 FOTO SAJA!', 'warning');
+    showNotif('MAKSIMAL FOTO DIBATASI HINGGA 5 FOTO SAJA!', 'warning');
     event.target.value = ''; 
-    return; // STOP DI SINI! Jangan proses foto yang kelebihan
+    return; // Hentikan proses jika melebihi 5
   }
+
+  const previewText = document.getElementById('previewText');
+  const originalText = previewText ? previewText.innerHTML : 'TAP / DRAG FOTO DI SINI';
+  if (previewText) {
+    previewText.innerHTML = `<span class="material-symbols-rounded" style="font-size:22px; vertical-align:middle; display:inline-block; animation:spin 0.8s linear infinite; color:var(--primary);">sync</span> MENGUNGGAH FOTO...`;
+  }
+
+  for (let i = 0; i < files.length; i++) {
+    if (currentPhotos.length < 5) {
+      try {
+        // Langsung panggil fungsi upload tanpa fungsi kompresi
+        const url = await uploadPhotoToSupabaseStorage(files[i]);
+        if (url) {
+          currentPhotos.push(url);
+        }
+      } catch (err) {
+        console.warn('Foto Upload Error:', err);
+      }
+    }
+  }
+
+  if (previewText) {
+    previewText.innerHTML = originalText;
+  }
+
+  renderPhotoGrid();
+  event.target.value = '';
+}
 
   const previewText = document.getElementById('previewText');
   const originalText = previewText ? previewText.innerHTML : 'TAP / DRAG FOTO DI SINI';
