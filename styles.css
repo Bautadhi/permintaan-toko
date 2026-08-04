@@ -450,41 +450,51 @@ body:not(.light-mode) .popupNotifCard, body:not(.light-mode) .popupBantuan, body
 }
 
 .chatBody {
-  flex: 1;
-  padding: 12px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: var(--bg-header);
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  overflow-y: auto !important;
+  padding: 14px !important;
 }
 
-.chatUser {
-  align-self: flex-end;
-  background: var(--primary);
-  color: #ffffff;
-  padding: 8px 12px;
-  border-radius: 12px 12px 2px 12px;
-  max-width: 82%;
-  font-size: 12px;
+/* Styling dasar kotak balon chat */
+.chatAdmin, .chatUser {
+  display: flex !important;
+  flex-direction: column !important;
+  max-width: 75% !important;
+  padding: 10px 14px !important;
+  border-radius: 14px !important;
+  word-break: break-word !important;
+  box-sizing: border-box !important;
 }
 
+/* POSISI KIRI: Pesan dari Orang Lain / Admin (Bukan Anda) */
 .chatAdmin {
-  align-self: flex-start;
-  background: var(--bg-box);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  padding: 8px 12px;
-  border-radius: 12px 12px 12px 2px;
-  max-width: 82%;
-  font-size: 12px;
+  align-self: flex-start !important; /* Paksa posisi ke KIRI */
+  background: var(--bg-card, #1e293b) !important;
+  color: var(--text-main, #fff) !important;
+  border-bottom-left-radius: 3px !important;
+}
+
+/* POSISI KANAN: Pesan dari Anda Sendiri (User / Pengirim Aktif) */
+.chatUser {
+  align-self: flex-end !important; /* Paksa posisi ke KANAN */
+  background: var(--primary, #0284c7) !important;
+  color: #ffffff !important;
+  border-bottom-right-radius: 3px !important;
+}
+
+/* Teks dan waktu di dalam chat */
+.chatText {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
 }
 
 .chatTime {
-  font-size: 9px;
-  opacity: 0.7;
-  margin-top: 4px;
-  text-align: right;
+  font-size: 9px !important;
+  opacity: 0.7 !important;
+  margin-top: 4px !important;
+  text-align: right !important;
 }
 
 .chatFooter {
