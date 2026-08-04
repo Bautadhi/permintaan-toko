@@ -2480,7 +2480,16 @@ function lihatFotoByNoSurat(noSurat) {
   const requests = getRequestsFromDB();
   const req = requests.find(r => r.noSurat === noSurat);
   if (req && req.photos && req.photos.length > 0) {
-    zoomFoto(req.photos[0]);
+    viewerPhotos = req.photos; // Ambil seluruh array (kumpulan) foto
+    viewerCurrentIndex = 0; // Mulai dari foto indeks ke-0 (pertama)
+    tampilkanFotoViewerAktif();
+    
+    // Beri tahu HP bahwa ada popup terbuka (agar tombol back tidak keluar aplikasi)
+    if (typeof pushPopupHistoryState === 'function') {
+      pushPopupHistoryState();
+    }
+  } else {
+    showNotif('TIDAK ADA FOTO UNTUK PERMINTAAN INI!', 'warning');
   }
 }
 
