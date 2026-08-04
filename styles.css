@@ -2811,17 +2811,6 @@ html, body {
   display: block; /* Hanya tampilkan halaman yang aktif */
 }
 
-/* =========================================================================
-   HEADER TERKUNCI DI ATAS
-   ========================================================================= */
-.header-app { /* Sesuaikan dengan class/id header Anda */
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 60px; /* Tinggi header */
-  z-index: 999;
-}
 
 /* =========================================================================
    BOTTOM MENU TERKUNCI DI BAWAH
@@ -2833,4 +2822,35 @@ html, body {
   width: 100%;
   height: 60px; /* Tinggi menu bawah */
   z-index: 999;
+}
+/* =========================================================================
+   KUNCI LAYAR BROWSER CHROME HP (ANTI MANTUL & ANTI TARIK)
+   ========================================================================= */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100dvh; /* Ukuran mutlak sesuai tinggi layar HP */
+  overflow: hidden !important; /* Kunci mati layar utama agar tidak bisa digeser */
+  overscroll-behavior-y: none !important; /* Matikan efek tarik ke bawah (pull-to-refresh) di Chrome */
+  background-color: var(--bg-body); /* Opsional: sesuaikan warna background */
+}
+
+/* =========================================================================
+   AREA KONTEN (HANYA BAGIAN INI YANG BISA DI-SCROLL)
+   ========================================================================= */
+.page {
+  display: none;
+  position: absolute;
+  top: 0; /* Mulai dari paling atas karena tidak ada header fix */
+  bottom: 60px; /* Jarak bawah agar konten tidak tertutup Bottom Menu */
+  left: 0;
+  width: 100%;
+  overflow-y: auto !important; /* Aktifkan scroll khusus di dalam konten saja */
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* Bikin scroll terasa licin & halus di HP */
+}
+
+.page.active {
+  display: block;
 }
