@@ -2167,30 +2167,6 @@ async function previewFoto(event) {
   event.target.value = '';
 }
 
-  const previewText = document.getElementById('previewText');
-  const originalText = previewText ? previewText.innerHTML : 'TAP / DRAG FOTO DI SINI';
-  if (previewText) {
-    previewText.innerHTML = `<span class="material-symbols-rounded" style="font-size:22px; vertical-align:middle; display:inline-block; animation:spin 0.8s linear infinite; color:var(--primary);">sync</span>`;
-  }
-
-  for (let i = 0; i < files.length; i++) {
-    if (currentPhotos.length < 5) {
-      try {
-        // Kita panggil fungsi Supabase yang sudah kita lengkapi dengan kompresi di bawah
-        const url = await uploadPhotoToSupabaseStorage(files[i]);
-        if (url) {
-          currentPhotos.push(url);
-        }
-      } catch (err) {
-        console.warn('Foto Upload Error:', err);
-      }
-    }
-  }
-
-  if (previewText) {
-    previewText.innerHTML = originalText;
-  }
-
   renderPhotoGrid();
   event.target.value = '';
 }
