@@ -103,86 +103,113 @@ async function loadAllFromSupabase() {
   }
 }
 
-function setupRealtimeSubscription() {
+/* ======================================================
+   REALTIME SUBSCRIPTION (ANTI ZOMBIE CHANNEL)
+====================================================== */
+
+let realtimeChannel = null;
+let reconnecting = false;
+let reconnectDelay = 3000;
+let refreshTimer = null;
+
+async function setupRealtimeSubscription() {
+
   if (!supabaseClient) return;
 
   try {
-    // 1. Bersihkan channel lama yang mungkin sudah mati/zombie
+
+    // Hapus channel lama jika masih ada
     if (realtimeChannel) {
-      supabaseClient.removeChannel(realtimeChannel);
+      try {
+        await supabaseClient.removeChannel(realtimeChannel);
+      } catch (e) {
+        console.warn('Remove channel:', e.message);
+      }
       realtimeChannel = null;
     }
 
-    // 2. Buat channel baru dengan nama unik agar tidak bentrok
-    realtimeChannel = supabaseClient.channel('app_storage_changes_' + Date.now())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_storage' }, payload => {
-        const row = payload.new || payload.old;
-        if (!row || !row.key) return;
+    realtimeChannel = supabaseClient
+      .channel('app-storage-realtime')
 
-        if (payload.eventType === 'DELETE') {
-          memoryCache.delete(row.key);
-        } else {
-          memoryCache.set(row.key, serializeForCache(row.value));
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'app_storage'
+        },
+        payload => {
+
+          const row = payload.new || payload.old;
+
+          if (!row || !row.key) return;
+
+          if (payload.eventType === 'DELETE') {
+
+            memoryCache.delete(row.key);
+
+          } else {
+
+            memoryCache.set(
+              row.key,
+              serializeForCache(row.value)
+            );
+
+          }
+
+          // Debounce refresh UI
+          clearTimeout(refreshTimer);
+
+          refreshTimer = setTimeout(() => {
+
+            if (typeof onDataChangeCallback === 'function') {
+              onDataChangeCallback(row.key);
+            }
+
+          }, 120);
+
+        })
+
+      .subscribe(status => {
+
+        console.log("Realtime :", status);
+
+        switch (status) {
+
+          case "SUBSCRIBED":
+
+            reconnecting = false;
+            isSupabaseOnline = true;
+            updateSupabaseStatusUI(true);
+
+            break;
+
+          case "CHANNEL_ERROR":
+
+          case "TIMED_OUT":
+
+          case "CLOSED":
+
+            isSupabaseOnline = false;
+            updateSupabaseStatusUI(false);
+
+            reconnectRealtime();
+
+            break;
+
         }
 
-        if (typeof onDataChangeCallback === 'function') {
-          onDataChangeCallback(row.key);
-        }
-      })
-      .subscribe((status) => {
-        console.log('Realtime Status:', status);
-        
-        if (status === 'SUBSCRIBED') {
-          isSupabaseOnline = true;
-          updateSupabaseStatusUI(true);
-        }
-
-        // Jika koneksi terputus/error, coba sambung ulang
-        if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          isSupabaseOnline = false;
-          updateSupabaseStatusUI(false);
-          
-          if (reconnectTimer) clearTimeout(reconnectTimer);
-          reconnectTimer = setTimeout(() => {
-            console.log('Mencoba menyambung kembali ke Supabase Realtime...');
-            setupRealtimeSubscription();
-          }, 3000); // Coba reconnect setelah 3 detik
-        }
       });
+
   } catch (err) {
-    console.warn('Realtime subscription error:', err.message);
+
+    console.error(err);
+
+    reconnectRealtime();
+
   }
+
 }
-
-// ==============================================================
-// FITUR BARU: SENSOR LAYAR HP NYALA (WAKE-UP) & INTERNET KONEK
-// ==============================================================
-document.addEventListener('visibilitychange', () => {
-  // Jika tab kembali aktif / layar HP menyala
-  if (document.visibilityState === 'visible') {
-    console.log('Layar aktif kembali. Menyegarkan koneksi Supabase...');
-    if (isSupabaseReady) {
-      pullFromSupabase(); // Tarik data terbaru yg terlewat saat HP mati
-      setupRealtimeSubscription(); // Reset paksa socket realtime
-    }
-  }
-});
-
-window.addEventListener('online', () => {
-  console.log('Internet terhubung kembali. Reconnecting...');
-  if (isSupabaseReady) {
-    pullFromSupabase();
-    setupRealtimeSubscription();
-  }
-});
-
-window.addEventListener('offline', () => {
-  console.log('Internet terputus!');
-  isSupabaseOnline = false;
-  updateSupabaseStatusUI(false);
-});
-// ==============================================================
-
 function schedulePersist(key, parsedValue) {
   pendingWrites.set(key, parsedValue);
   if (writeTimer) clearTimeout(writeTimer);
