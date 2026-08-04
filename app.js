@@ -2492,6 +2492,37 @@ function lihatFotoByNoSurat(noSurat) {
     showNotif('TIDAK ADA FOTO UNTUK PERMINTAAN INI!', 'warning');
   }
 }
+function tampilkanFotoViewerAktif() {
+  currentZoom = 1; // Reset zoom setiap kali ganti foto
+  const img = document.getElementById('viewerImage');
+  if (img && viewerPhotos.length > 0) {
+    img.src = viewerPhotos[viewerCurrentIndex];
+    img.style.transform = `scale(${currentZoom})`;
+  }
+  document.getElementById('imageViewer').style.display = 'flex';
+  
+  // Atur Tampilan Tombol Navigasi (< dan >) & Angka Counter
+  const btnLeft = document.getElementById('navViewerLeft');
+  const btnRight = document.getElementById('navViewerRight');
+  const textCounter = document.getElementById('viewerCounter');
+  
+  // Jika foto lebih dari 1, tampilkan tombol. Jika cuma 1, sembunyikan.
+  if(btnLeft) btnLeft.style.display = viewerPhotos.length > 1 ? 'flex' : 'none';
+  if(btnRight) btnRight.style.display = viewerPhotos.length > 1 ? 'flex' : 'none';
+  if(textCounter) textCounter.textContent = `${viewerCurrentIndex + 1} / ${viewerPhotos.length}`;
+}
+// Fungsi jika tombol < atau > ditekan
+function gantiFotoViewer(arah) {
+  viewerCurrentIndex += arah;
+  
+  // Efek Looping (Muter): Jika mentok di akhir, kembali ke foto pertama.
+  if (viewerCurrentIndex < 0) {
+    viewerCurrentIndex = viewerPhotos.length - 1;
+  } else if (viewerCurrentIndex >= viewerPhotos.length) {
+    viewerCurrentIndex = 0;
+  }
+  tampilkanFotoViewerAktif();
+}
 
 // APPROVAL ACTIONS WITH WA AUTOMATION TRIGGERS
 function approveService(noSurat) {
