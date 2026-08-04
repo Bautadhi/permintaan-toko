@@ -1206,7 +1206,7 @@ async function prosesLogin() {
     return;
   }
 
-  showLoading('MEMERIKSA DATABASE SUPABASE...');
+  showLoading('');
 
   try {
     // Pastikan Supabase sudah aktif
@@ -1260,7 +1260,7 @@ async function prosesLogin() {
     }
   } catch (error) {
     console.error("Login error:", error);
-    showNotif('GAGAL TERHUBUNG KE SERVER SUPABASE!', 'error');
+    showNotif('GAGAL TERHUBUNG KE SERVER!', 'error');
   } finally {
     hideLoading();
   }
@@ -4808,4 +4808,53 @@ function startAutoDataSync() {
 
     }
   }, 5000); // 5000 = 5 detik
+}
+// =========================================================================
+// FUNGSI SAPU BERSIH: HAPUS SEMUA DATA LOKAL & CACHE BROWSER
+// =========================================================================
+
+function hapusSemuaDataLokal() {
+  showConfirm('YAKIN INGIN MENGHAPUS SEMUA DATA LOKAL & CACHE? (Aplikasi akan keluar dan dimuat ulang)', () => {
+    
+    showLoading('MENGHAPUS SEMUA DATA LOKAL...');
+    
+    setTimeout(async () => {
+      try {
+        // 1. Hapus seluruh LocalStorage bawaan browser
+        if (window.localStorage) {
+          localStorage.clear();
+        }
+
+        // 2. Hapus seluruh SessionStorage
+        if (window.sessionStorage) {
+          sessionStorage.clear();
+        }
+
+        // 3. Kosongkan memori RAM aplikasi (appStorage / memoryCache)
+        if (window.appStorage && typeof window.appStorage.clear === 'function') {
+          window.appStorage.clear();
+        }
+
+        // 4. Hapus Cache Browser (Penting jika ada file gambar/script yang tersangkut)
+        if (typeof caches !== 'undefined' && caches.keys) {
+          const cacheNames = await caches.keys();
+          for (let name of cacheNames) {
+            await caches.delete(name);
+          }
+        }
+
+        // 5. Logout pengguna dari RAM
+        currentUser = null;
+
+        // 6. Muat ulang halaman secara paksa (Hard Reload)
+        window.location.reload(true);
+
+      } catch (error) {
+        hideLoading();
+        console.error('Gagal menghapus data lokal:', error);
+        showNotif('TERJADI KESALAHAN SAAT MENGHAPUS DATA!', 'error');
+      }
+    }, 800); // Beri jeda animasi sedikit
+    
+  });
 }
