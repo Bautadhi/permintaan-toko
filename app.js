@@ -2100,11 +2100,13 @@ async function previewFoto(event) {
   if (!files.length) return;
 
   if (currentPhotos.length + files.length > 5) {
-    showNotif('MAKSIMAL FOTO DIBATASI HINGGA 5 FOTO!', 'warning');
+    showNotif('MAKSIMAL DIBATASI HINGGA 5 FOTO SAJA!', 'warning');
+    event.target.value = ''; 
+    return; // STOP DI SINI! Jangan proses foto yang kelebihan
   }
 
   const previewText = document.getElementById('previewText');
-  const originalText = previewText ? previewText.innerHTML : 'TAP / DRAG FOTO DI SINI (MAKSIMAL 5 FOTO)';
+  const originalText = previewText ? previewText.innerHTML : 'TAP / DRAG FOTO DI SINI';
   if (previewText) {
     previewText.innerHTML = `<span class="material-symbols-rounded" style="font-size:22px; vertical-align:middle; display:inline-block; animation:spin 0.8s linear infinite; color:var(--primary);">sync</span>`;
   }
@@ -2112,12 +2114,10 @@ async function previewFoto(event) {
   for (let i = 0; i < files.length; i++) {
     if (currentPhotos.length < 5) {
       try {
-        const driveUrl = await uploadPhotoToDriveCloud(files[i]);
-        if (driveUrl) {
-          currentPhotos.push(driveUrl);
-        }
-        if (i < files.length - 1) {
-          await new Promise(r => setTimeout(r, 350));
+        // Kita panggil fungsi Supabase yang sudah kita lengkapi dengan kompresi di bawah
+        const url = await uploadPhotoToSupabaseStorage(files[i]);
+        if (url) {
+          currentPhotos.push(url);
         }
       } catch (err) {
         console.warn('Foto Upload Error:', err);
@@ -2132,7 +2132,6 @@ async function previewFoto(event) {
   renderPhotoGrid();
   event.target.value = '';
 }
-
 function hapusFotoItem(idx) {
   currentPhotos.splice(idx, 1);
   renderPhotoGrid();
@@ -4572,11 +4571,7 @@ function closePopup() {
   const notifOverlay = document.getElementById('popupNotif');
   if (notifOverlay) notifOverlay.style.display = 'none';
 
-  // Bersihkan form jika sedang di halaman input
-  const inputPage = document.getElementById('inputPage');
-  if (inputPage && inputPage.classList.contains('active')) {
-    bersihkanForm();
-  }
+  // KODE BERSIHKAN FORM DI SINI TELAH DIHAPUS AGAR INPUTAN TIDAK HILANG!
 
   // Paksa periksa dan tampilkan kembali ikon lonceng/bantuan jika sedang di Dashboard
   const activePage = typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage';
@@ -4584,7 +4579,6 @@ function closePopup() {
     aturTampilanLonceng(activePage);
   }
 }
-
 function showLoading(text) {
   const textEl = document.getElementById('loadingText');
   if (textEl) textEl.textContent = text || '';
