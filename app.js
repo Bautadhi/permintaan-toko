@@ -695,6 +695,9 @@ let cloudSyncInterval = null;
 // =========================================================================
 // REAL-TIME UI UPDATER (DIKOREKSI AGAR CHAT LANGSUNG MUNCUL TANPA TUTUP POPUP)
 // =========================================================================
+// =========================================================================
+// REAL-TIME UI UPDATER (BERSIH DARI ERROR REFERENCE)
+// =========================================================================
 function onSupabaseDataChange(keyChanged) {
   if (!currentUser) return;
 
@@ -702,35 +705,40 @@ function onSupabaseDataChange(keyChanged) {
   const activePage = document.querySelector('.page.active');
   const pageId = activePage ? activePage.id : '';
 
-  if (pageId === 'dashboardPage' && typeof loadDashboard === 'function') loadDashboard();
-  else if (pageId === 'riwayatPage' && typeof loadRiwayat === 'function') loadRiwayat();
-  else if (pageId === 'masterDbPage' && typeof loadMasterDbTable === 'function') loadMasterDbTable();
-  else if (pageId === 'userManagementPage' && typeof loadUsersManagement === 'function') loadUsersManagement();
+  if (pageId === 'dashboardPage' && typeof loadDashboard === 'function') {
+    loadDashboard();
+  } else if (pageId === 'riwayatPage' && typeof loadRiwayat === 'function') {
+    loadRiwayat();
+  } else if (pageId === 'masterDbPage' && typeof loadMasterDbTable === 'function') {
+    loadMasterDbTable();
+  } else if (pageId === 'userManagementPage' && typeof loadUsersManagement === 'function') {
+    loadUsersManagement();
+  } else if (pageId === 'inputPage') {
+    // Gunakan loadForm yang sudah ada di aplikasi Anda sebagai pengganti
+    if (typeof loadForm === 'function') loadForm();
+  }
 
   // 2. SELALU UPDATE NOTIFIKASI LONCENG & BADGE CHAT DI LATAR BELAKANG
   if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
 
-  // 3. KOREKSI UTAMA CHAT REAL-TIME:
-  // Jika pop-up chat bantuan sedang terbuka, langsung muat ulang pesannya detik itu juga!
+  // 3. UPDATE CHAT REAL-TIME JIKA POP-UP TERBUKA
   const popupBantuan = document.getElementById('popupBantuan');
   if (popupBantuan && (popupBantuan.classList.contains('show') || popupBantuan.style.display === 'block')) {
     if (typeof isAdminChat !== 'undefined' && isAdminChat) {
-      // Jika Admin sedang membuka room chat tertentu, refresh chat di room tersebut
       if (typeof currentRoom !== 'undefined' && currentRoom && typeof loadChatAdmin === 'function') {
         loadChatAdmin(currentRoom);
       } else if (typeof loadDaftarChatAdmin === 'function') {
         loadDaftarChatAdmin();
       }
     } else {
-      // Jika User/Toko sedang membuka chat, langsung muat ulang isi chat-nya
       if (typeof loadChatUser === 'function') {
         loadChatUser();
       }
     }
   }
 
-  // 4. Jika popup daftar notifikasi sedang terbuka, update listnya
+  // 4. UPDATE NOTIFIKASI LIST JIKA TERBUKA
   const notifListPopup = document.getElementById('popupNotifList');
   if (notifListPopup && notifListPopup.classList.contains('show')) {
     if (typeof loadNotificationList === 'function') loadNotificationList();
