@@ -1022,24 +1022,30 @@ input:focus, select:focus, textarea:focus {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
-  overflow: auto !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
   -webkit-overflow-scrolling: touch !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 10px !important;
   background: var(--bg-box) !important;
   min-height: 0 !important;
+  position: relative !important;
 }
 
+/* STICKY RATA KIRI HEADER DASHBOARD */
 .lastHeader {
   flex-shrink: 0 !important;
-  position: static !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
   background: var(--bg-header) !important;
   color: var(--text-muted) !important;
   border: none !important;
-  border-bottom: 2px solid var(--table-border) !important;
+  border-bottom: 2px solid var(--border-color) !important;
   border-radius: 0 !important;
-  text-align: center !important;
+  text-align: left !important;
   font-weight: 700 !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
 }
 
 #lastData {
@@ -1052,33 +1058,35 @@ input:focus, select:focus, textarea:focus {
 }
 
 .lastHeader, .lastItem {
-  display: grid;
-  grid-template-columns: 1.2fr 2fr 2fr 1.2fr;
-  align-items: center;
-  gap: 16px !important;
-  padding: 8px 12px !important;
-  width: 100%;
+  display: grid !important;
+  grid-template-columns: 1.2fr 2.2fr 2.5fr 1.5fr !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 14px !important;
+  width: 100% !important;
   font-size: 12.5px !important;
   white-space: nowrap !important;
+  box-sizing: border-box !important;
 }
 
 .lastHeader > div {
-  text-align: center !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  text-align: left !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
   border-right: none !important;
   border-left: none !important;
-  padding-left: 6px !important;
-  padding-right: 6px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
   box-sizing: border-box !important;
+  font-weight: 700 !important;
 }
 
 .lastHeader > div:last-child {
   border-right: none !important;
 }
 
-/* UNIFIED DATA ROWS WITHIN DASHBOARD TABLE CONTAINER - HORIZONTAL DIVIDERS ONLY */
+/* UNIFIED DATA ROWS WITHIN DASHBOARD TABLE CONTAINER - HORIZONTAL DIVIDERS ONLY & LEFT ALIGNED */
 .lastItem {
   margin-bottom: 0 !important;
   border: none !important;
@@ -1093,11 +1101,18 @@ input:focus, select:focus, textarea:focus {
 }
 
 .lastItem > div {
+  text-align: left !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
   border-right: none !important;
   border-left: none !important;
-  padding-left: 6px !important;
-  padding-right: 6px !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
   box-sizing: border-box !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 .lastItem > div:last-child {
@@ -2431,26 +2446,29 @@ button.btnKembali {
     padding: 10px 14px !important;
     font-size: 12.5px !important;
     display: grid !important;
-    grid-template-columns: 1.2fr 2fr 2fr 1.2fr !important;
+    grid-template-columns: 1.2fr 2.2fr 2.5fr 1.5fr !important;
     box-sizing: border-box !important;
   }
 }
 
-/* STRICT SYMMETRICAL ALIGNMENT FOR ALL PAGES, MODALS & CARDS */
-.page, .page.active {
-  padding-left: 6px !important;
-  padding-right: 6px !important;
+/* STRICT 100% PERFECT CENTERING & BALANCED MARGINS FOR ALL PAGES, MODALS & CARDS */
+.page, .page.active, #dashboardPage, #riwayatPage, #masterDbPage, #userManagementPage {
+  padding-left: 8px !important;
+  padding-right: 8px !important;
   width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto !important;
   box-sizing: border-box !important;
 }
 
+.dashboardTop,
 #detailDashboard,
 .box,
 .box.box-full {
   width: 100% !important;
   max-width: 100% !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   box-sizing: border-box !important;
 }
 
@@ -2458,14 +2476,17 @@ button.btnKembali {
 #popupDetail .popupBoxDetail,
 .popupBox,
 .popupOverlay .popupBox {
-  width: calc(100vw - 12px) !important;
-  max-width: calc(100vw - 12px) !important;
-  margin-left: 6px !important;
-  margin-right: 6px !important;
+  width: calc(100vw - 16px) !important;
+  max-width: calc(100vw - 16px) !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
   box-sizing: border-box !important;
 }
 
 .popupOverlay {
-  padding-left: 6px !important;
-  padding-right: 6px !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding-left: 8px !important;
+  padding-right: 8px !important;
 }

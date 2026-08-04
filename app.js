@@ -168,33 +168,82 @@ function getAccessibleNotifications() {
   return filtered;
 }
 
+let globalRealtimeLoopInterval = null;
+
+function startGlobalRealtimeLoop() {
+  if (globalRealtimeLoopInterval) return;
+
+  globalRealtimeLoopInterval = setInterval(() => {
+    if (!currentUser || (document.getElementById('loginPage') && document.getElementById('loginPage').classList.contains('active'))) return;
+
+    // 1. UPDATE LONCENG NOTIFIKASI & ANGKA JUMLAH
+    if (typeof updateNotifBellCounter === 'function') {
+      updateNotifBellCounter();
+    }
+
+    // 2. UPDATE BADGE CHAT BANTUAN UNREAD
+    if (typeof cekUnreadNotif === 'function') {
+      cekUnreadNotif();
+    }
+
+    // 3. REFRESH LIST NOTIFIKASI JIKA POPUP NOTIF TERBUKA
+    const popupNotifList = document.getElementById('popupNotifList');
+    if (popupNotifList && (popupNotifList.classList.contains('show') || popupNotifList.style.display === 'flex')) {
+      if (typeof loadNotificationList === 'function') {
+        loadNotificationList();
+      }
+    }
+  }, 3000);
+}
+
 function updateNotifBellCounter() {
   const bellBtn = document.getElementById('notifBellBtn');
   const badgeEl = document.getElementById('notifBellBadge');
   if (!bellBtn || !badgeEl) return;
 
-  if (!currentUser || document.getElementById('loginPage').classList.contains('active')) {
+  if (!currentUser || (document.getElementById('loginPage') && document.getElementById('loginPage').classList.contains('active'))) {
     bellBtn.style.display = 'none';
     return;
   }
 
   bellBtn.style.display = 'flex';
 
+  const requests = getRequestsFromDB();
   const userNotifs = getAccessibleNotifications();
-  let unreadCount = userNotifs.filter(n => !n.readBy.includes(currentUser.id) && !n.readBy.includes(currentUser.username)).length;
+  const unreadSystemCount = userNotifs.filter(n => !n.readBy.includes(currentUser.id) && !n.readBy.includes(currentUser.username)).length;
 
-  if (currentUser.category === 'DM') {
-    const requests = getRequestsFromDB();
-    const pendingDMCount = requests.filter(r => r.status === 'PENDING' && r.serviceApprove).length;
-    unreadCount = Math.max(unreadCount, pendingDMCount);
-  } else if (currentUser.category === 'SERVICE') {
-    const requests = getAccessibleRequests();
-    const pendingServiceCount = requests.filter(r => r.status === 'PENDING' && !r.serviceApprove).length;
-    unreadCount = Math.max(unreadCount, pendingServiceCount);
+  let rolePendingCount = 0;
+  const userCat = (currentUser.category || '').toUpperCase();
+  const userArea = (currentUser.area || '').toUpperCase();
+  const isSysAdmin = userCat === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
+
+  if (isSysAdmin) {
+    // ADMIN: All pending requests in system
+    rolePendingCount = requests.filter(r => r.status === 'PENDING').length;
+  } else if (userCat === 'SERVICE') {
+    // SERVICE: Requests pending Service approval
+    rolePendingCount = requests.filter(r => {
+      const areaMatch = (userArea === 'ALL' || userArea === 'TSM' || r.area === userArea);
+      return r.status === 'PENDING' && !r.serviceApprove && areaMatch;
+    }).length;
+  } else if (userCat === 'DM') {
+    // DM: Requests approved by Service waiting for DM approval
+    rolePendingCount = requests.filter(r => {
+      const areaMatch = (userArea === 'ALL' || r.area === userArea);
+      return r.status === 'PENDING' && r.serviceApprove && !r.dmApprove && areaMatch;
+    }).length;
+  } else if (userCat === 'TOKO' || userCat === 'SALES') {
+    // TOKO & SALES: Pending or active requests
+    rolePendingCount = requests.filter(r => {
+      const isMine = (r.createdBy === currentUser.username || r.toko === currentUser.fullName || r.area === userArea);
+      return isMine && (r.status === 'PENDING');
+    }).length;
   }
 
-  if (unreadCount > 0) {
-    badgeEl.textContent = unreadCount > 99 ? '99+' : unreadCount;
+  const totalCount = Math.max(unreadSystemCount, rolePendingCount);
+
+  if (totalCount > 0) {
+    badgeEl.textContent = totalCount > 99 ? '99+' : totalCount;
     badgeEl.style.display = 'flex';
   } else {
     badgeEl.style.display = 'none';
@@ -408,10 +457,52 @@ const SEED_USERS = [
     id: 'USR-ADMIN',
     username: 'ADMIN',
     password: '1',
-    fullName: 'ADMIN',
+    fullName: 'ADMINISTRATOR PUSAT',
     phone: '',
     category: 'ADMIN',
     area: 'ALL',
+    createdAt: '31/07/2026'
+  },
+  {
+    id: 'USR-SERVICE-TSM',
+    username: 'SERVICE_TSM',
+    password: '1',
+    fullName: 'SERVICE TASIKMALAYA',
+    phone: '',
+    category: 'SERVICE',
+    area: 'TSM',
+    createdAt: '31/07/2026'
+  },
+  {
+    id: 'USR-DM-TSM',
+    username: 'DM_TSM',
+    password: '1',
+    fullName: 'DISTRICT MANAGER TSM',
+    phone: '',
+    category: 'DM',
+    area: 'TSM',
+    createdAt: '31/07/2026'
+  },
+  {
+    id: 'USR-TOKO-1',
+    username: 'TOKO_1',
+    password: '1',
+    fullName: 'TOKO UTAMA TSM',
+    storeCode: 'TU',
+    phone: '',
+    category: 'TOKO',
+    area: 'TSM',
+    createdAt: '31/07/2026'
+  },
+  {
+    id: 'USR-SALES-1',
+    username: 'SALES_1',
+    password: '1',
+    fullName: 'SALES TASIKMALAYA',
+    storeCode: 'SL',
+    phone: '',
+    category: 'SALES',
+    area: 'TSM',
     createdAt: '31/07/2026'
   }
 ];
@@ -549,6 +640,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (typeof loadRiwayat === 'function') loadRiwayat();
       if (document.getElementById('masterDbTableBody') && typeof loadMasterDbTable === 'function') loadMasterDbTable();
       if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+      if (typeof startGlobalRealtimeLoop === 'function') startGlobalRealtimeLoop();
     }
 
     initMobileBackButtonEngine();
@@ -1181,17 +1273,22 @@ function getUsersFromDB() {
   users = normalizeUserList(users);
 
   if (!Array.isArray(users) || !users.length) {
-    users = [...SEED_USERS];
+    users = normalizeUserList([...SEED_USERS]);
     appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
     return users;
   }
 
-  const adminUser = users.find(u => u && u.username && u.username.toUpperCase() === 'ADMIN');
-  if (!adminUser) {
-    users.unshift({ ...SEED_USERS[0] });
-    appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
-  } else {
-    adminUser.password = '1';
+  let updated = false;
+  SEED_USERS.forEach(su => {
+    const exists = users.some(u => u && u.username && String(u.username).trim().toUpperCase() === String(su.username).toUpperCase());
+    if (!exists) {
+      users.push({ ...su });
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    users = normalizeUserList(users);
     appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
   }
 
@@ -1355,22 +1452,22 @@ async function prosesLogin() {
   showLoading('MEMPROSES LOGIN...');
 
   try {
-    // AMBIL DARI LOCAL STORAGE & SEED UNTUK RESPONSE LOGIN KILAT TANPA BLOCKING
     let users = getUsersFromDB();
-    if (!Array.isArray(users) || !users.length) {
-      users = [...SEED_USERS];
-    }
-    
-    let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
+    let user = users.find(x => x && x.username && String(x.username).trim().toUpperCase() === u && String(x.password).trim() === p);
 
-    if (!user && u === 'ADMIN' && p === '1') {
-      user = SEED_USERS[0];
+    // JIKA USER TIDAK DITEMUKAN PADA CACHE LOKAL (MISAL SETELAH REFRESH HALAMAN SEBELUM CLOUD SYNC SELESAI),
+    // SINKRONKAN DENGAN DATABASE CLOUD TERLEBIH DAHULU SEBELUM MENAMPILKAN PASSWORD SALAH
+    if (!user && typeof syncAllDataToCache === 'function') {
+      try {
+        await syncAllDataToCache();
+        users = getUsersFromDB();
+        user = users.find(x => x && x.username && String(x.username).trim().toUpperCase() === u && String(x.password).trim() === p);
+      } catch (e) {}
     }
 
     if (user) {
       currentUser = user;
 
-      // HANYA SIMPAN SESI & SANDI KE PENYIMPANAN LOKAL JIKA 'INGAT SANDI' DICENTANG
       if (remember) {
         appStorage.setItem(SESSION_KEY, JSON.stringify(user));
         appStorage.setItem(STORE_REMEMBER_LOGIN_CREDS_KEY, JSON.stringify({ username: u, password: p }));
@@ -1382,7 +1479,6 @@ async function prosesLogin() {
       catatLogLogin(user.username, user.fullName, user.area, 'BERHASIL');
       bukaMainApp();
 
-      // SINKRONISASI DATA DI BACKGROUND UNTUK KINERJA MAKSIMAL
       if (typeof syncAllDataToCache === 'function') {
         syncAllDataToCache().catch(() => {});
       }
@@ -1505,6 +1601,7 @@ function bukaMainApp() {
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
   if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+  if (typeof startGlobalRealtimeLoop === 'function') startGlobalRealtimeLoop();
   if (typeof updateAdminReminderUI === 'function') updateAdminReminderUI();
   if (typeof checkAndTriggerPendingReminders === 'function') checkAndTriggerPendingReminders();
 }
@@ -1529,14 +1626,19 @@ function aturTampilanLonceng(pageId) {
   const notifBtn = document.getElementById('notifBellBtn');
   const helpBtn = document.getElementById('helpButton');
 
-  const isDashboard = (pageId === 'dashboardPage' && typeof currentUser !== 'undefined' && currentUser !== null);
+  const isLoggedIn = (typeof currentUser !== 'undefined' && currentUser !== null && !document.getElementById('loginPage')?.classList.contains('active'));
 
   if (notifBtn) {
-    notifBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
+    notifBtn.style.display = isLoggedIn ? 'flex' : 'none';
   }
   
   if (helpBtn) {
-    helpBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
+    helpBtn.style.display = isLoggedIn ? 'flex' : 'none';
+  }
+
+  if (isLoggedIn) {
+    updateNotifBellCounter();
+    if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
   }
 }
 
@@ -3676,13 +3778,19 @@ function loadTTD() {
   }
 }
 
-let fastChatInterval = null;
+function isServiceTSMUser() {
+  if (!currentUser) return false;
+  const isSrv = currentUser.category === 'SERVICE' || currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
+  const isTSM = currentUser.area === 'TSM' || currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
+  return isSrv && isTSM;
+}
 
 function bukaBantuan() {
-  if (currentUser) {
-    isAdminChat = (currentUser.category === 'ADMIN' || currentUser.category === 'SERVICE' || currentUser.category === 'DM' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
-  }
+  if (!currentUser) return;
   
+  // SERVICE TSM or ADMIN acts as Customer Service Support Receiver
+  isAdminChat = isServiceTSMUser();
+
   const popup = document.getElementById('popupBantuan');
   const btnHelp = document.getElementById('helpButton');
   if (btnHelp) btnHelp.style.display = 'none';
@@ -3690,11 +3798,6 @@ function bukaBantuan() {
     popup.style.display = 'block';
     popup.classList.add('show');
     try { history.pushState({ popup: 'bantuan' }, '', location.href); } catch(e) {}
-  }
-
-  if (fastChatInterval) {
-    clearInterval(fastChatInterval);
-    fastChatInterval = null;
   }
 
   const chatList = document.getElementById('chatList');
@@ -3708,14 +3811,14 @@ function bukaBantuan() {
     if (chatBody) chatBody.style.display = 'none';
     if (chatFooter) chatFooter.style.display = 'none';
     if (btnBack) btnBack.style.display = 'none';
-    if (headerTitle) headerTitle.innerText = 'DAFTAR PESAN MASUK';
+    if (headerTitle) headerTitle.innerText = 'CHAT MASUK - SERVICE TSM';
     loadDaftarChatAdmin();
   } else {
     if (chatList) chatList.style.display = 'none';
     if (chatBody) chatBody.style.display = 'block';
     if (chatFooter) chatFooter.style.display = 'flex';
     if (btnBack) btnBack.style.display = 'none';
-    if (headerTitle) headerTitle.innerText = 'ADMIN SUPPORT';
+    if (headerTitle) headerTitle.innerText = 'SERVICE TSM SUPPORT';
     loadChatUser();
   }
 }
@@ -3732,12 +3835,6 @@ function tutupBantuan() {
     aturTampilanLonceng(activePage);
   }
 
-  const badge = document.getElementById('unreadBadge');
-  if (badge) {
-    badge.innerText = '0';
-    badge.style.display = 'none';
-  }
-
   if (typeof cekUnreadNotif === 'function') {
     cekUnreadNotif();
   }
@@ -3749,19 +3846,28 @@ function loadDaftarChatAdmin() {
   const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
   chatList.innerHTML = '';
 
-  if (rooms.length === 0) {
-    chatList.innerHTML = `<div style="padding:20px; text-align:center; color:var(--text-muted);">BELUM ADA PESAN MASUK.</div>`;
+  if (!rooms || rooms.length === 0) {
+    chatList.innerHTML = `
+      <div style="padding:30px 16px; text-align:center; color:var(--text-muted); font-size:12.5px;">
+        <span class="material-symbols-rounded" style="font-size:36px; color:var(--primary); margin-bottom:6px; display:block;">chat_bubble_outline</span>
+        BELUM ADA CHAT MASUK DARI TOKO / SALES.
+      </div>
+    `;
     return;
   }
 
   rooms.forEach(r => {
     const item = document.createElement('div');
-    item.style.cssText = 'padding:12px; border-bottom:1px solid var(--border-color); cursor:pointer;';
+    item.style.cssText = 'padding:12px 14px; border-bottom:1px solid var(--border-color); cursor:pointer; transition:background 0.2s;';
+    const unreadBadgeHtml = r.unreadAdmin > 0 ? `<span style="background:#ef4444; color:#fff; border-radius:10px; padding:2px 8px; font-size:10px; font-weight:bold;">${r.unreadAdmin}</span>` : '';
     item.innerHTML = `
-      <div style="font-size:13px; font-weight:700; color:var(--text-main);">
-        ${r.user} ${r.unreadAdmin > 0 ? `<span style="background:#ef4444; color:#fff; border-radius:10px; padding:2px 6px; font-size:10px;">${r.unreadAdmin}</span>` : ''}
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+        <div style="font-size:13px; font-weight:700; color:var(--text-main);">
+          ${r.user} <span style="font-size:11px; font-weight:normal; color:var(--primary);">(${r.userArea || 'TSM'})</span>
+        </div>
+        ${unreadBadgeHtml}
       </div>
-      <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">${r.last}</div>
+      <div style="color:var(--text-muted); font-size:11.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${r.last || '-'}</div>
     `;
     item.onclick = () => bukaRoomAdmin(r.room, r.user);
     chatList.appendChild(item);
@@ -3773,11 +3879,14 @@ function bukaRoomAdmin(room, user) {
   currentChatUser = user;
 
   const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
-  const rIdx = rooms.findIndex(x => x.room === room);
+  const roomUpper = String(room || '').toUpperCase();
+  const userUpper = String(user || '').toUpperCase();
+
+  const rIdx = rooms.findIndex(x => String(x.room || '').toUpperCase() === roomUpper || String(x.user || '').toUpperCase() === userUpper);
   if (rIdx !== -1) {
     rooms[rIdx].unreadAdmin = 0;
     appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
-    pushCentralCloudDB();
+    if (typeof pushCentralCloudDB === 'function') pushCentralCloudDB();
   }
 
   const chatList = document.getElementById('chatList');
@@ -3796,64 +3905,98 @@ function bukaRoomAdmin(room, user) {
 
 function loadChatAdmin(room) {
   const allChats = JSON.parse(appStorage.getItem(CHAT_DB_KEY) || '[]');
-  const roomChats = allChats.filter(c => c.room === room);
+  const roomUpper = String(room || '').toUpperCase();
+  const userUpper = String(currentChatUser || '').toUpperCase();
+
+  const roomChats = allChats.filter(c => 
+    String(c.room || '').toUpperCase() === roomUpper || 
+    String(c.user || '').toUpperCase() === userUpper
+  );
+
   const body = document.getElementById('chatBody');
   if (!body) return;
+
+  const isAtBottom = (body.scrollHeight - body.scrollTop - body.clientHeight) < 80;
   body.innerHTML = '';
 
-  roomChats.forEach(c => {
-    const isSelf = (c.senderId === currentUser.id || c.senderUsername === currentUser.username || c.pengirim === 'ADMIN' || (currentUser && currentUser.category === 'SERVICE' && c.pengirim === 'SERVICE'));
-    const div = document.createElement('div');
-    div.className = isSelf ? 'chatUser' : 'chatAdmin';
-    div.innerHTML = `
-      <div class="chatText">${c.pesan}</div>
-      <div class="chatTime">${c.tanggal}</div>
-    `;
-    body.appendChild(div);
-  });
+  if (roomChats.length === 0) {
+    body.innerHTML = `<div class="chatAdmin"><div class="chatText">PESAN DARI ${currentChatUser || 'USER'} AKAN TAMPIL DI SINI.</div></div>`;
+  } else {
+    roomChats.forEach(c => {
+      const isSelf = (c.pengirim === 'SERVICE' || c.pengirim === 'ADMIN' || (currentUser && String(c.senderUsername).toUpperCase() === String(currentUser.username).toUpperCase()));
+      const div = document.createElement('div');
+      div.className = isSelf ? 'chatUser' : 'chatAdmin';
+      const senderName = isSelf ? `SERVICE TSM (${currentUser.fullName || currentUser.username})` : (c.senderName || c.user || 'USER');
+      div.innerHTML = `
+        <div style="font-size:10px; font-weight:bold; margin-bottom:2px; opacity:0.85;">${senderName}</div>
+        <div class="chatText">${c.pesan}</div>
+        <div class="chatTime">${c.tanggal}</div>
+      `;
+      body.appendChild(div);
+    });
+  }
 
-  body.scrollTop = body.scrollHeight;
+  if (isAtBottom || roomChats.length <= 5) {
+    body.scrollTop = body.scrollHeight;
+  }
 }
 
 function loadChatUser() {
   const allChats = JSON.parse(appStorage.getItem(CHAT_DB_KEY) || '[]');
-  const userChats = allChats.filter(c => c.user === currentUser.username || c.room === ('ROOM_' + currentUser.username));
+  const myUsernameUpper = String(currentUser ? currentUser.username : '').toUpperCase();
+  const roomName = 'ROOM_' + myUsernameUpper;
+
+  const userChats = allChats.filter(c => 
+    String(c.room || '').toUpperCase() === roomName || 
+    String(c.user || '').toUpperCase() === myUsernameUpper ||
+    String(c.senderUsername || '').toUpperCase() === myUsernameUpper
+  );
+
   const body = document.getElementById('chatBody');
   if (!body) return;
-  body.innerHTML = '';
 
   const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
-  const roomName = 'ROOM_' + currentUser.username;
-  const rIdx = rooms.findIndex(x => x.room === roomName);
+  const rIdx = rooms.findIndex(x => String(x.room || '').toUpperCase() === roomName || String(x.user || '').toUpperCase() === myUsernameUpper);
   if (rIdx !== -1 && rooms[rIdx].unreadUser > 0) {
     rooms[rIdx].unreadUser = 0;
     appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
-    pushCentralCloudDB(); 
-    cekUnreadNotif();
+    if (typeof pushCentralCloudDB === 'function') pushCentralCloudDB(); 
+    if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
   }
+
+  const isAtBottom = (body.scrollHeight - body.scrollTop - body.clientHeight) < 80;
+  body.innerHTML = '';
 
   if (userChats.length === 0) {
-    body.innerHTML = `<div class="chatAdmin"><div class="chatText">HALO 👋<br>ADA YANG BISA KAMI BANTU?</div></div>`;
-    return;
+    body.innerHTML = `
+      <div class="chatAdmin">
+        <div style="font-size:10px; font-weight:bold; margin-bottom:2px; color:var(--primary);">SERVICE TSM SUPPORT</div>
+        <div class="chatText">HALO 👋<br>ADA YANG BISA KAMI BANTU UNTUK PERMINTAAN TOKO ANDA? SILAKAN KIRIM PESAN DI SINI.</div>
+      </div>
+    `;
+  } else {
+    userChats.forEach(c => {
+      const isSelf = (c.pengirim === 'USER' || (currentUser && String(c.senderUsername).toUpperCase() === myUsernameUpper));
+      const div = document.createElement('div');
+      div.className = isSelf ? 'chatUser' : 'chatAdmin';
+      const senderLabel = isSelf ? 'ANDA' : 'SERVICE TSM';
+      div.innerHTML = `
+        <div style="font-size:10px; font-weight:bold; margin-bottom:2px; opacity:0.85;">${senderLabel}</div>
+        <div class="chatText">${c.pesan}</div>
+        <div class="chatTime">${c.tanggal}</div>
+      `;
+      body.appendChild(div);
+    });
   }
 
-  userChats.forEach(c => {
-    const isSelf = (c.senderId === currentUser.id || c.senderUsername === currentUser.username || c.pengirim === 'USER');
-    const div = document.createElement('div');
-    div.className = isSelf ? 'chatUser' : 'chatAdmin';
-    div.innerHTML = `
-      <div class="chatText">${c.pesan}</div>
-      <div class="chatTime">${c.tanggal}</div>
-    `;
-    body.appendChild(div);
-  });
-
-  body.scrollTop = body.scrollHeight;
+  if (isAtBottom || userChats.length <= 5) {
+    body.scrollTop = body.scrollHeight;
+  }
 }
 
 function kirimPesanChat() {
   const txt = document.getElementById('chatPesan');
-  if (!txt) return;
+  if (!txt || !currentUser) return;
   const pesan = txt.value.trim().toUpperCase();
   if (!pesan) return;
 
@@ -3861,57 +4004,93 @@ function kirimPesanChat() {
   const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
   const senderId = currentUser.id;
   const senderUsername = currentUser.username;
-  const timeStr = getFormattedDateDDMMYYYY() + ' ' + new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+  const now = new Date();
+  const timeStr = getFormattedDateDDMMYYYY(now) + ' ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
 
   if (isAdminChat) {
+    const targetUser = currentChatUser || 'USER';
+    const roomTarget = currentRoom || ('ROOM_' + String(targetUser).toUpperCase());
+    const roomUpper = String(roomTarget).toUpperCase();
+
     allChats.push({
-      room: currentRoom,
-      user: currentChatUser,
-      pengirim: 'ADMIN',
+      room: roomTarget,
+      user: targetUser,
+      pengirim: 'SERVICE',
       senderId,
       senderUsername,
+      senderName: `SERVICE TSM (${currentUser.fullName || currentUser.username})`,
       pesan,
       tanggal: timeStr
     });
-    
-    const rIdx = rooms.findIndex(x => x.room === currentRoom);
+
+    const rIdx = rooms.findIndex(x => String(x.room).toUpperCase() === roomUpper || String(x.user).toUpperCase() === String(targetUser).toUpperCase());
     if (rIdx !== -1) {
-      rooms[rIdx].last = pesan;
+      rooms[rIdx].last = `SERVICE TSM: ${pesan}`;
       rooms[rIdx].unreadUser = (rooms[rIdx].unreadUser || 0) + 1;
+      rooms[rIdx].lastTime = timeStr;
+    } else {
+      rooms.push({
+        room: roomTarget,
+        user: targetUser,
+        userArea: 'TSM',
+        last: `SERVICE TSM: ${pesan}`,
+        unreadAdmin: 0,
+        unreadUser: 1,
+        lastTime: timeStr
+      });
     }
 
     appStorage.setItem(CHAT_DB_KEY, JSON.stringify(allChats));
     appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
-    pushCentralCloudDB();
+    if (typeof pushCentralCloudDB === 'function') pushCentralCloudDB();
 
     txt.value = '';
-    loadChatAdmin(currentRoom);
+    loadChatAdmin(roomTarget);
   } else {
-    const room = 'ROOM_' + currentUser.username;
+    const myUsernameUpper = String(currentUser.username).toUpperCase();
+    const room = 'ROOM_' + myUsernameUpper;
+    const roomUpper = room.toUpperCase();
+
     allChats.push({
       room,
       user: currentUser.username,
+      userArea: currentUser.area,
       pengirim: 'USER',
       senderId,
       senderUsername,
+      senderName: `${currentUser.fullName || currentUser.username} (${currentUser.toko || currentUser.area})`,
       pesan,
       tanggal: timeStr
     });
-    appStorage.setItem(CHAT_DB_KEY, JSON.stringify(allChats));
 
-    const rIdx = rooms.findIndex(x => x.room === room);
+    const rIdx = rooms.findIndex(x => String(x.room).toUpperCase() === roomUpper || String(x.user).toUpperCase() === myUsernameUpper);
     if (rIdx !== -1) {
       rooms[rIdx].last = pesan;
       rooms[rIdx].unreadAdmin = (rooms[rIdx].unreadAdmin || 0) + 1;
+      rooms[rIdx].lastTime = timeStr;
+      rooms[rIdx].userArea = currentUser.area;
     } else {
-      rooms.push({ room, user: currentUser.username, last: pesan, unreadAdmin: 1, unreadUser: 0 });
+      rooms.push({
+        room,
+        user: currentUser.username,
+        userArea: currentUser.area,
+        last: pesan,
+        unreadAdmin: 1,
+        unreadUser: 0,
+        lastTime: timeStr
+      });
     }
+
+    appStorage.setItem(CHAT_DB_KEY, JSON.stringify(allChats));
     appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
-    pushCentralCloudDB();
+    if (typeof pushCentralCloudDB === 'function') pushCentralCloudDB();
 
     txt.value = '';
     loadChatUser();
   }
+
+  if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+  if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
 }
 
 function kembaliKeDaftarAdmin() {
@@ -3949,11 +4128,23 @@ function cekUnreadNotif() {
     if (myRoom && myRoom.unreadUser > 0) {
       badge.textContent = myRoom.unreadUser > 99 ? '99+' : myRoom.unreadUser;
       badge.style.display = 'flex';
-    } else {
-      badge.style.display = 'none';
     }
   }
 }
+
+window.bukaBantuan = bukaBantuan;
+window.tutupBantuan = tutupBantuan;
+window.kirimPesanChat = kirimPesanChat;
+window.kembaliKeDaftarAdmin = kembaliKeDaftarAdmin;
+window.cekUnreadNotif = cekUnreadNotif;
+window.loadDaftarChatAdmin = loadDaftarChatAdmin;
+window.bukaRoomAdmin = bukaRoomAdmin;
+window.loadChatAdmin = loadChatAdmin;
+window.loadChatUser = loadChatUser;
+window.updateNotifBellCounter = updateNotifBellCounter;
+window.aturTampilanLonceng = aturTampilanLonceng;
+window.startGlobalRealtimeLoop = startGlobalRealtimeLoop;
+
 
 function loadUsersManagement() {
   loadAdminScriptUrlInput();
@@ -4971,11 +5162,11 @@ function initAllDraggableButtons() {
 (function() {
   const styleTag = document.createElement('style');
   styleTag.innerHTML = `
-    body:not(:has(#dashboardPage.active)) #notifBellBtn,
-    body:not(:has(#dashboardPage.active)) .notif-bell-btn,
-    body:not(:has(#dashboardPage.active)) #helpButton,
-    body:not(:has(#dashboardPage.active)) .helpButton,
-    body:not(:has(#dashboardPage.active)) #firebaseOnlineDot {
+    body:has(#loginPage.active) #notifBellBtn,
+    body:has(#loginPage.active) .notif-bell-btn,
+    body:has(#loginPage.active) #helpButton,
+    body:has(#loginPage.active) .helpButton,
+    body:has(#loginPage.active) #firebaseOnlineDot {
       display: none !important;
     }
   `;
