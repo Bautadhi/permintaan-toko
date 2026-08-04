@@ -266,31 +266,22 @@ function startSupabaseKeepalive() {
   }, 45000); // Ping dimajukan jadi setiap 45 detik
 }
 
-// =========================================================================
-// 3. FIX: KOMPRESI FOTO AGAR JERNIH TAPI MEMORI KECIL (HD 1024px, 80%)
-// =========================================================================
 async function uploadPhotoToSupabaseStorage(file) {
   if (!supabaseClient) return null;
   try {
-    // 1. Kompres foto dulu (Resolusi max 1024px, Kualitas 80% / 0.8)
-    const base64Data = await kompresiFoto(file, 1024, 0.8); 
-    if (!base64Data) return null;
-
-    // 2. Ubah hasil kompresi (base64) kembali menjadi File/Blob untuk Supabase
-    const res = await fetch(base64Data);
-    const blob = await res.blob();
+    // Ambil ekstensi asli file (jpg, png, jpeg, dll)
+    const ext = (file.name && file.name.split('.').pop()) || 'jpg';
+    const fileName = `FOTO_${Date.now()}_${Math.floor(Math.random() * 10000)}.${ext}`;
     
-    const fileName = `FOTO_${Date.now()}_${Math.floor(Math.random() * 10000)}.jpg`; // Paksa format JPG agar ringan
-    
-    // 3. Upload file yang sudah ringan ke Supabase
-    const { error } = await supabaseClient.storage.from('photos').upload(fileName, blob, { 
-      contentType: 'image/jpeg', 
+    // Langsung upload file asli ke bucket 'photos' di Supabase
+    const { error } = await supabaseClient.storage.from('photos').upload(fileName, file, { 
       cacheControl: '3600', 
       upsert: false 
     });
     
     if (error) throw error;
     
+    // Ambil URL publik file tersebut
     const { data } = supabaseClient.storage.from('photos').getPublicUrl(fileName);
     return data?.publicUrl || null;
   } catch (err) {
