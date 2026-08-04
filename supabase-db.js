@@ -12,7 +12,9 @@ let pendingWrites = new Map();
 let writeTimer = null;
 let realtimeChannel = null;
 let onDataChangeCallback = null;
-let reconnectTimer = null; // Timer untuk auto-reconnect
+let reconnectTimer = null; 
+let supabaseKeepaliveTimer = null; // Dideklarasikan hanya 1 kali
+let pullRunning = false;
 
 // PENTING: Hanya menggunakan RAM (Memory), tidak ada Local Storage
 const memoryCache = new Map();
@@ -60,455 +62,216 @@ function setOnDataChangeCallback(fn) { onDataChangeCallback = fn; }
    INIT SUPABASE DATABASE
 ====================================================== */
 async function initSupabaseDB(secretKey = null) {
-
   if (typeof supabase === 'undefined') {
     console.error('Supabase Library belum dimuat');
     updateSupabaseStatusUI(false);
     return false;
   }
 
-  const apiKey =
-    (secretKey && secretKey.trim())
-      ? secretKey.trim()
-      : APP_SUPABASE_PUBLISHABLE_KEY;
+  const apiKey = (secretKey && secretKey.trim()) ? secretKey.trim() : APP_SUPABASE_PUBLISHABLE_KEY;
 
   try {
-
-    // ==================================================
     // BUAT CLIENT HANYA SEKALI
-    // ==================================================
     if (!supabaseClient) {
-
-      supabaseClient = supabase.createClient(
-        APP_SUPABASE_URL,
-        apiKey,
-        {
-
-          auth: {
-
-            persistSession: false,
-            autoRefreshToken: false,
-            detectSessionInUrl: false
-
-          },
-
-          realtime: {
-
-            params: {
-
-              eventsPerSecond: 20
-
-            }
-
-          }
-
+      supabaseClient = supabase.createClient(APP_SUPABASE_URL, apiKey, {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+          detectSessionInUrl: false
+        },
+        realtime: {
+          params: { eventsPerSecond: 20 }
         }
-      );
-
+      });
     }
 
-    // ==================================================
     // LOAD DATA CLOUD
-    // ==================================================
     await loadAllFromSupabase();
 
-    // ==================================================
     // REALTIME
-    // ==================================================
     await setupRealtimeSubscription();
 
-    // ==================================================
     // STATUS
-    // ==================================================
     isSupabaseReady = true;
     isSupabaseOnline = true;
-
     updateSupabaseStatusUI(true);
 
-    // ==================================================
     // START KEEPALIVE
-    // ==================================================
     startSupabaseKeepalive();
-
-    console.log('SUPABASE READY');
-
+    
+    console.log('✅ SUPABASE READY');
     return true;
 
-  }
-  catch(err){
-
+  } catch(err) {
     console.error(err);
-
     isSupabaseReady = false;
     isSupabaseOnline = false;
-
     updateSupabaseStatusUI(false);
-
     return false;
-
   }
-
 }
+
 /* ======================================================
    LOAD ALL FROM SUPABASE
 ====================================================== */
-
-async function loadAllFromSupabase(){
-
-    return await pullFromSupabase(true);
-
+async function loadAllFromSupabase() {
+  return await pullFromSupabase(true);
 }
-
-/* ======================================================
-   REALTIME SUBSCRIPTION (ANTI ZOMBIE CHANNEL)
-====================================================== */
-
-let realtimeChannel = null;
-let reconnecting = false;
-let reconnectDelay = 3000;
-let refreshTimer = null;
 
 /* ======================================================
    REALTIME SUBSCRIPTION ENGINE
 ====================================================== */
-
 async function setupRealtimeSubscription() {
-
   if (!supabaseClient) return;
 
   try {
-
-    // ============================================
     // HAPUS CHANNEL LAMA
-    // ============================================
-
     if (realtimeChannel) {
-
-      try {
-
-        await supabaseClient.removeChannel(realtimeChannel);
-
-      } catch (e) {}
-
+      try { await supabaseClient.removeChannel(realtimeChannel); } catch (e) {}
       realtimeChannel = null;
-
     }
 
-    // ============================================
     // BUAT CHANNEL BARU
-    // ============================================
-
     realtimeChannel = supabaseClient
       .channel('app_storage_realtime')
-
-      .on(
-        'postgres_changes',
-        {
-
-          event: '*',
-          schema: 'public',
-          table: 'app_storage'
-
-        },
-
-        payload => {
-
-          try {
-
-            // ------------------------
-            // DELETE
-            // ------------------------
-
-            if (payload.eventType === 'DELETE') {
-
-              const key = payload.old?.key;
-
-              if (key) {
-
-                memoryCache.delete(key);
-
-                if (typeof onDataChangeCallback === 'function') {
-
-                  onDataChangeCallback(key);
-
-                }
-
-              }
-
-              return;
-
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'app_storage' }, payload => {
+        try {
+          // DELETE
+          if (payload.eventType === 'DELETE') {
+            const key = payload.old?.key;
+            if (key) {
+              memoryCache.delete(key);
+              if (typeof onDataChangeCallback === 'function') onDataChangeCallback(key);
             }
-
-            // ------------------------
-            // INSERT / UPDATE
-            // ------------------------
-
-            const row = payload.new;
-
-            if (!row || !row.key) return;
-
-            memoryCache.set(
-              row.key,
-              serializeForCache(row.value)
-            );
-
-            if (typeof onDataChangeCallback === 'function') {
-
-              onDataChangeCallback(row.key);
-
-            }
-
+            return;
           }
 
-          catch(err){
+          // INSERT / UPDATE
+          const row = payload.new;
+          if (!row || !row.key) return;
 
-            console.error(
-              'Realtime Callback Error',
-              err
-            );
+          memoryCache.set(row.key, serializeForCache(row.value));
+          if (typeof onDataChangeCallback === 'function') onDataChangeCallback(row.key);
 
-          }
-
+        } catch(err) {
+          console.error('Realtime Callback Error', err);
         }
-
-      )
-
-      .subscribe((status)=>{
-
-        console.log("Realtime :",status);
-
-        switch(status){
-
+      })
+      .subscribe((status) => {
+        console.log("Realtime Status:", status);
+        switch(status) {
           case "SUBSCRIBED":
-
             isSupabaseOnline = true;
-
             updateSupabaseStatusUI(true);
-
             break;
-
           case "CHANNEL_ERROR":
-
           case "TIMED_OUT":
-
           case "CLOSED":
-
             isSupabaseOnline = false;
-
             updateSupabaseStatusUI(false);
-
             reconnectRealtime();
-
             break;
-
         }
-
       });
-
-  }
-
-  catch(err){
-
+  } catch(err) {
     console.error(err);
-
     reconnectRealtime();
-
   }
-
 }
+
 /* ======================================================
    REALTIME RECONNECT
 ====================================================== */
-
-function reconnectRealtime(){
-
-  if(reconnectTimer){
-
-    clearTimeout(reconnectTimer);
-
-  }
-
-  reconnectTimer = setTimeout(async ()=>{
-
+function reconnectRealtime() {
+  if (reconnectTimer) clearTimeout(reconnectTimer);
+  
+  reconnectTimer = setTimeout(async () => {
     if(!supabaseClient) return;
-
-    console.log("Reconnect Realtime...");
-
+    console.log("Menyambung kembali ke Supabase Realtime...");
     await pullFromSupabase();
-
     await setupRealtimeSubscription();
-
-  },2500);
-
+  }, 2500);
 }
 
 /* ======================================================
    SAVE TO QUEUE
 ====================================================== */
-
-function schedulePersist(key, value){
-
+function schedulePersist(key, value) {
   pendingWrites.set(key, value);
-
   if(writeTimer) return;
-
-  writeTimer = setTimeout(async ()=>{
-
+  
+  writeTimer = setTimeout(async () => {
     writeTimer = null;
-
     await flushPendingWrites();
-
-  },250);
-
+  }, 250);
 }
 
 /* ======================================================
    DELETE QUEUE
 ====================================================== */
-
-function scheduleDelete(key){
-
-  pendingWrites.set(key,{
-
-    __DELETE__:true
-
-  });
-
+function scheduleDelete(key) {
+  pendingWrites.set(key, { __DELETE__: true });
   if(writeTimer) return;
-
-  writeTimer=setTimeout(async()=>{
-
-      writeTimer=null;
-
-      await flushPendingWrites();
-
-  },250);
-
+  
+  writeTimer = setTimeout(async () => {
+    writeTimer = null;
+    await flushPendingWrites();
+  }, 250);
 }
 
 /* ======================================================
    FLUSH PENDING WRITES (SAFE VERSION)
 ====================================================== */
-
 async function flushPendingWrites() {
-
   if (!supabaseClient) return;
-
   if (pendingWrites.size === 0) return;
 
-  // -----------------------------------------
   // Salin data TANPA menghapus antrian dahulu
-  // -----------------------------------------
-
   const batch = [...pendingWrites.entries()];
-
   const upsertRows = [];
   const deleteKeys = [];
 
   batch.forEach(([key, value]) => {
-
     if (value && value.__DELETE__) {
-
       deleteKeys.push(key);
-
     } else {
-
       upsertRows.push({
-
         key: key,
-
         value: value,
-
         updated_at: new Date().toISOString()
-
       });
-
     }
-
   });
 
   try {
-
-    // ======================================
     // DELETE
-    // ======================================
-
     if (deleteKeys.length > 0) {
-
-      const { error } = await supabaseClient
-        .from('app_storage')
-        .delete()
-        .in('key', deleteKeys);
-
+      const { error } = await supabaseClient.from('app_storage').delete().in('key', deleteKeys);
       if (error) throw error;
-
     }
 
-    // ======================================
     // UPSERT
-    // ======================================
-
     if (upsertRows.length > 0) {
-
-      const { error } = await supabaseClient
-        .from('app_storage')
-        .upsert(
-          upsertRows,
-          {
-            onConflict: 'key'
-          }
-        );
-
+      const { error } = await supabaseClient.from('app_storage').upsert(upsertRows, { onConflict: 'key' });
       if (error) throw error;
-
     }
 
-    // ======================================
     // BERHASIL
-    // ======================================
-
-    batch.forEach(([key]) => {
-
-      pendingWrites.delete(key);
-
-    });
-
+    batch.forEach(([key]) => pendingWrites.delete(key));
     isSupabaseOnline = true;
-
     updateSupabaseStatusUI(true);
 
-  }
-
-  catch(err){
-
-    console.warn(
-      'Flush Error :',
-      err.message
-    );
-
+  } catch(err) {
+    console.warn('Flush Error :', err.message);
     isSupabaseOnline = false;
-
     updateSupabaseStatusUI(false);
-
-    // ======================================
+    
     // COBA LAGI 3 DETIK
-    // ======================================
-
-    if(writeTimer){
-
-      clearTimeout(writeTimer);
-
-    }
-
-    writeTimer = setTimeout(()=>{
-
-      flushPendingWrites();
-
-    },3000);
-
+    if(writeTimer) clearTimeout(writeTimer);
+    writeTimer = setTimeout(() => flushPendingWrites(), 3000);
   }
-
 }
+
 async function pushToSupabaseNow() {
   if (writeTimer) {
     clearTimeout(writeTimer);
@@ -520,113 +283,63 @@ async function pushToSupabaseNow() {
 /* ======================================================
    PULL FROM SUPABASE
 ====================================================== */
-
-let pullRunning = false;
-
 async function pullFromSupabase(force = false) {
-
   if (!supabaseClient) return false;
-
+  
   // jangan pull bersamaan
-  if (pullRunning && !force) {
-    return true;
-  }
+  if (pullRunning && !force) return true;
 
   pullRunning = true;
 
   try {
-
-    const { data, error } = await supabaseClient
-      .from("app_storage")
-      .select("key,value");
-
+    const { data, error } = await supabaseClient.from("app_storage").select("key,value");
     if (error) throw error;
 
     if (Array.isArray(data)) {
-
       for (const row of data) {
-
-        memoryCache.set(
-          row.key,
-          serializeForCache(row.value)
-        );
-
+        memoryCache.set(row.key, serializeForCache(row.value));
       }
-
     }
 
     isSupabaseOnline = true;
-
     updateSupabaseStatusUI(true);
-
     return true;
-
-  }
-  catch(err){
-
-    console.warn(
-      "Pull Error :",
-      err.message
-    );
-
+  } catch(err) {
+    console.warn("Pull Error :", err.message);
     isSupabaseOnline = false;
-
     updateSupabaseStatusUI(false);
-
     return false;
-
-  }
-  finally{
-
+  } finally {
     pullRunning = false;
-
   }
-
 }
-let supabaseKeepaliveTimer = null;
 
 /* ======================================================
-   KEEP ALIVE
+   KEEP ALIVE (DIPERBAIKI DENGAN QUERY RINGAN)
 ====================================================== */
+function startSupabaseKeepalive() {
+  if (supabaseKeepaliveTimer) clearInterval(supabaseKeepaliveTimer);
 
-let supabaseKeepaliveTimer = null;
-
-function startSupabaseKeepalive(){
-
-    if(supabaseKeepaliveTimer){
-
-        clearInterval(supabaseKeepaliveTimer);
-
+  supabaseKeepaliveTimer = setInterval(async () => {
+    if(!supabaseClient) return;
+    try {
+      // Pakai select ringan ke DB agar tidak memunculkan error 404
+      const { error } = await supabaseClient.from('app_storage').select('key').limit(1);
+      if (error) throw error;
+      
+      isSupabaseOnline = true;
+      updateSupabaseStatusUI(true);
+    } catch(e) {
+      isSupabaseOnline = false;
+      updateSupabaseStatusUI(false);
+      reconnectRealtime();
     }
-
-    supabaseKeepaliveTimer = setInterval(async()=>{
-
-        if(!supabaseClient) return;
-
-        try{
-
-            const {error}=await supabaseClient.rpc("ping");
-
-            if(error) throw error;
-
-            isSupabaseOnline=true;
-
-            updateSupabaseStatusUI(true);
-
-        }
-        catch(e){
-
-            isSupabaseOnline=false;
-
-            updateSupabaseStatusUI(false);
-
-            reconnectRealtime();
-
-        }
-
-    },60000);
-
+  }, 60000);
 }
+
+/* ======================================================
+   UPLOAD PHOTO MENTAH (TANPA KOMPRESI)
+====================================================== */
 async function uploadPhotoToSupabaseStorage(file) {
   if (!supabaseClient) return null;
   try {
@@ -650,6 +363,10 @@ async function uploadPhotoToSupabaseStorage(file) {
     return null;
   }
 }
+
+/* ======================================================
+   UPDATE UI STATUS
+====================================================== */
 function updateSupabaseStatusUI(isOnline) {
   const badge = document.getElementById('cloudStatusBadge');
   if (!badge) return;
@@ -667,6 +384,7 @@ function updateSupabaseStatusUI(isOnline) {
   }
 }
 
+// EKSPOR KE WINDOW/GLOBAL AGAR BISA DIPANGGIL APP.JS
 window.initSupabaseDB = initSupabaseDB;
 window.pushToSupabaseNow = pushToSupabaseNow;
 window.pullFromSupabase = pullFromSupabase;
