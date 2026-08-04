@@ -692,28 +692,50 @@ function checkAndTriggerPendingReminders() {
    ====================================================== */
 let cloudSyncInterval = null;
 
-function onSupabaseDataChange() {
+// =========================================================================
+// REAL-TIME UI UPDATER (DIKOREKSI AGAR CHAT LANGSUNG MUNCUL TANPA TUTUP POPUP)
+// =========================================================================
+function onSupabaseDataChange(keyChanged) {
   if (!currentUser) return;
-  loadDashboard();
-  loadRiwayat();
-  if (document.getElementById('userTableBody')) loadUsersManagement();
-  if (document.getElementById('masterDbTableBody')) loadMasterDbTable();
-  loadTokoDropdown();
-  updatePhotoSectionVisibility();
-  updateNotifBellCounter();
 
+  // 1. Perbarui halaman utama yang sedang aktif
+  const activePage = document.querySelector('.page.active');
+  const pageId = activePage ? activePage.id : '';
+
+  if (pageId === 'dashboardPage' && typeof loadDashboard === 'function') loadDashboard();
+  else if (pageId === 'riwayatPage' && typeof loadRiwayat === 'function') loadRiwayat();
+  else if (pageId === 'masterDbPage' && typeof loadMasterDbTable === 'function') loadMasterDbTable();
+  else if (pageId === 'userManagementPage' && typeof loadUsersManagement === 'function') loadUsersManagement();
+
+  // 2. SELALU UPDATE NOTIFIKASI LONCENG & BADGE CHAT DI LATAR BELAKANG
+  if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+  if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
+
+  // 3. KOREKSI UTAMA CHAT REAL-TIME:
+  // Jika pop-up chat bantuan sedang terbuka, langsung muat ulang pesannya detik itu juga!
   const popupBantuan = document.getElementById('popupBantuan');
-  if (popupBantuan && popupBantuan.classList.contains('show')) {
-    if (isAdminChat) {
-      if (currentRoom) loadChatAdmin(currentRoom);
-      else loadDaftarChatAdmin();
+  if (popupBantuan && (popupBantuan.classList.contains('show') || popupBantuan.style.display === 'block')) {
+    if (typeof isAdminChat !== 'undefined' && isAdminChat) {
+      // Jika Admin sedang membuka room chat tertentu, refresh chat di room tersebut
+      if (typeof currentRoom !== 'undefined' && currentRoom && typeof loadChatAdmin === 'function') {
+        loadChatAdmin(currentRoom);
+      } else if (typeof loadDaftarChatAdmin === 'function') {
+        loadDaftarChatAdmin();
+      }
     } else {
-      loadChatUser();
+      // Jika User/Toko sedang membuka chat, langsung muat ulang isi chat-nya
+      if (typeof loadChatUser === 'function') {
+        loadChatUser();
+      }
     }
   }
-  cekUnreadNotif();
-}
 
+  // 4. Jika popup daftar notifikasi sedang terbuka, update listnya
+  const notifListPopup = document.getElementById('popupNotifList');
+  if (notifListPopup && notifListPopup.classList.contains('show')) {
+    if (typeof loadNotificationList === 'function') loadNotificationList();
+  }
+}
 function bersihkanCacheAplikasiWeb() {
   if (typeof caches !== 'undefined' && caches.keys) {
     caches.keys().then(names => {
