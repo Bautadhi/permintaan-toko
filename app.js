@@ -22,6 +22,7 @@ const FONTE_TOKEN_KEY = 'STORE_FONTE_TOKEN_KEY_V7_CLEAN';
 const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7_CLEAN';
 const ADMIN_SECRET_KEY_STORAGE_KEY = 'STORE_ADMIN_SECRET_KEY_V7_CLEAN';
 const ADMIN_SCRIPT_URL_KEY = 'STORE_ADMIN_SCRIPT_URL_V7_CLEAN';
+const FIREBASE_USER_CONFIG_KEY = 'STORE_FIREBASE_USER_CONFIG_V7_CLEAN';
 
 if (!window.appStorage) {
   const fallbackMemory = {};
@@ -132,15 +133,39 @@ function getAccessibleNotifications() {
   if (!currentUser) return [];
   const notifs = getSystemNotifications();
 
-  return notifs.filter(n => {
+  let filtered = notifs.filter(n => {
     const areaMatch = (n.targetArea === 'ALL' || currentUser.category === 'DM' || n.targetArea === currentUser.area);
     const roleMatch = (
       n.targetRoles.includes('ALL') ||
       n.targetRoles.includes(currentUser.category) ||
+      (currentUser.category === 'DM' && (n.targetRoles.includes('DM') || n.targetRoles.includes('ADMIN'))) ||
       (currentUser.category === 'TOKO' && n.targetRoles.includes('TOKO'))
     );
     return areaMatch && roleMatch;
   });
+
+  // UNTUK DM: SINTESIS OTOMATIS DARI TRANSAKSI APPROVE SERVICE YANG PENDING APPROVAL DM
+  if (currentUser.category === 'DM') {
+    const requests = getRequestsFromDB();
+    const serviceApprovedReqs = requests.filter(r => r.status === 'PENDING' && r.serviceApprove);
+    
+    serviceApprovedReqs.forEach(r => {
+      const exists = filtered.some(n => n.noSurat === r.noSurat);
+      if (!exists) {
+        filtered.unshift({
+          id: `NTF-DM-${r.noSurat}`,
+          targetRoles: ['DM'],
+          targetArea: 'ALL',
+          message: `PERMINTAAN #${r.noSurat} DARI ${r.toko} (${r.area}) TELAH DISETUJUI SERVICE. MOHON APPROVAL DM.`,
+          noSurat: r.noSurat,
+          time: r.createdAt || getFormattedDateDDMMYYYY(),
+          readBy: []
+        });
+      }
+    });
+  }
+
+  return filtered;
 }
 
 function updateNotifBellCounter() {
@@ -158,7 +183,6 @@ function updateNotifBellCounter() {
   const userNotifs = getAccessibleNotifications();
   let unreadCount = userNotifs.filter(n => !n.readBy.includes(currentUser.id) && !n.readBy.includes(currentUser.username)).length;
 
-  // Include pending approval requests count for DM or SERVICE
   if (currentUser.category === 'DM') {
     const requests = getRequestsFromDB();
     const pendingDMCount = requests.filter(r => r.status === 'PENDING' && r.serviceApprove).length;
@@ -181,14 +205,12 @@ function bukaNotificationModal() {
   const popup = document.getElementById('popupNotifList');
   if (!popup) return;
 
-  // 1. Eksekusi pemuatan data
   if (typeof renderNotifList === 'function') {
-    renderNotifList(); // Gunakan renderNotifList jika ada
+    renderNotifList();
   } else if (typeof loadNotificationList === 'function') {
-    loadNotificationList(); // Fallback ke fungsi Anda
+    loadNotificationList();
   }
 
-  // 2. Cek paksa apakah elemen body notifikasi kosong
   const listBody = document.getElementById('notifListBody');
   if (listBody && listBody.innerHTML.trim() === '') {
     listBody.innerHTML = `
@@ -198,7 +220,6 @@ function bukaNotificationModal() {
     `;
   }
 
-  // 3. Tampilkan popup & beritahu HP
   popup.style.display = 'flex';
   popup.classList.add('show');
   
@@ -263,41 +284,20 @@ function loadNotificationList() {
 }
 
 function clickNotificationItem(notifId, noSurat) {
-
   markNotifAsRead(notifId);
 
-  
-
-  // Tutup HANYA popup daftar notifikasinya saja, jangan pakai closeAllPopups()
-
   const notifListPopup = document.getElementById('popupNotifList');
-
   if (notifListPopup) {
-
     notifListPopup.style.display = 'none';
-
     notifListPopup.classList.remove('show');
-
   }
-
-
-
-  // Beri jeda sepersekian detik agar popup notif benar-benar tertutup mulus, 
-
-  // lalu baru buka popup detail barangnya
 
   if (noSurat) {
-
     setTimeout(() => {
-
       lihatDetail(noSurat, true);
-
     }, 150);
-
   }
-
-} 
-
+}
 
 function markNotifAsRead(notifId) {
   const notifs = getSystemNotifications();
@@ -401,16 +401,14 @@ const AREA_MAP = {
   TSM: 'TASIKMALAYA (TSM)'
 };
 
-// KNOWN UNIT TYPE LOOKUP DATABASE (EMPTY INITIAL STATE: POPULATED FROM GOOGLE SHEETS / EXCEL UPLOAD)
 const KODE_UNIT_MAP = {};
 
-// SEED USERS DATABASE (CLEAN INITIAL STATE: ONLY ADMIN PSW=1)
 const SEED_USERS = [
   {
     id: 'USR-ADMIN',
     username: 'ADMIN',
     password: '1',
-    fullName: 'ADMINISTRATOR PUSAT',
+    fullName: 'ADMIN',
     phone: '',
     category: 'ADMIN',
     area: 'ALL',
@@ -418,15 +416,13 @@ const SEED_USERS = [
   }
 ];
 
-// SEED REQUESTS DATABASE (CLEAN INITIAL STATE)
 const SEED_REQUESTS = [];
 
-// STATE VARIABLES
 let currentUser = null;
 let currentPhotos = [];
 let currentThemeIndex = 0;
 let filterStatusRiwayat = '';
-let dashboardFilterStatus = 'PENDING'; // DEFAULT DASHBOARD FILTER STATUS IS PENDING
+let dashboardFilterStatus = 'PENDING';
 let modeEdit = false;
 let editNoSurat = '';
 let confirmCallback = null;
@@ -440,12 +436,14 @@ let lastX = 0;
 let lastY = 0;
 let activeScanInput = null;
 let html5QrCodeScanner = null;
+let viewerPhotos = [];
+let viewerCurrentIndex = 0;
 
-// HELPER: GET FORMATTED DATE (DD/MM/YYYY)
 function getFormattedDateDDMMYYYY(dObj = new Date()) {
-  const day = String(dObj.getDate()).padStart(2, '0');
-  const month = String(dObj.getMonth() + 1).padStart(2, '0');
-  const year = dObj.getFullYear();
+  const d = (dObj instanceof Date && !isNaN(dObj.getTime())) ? dObj : new Date();
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
   return `${day}/${month}/${year}`;
 }
 
@@ -468,20 +466,41 @@ function formatDateDDMMYYYYString(input) {
   }
   return str;
 }
+
+function getRequestsFromDB() {
+  return JSON.parse(appStorage.getItem(REQUESTS_DB_KEY) || '[]');
+}
+
+function saveRequestsToDB(requests) {
+  appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(requests));
+  if (typeof pushCentralCloudDB === 'function') {
+    pushCentralCloudDB();
+  }
+}
+
+function getUsersFromDB() {
+  return JSON.parse(appStorage.getItem(USERS_DB_KEY) || '[]');
+}
+
+function saveUsersToDB(users) {
+  appStorage.setItem(USERS_DB_KEY, JSON.stringify(users));
+  if (typeof pushCentralCloudDB === 'function') {
+    pushCentralCloudDB();
+  }
+}
+
 // APP INITIALIZATION
-// ======================================================
-// APP INITIALIZATION & BOOT SEQUENCE (ANTI-BLANK)
-// ======================================================
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    // Loading awal dihapus agar langsung instan
     closeAllPopups();
 
     if (typeof loadSupabaseConfigFromJson === 'function') {
       await loadSupabaseConfigFromJson();
     }
     
-    await initSupabaseDB();
+    if (typeof initSupabaseDB === 'function') {
+      await initSupabaseDB();
+    }
     
     initDatabase(); 
     if (typeof startCentralCloudSyncEngine === 'function') startCentralCloudSyncEngine();
@@ -538,7 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (err) {
     console.error("Boot error:", err);
   } finally {
-    hideLoading(); // Tetap jalankan hide untuk membersihkan sisa overlay jika ada
+    hideLoading();
     closeAllPopups();
     if (!document.querySelector('.page.active')) {
       const dash = document.getElementById('dashboardPage');
@@ -546,54 +565,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // =========================================================================
-  // FIX PENULISAN: TAMBAHKAN PEMBUKA "setTimeout(() => {" DI SINI
-  // =========================================================================
   setTimeout(() => {
     if (typeof aturTampilanLonceng === 'function' && typeof getCurrentActivePageId === 'function') {
       aturTampilanLonceng(getCurrentActivePageId());
     }
-  }, 500); // Tunggu setengah detik sampai halaman benar-benar terbentuk
+  }, 500);
+});
 
-}); // <-- Ini kurung penutup utama DOMContentLoaded
-/* ======================================================
-   MOBILE PULL-TO-REFRESH GESTURE ENGINE
-   ====================================================== */
 function initPullToRefresh() {
-  const container = document.getElementById('app') || document.body;
-  let startY = 0;
-  let moveY = 0;
-  let isAtTop = false;
-
-  container.addEventListener('touchstart', (e) => {
-    if (container.scrollTop <= 5) {
-      startY = e.touches[0].clientY;
-      isAtTop = true;
-    } else {
-      isAtTop = false;
-    }
-  }, { passive: true });
-
-  container.addEventListener('touchmove', (e) => {
-    if (!isAtTop) return;
-    moveY = e.touches[0].clientY;
-  }, { passive: true });
-
-  container.addEventListener('touchend', async () => {
-    if (!isAtTop) return;
-    const dist = moveY - startY;
-    if (dist > 80 && container.scrollTop <= 5) {
-      await pullCentralCloudDB();
-    }
-    startY = 0;
-    moveY = 0;
-    isAtTop = false;
-  }, { passive: true });
+  // PULL DOWN REFRESH DISABLED PER USER DIRECTIVE
 }
 
-/* ======================================================
-   ADMIN FEATURE TOGGLE FOR PENDING APPROVAL REMINDERS (SERVICE & DM)
-   ====================================================== */
 function getAdminReminderEnabled() {
   const val = appStorage.getItem(ADMIN_REMINDER_KEY);
   return val !== 'false';
@@ -604,6 +586,7 @@ function toggleAdminReminderFeature() {
   const next = !current;
   appStorage.setItem(ADMIN_REMINDER_KEY, next ? 'true' : 'false');
   updateAdminReminderUI();
+  pushCentralCloudDB();
   showNotif(next ? 'REMINDER PENDING SERVICE & DM SEKARANG AKTIF (ON)!' : 'REMINDER PENDING SERVICE & DM NONAKTIF (OFF)!', 'info');
   if (next) {
     checkAndTriggerPendingReminders();
@@ -623,6 +606,7 @@ function simpanAdminReminderTime() {
   const val = input.value.trim();
   if (val) {
     appStorage.setItem(ADMIN_REMINDER_TIME_KEY, val);
+    pushCentralCloudDB();
     showNotif(`JADWAL JAM WA REMINDER DISIMPAN: ${val}!`, 'info');
   }
 }
@@ -687,24 +671,14 @@ function checkAndTriggerPendingReminders() {
   }
 }
 
-/* ======================================================
-   SUPABASE CLOUD SYNC (MENGGANTIKAN CLOUDFLARE / FIREBASE)
-   ====================================================== */
 let cloudSyncInterval = null;
 
-// =========================================================================
-// REAL-TIME UI UPDATER (DIKOREKSI AGAR CHAT LANGSUNG MUNCUL TANPA TUTUP POPUP)
-// =========================================================================
-// =========================================================================
-// REAL-TIME UI UPDATER (BERSIH DARI ERROR REFERENCE)
-// =========================================================================
 function onSupabaseDataChange(keyChanged) {
   if (!currentUser) return;
 
   const activePage = document.querySelector('.page.active');
   const pageId = activePage ? activePage.id : '';
 
-  // HANYA REFRESH TABEL/DASHBOARD. JANGAN REFRESH INPUT PAGE!
   if (pageId === 'dashboardPage' && typeof loadDashboard === 'function') {
     loadDashboard();
   } else if (pageId === 'riwayatPage' && typeof loadRiwayat === 'function') {
@@ -738,6 +712,7 @@ function onSupabaseDataChange(keyChanged) {
     if (typeof loadNotificationList === 'function') loadNotificationList();
   }
 }
+
 function bersihkanCacheAplikasiWeb() {
   if (typeof caches !== 'undefined' && caches.keys) {
     caches.keys().then(names => {
@@ -746,44 +721,308 @@ function bersihkanCacheAplikasiWeb() {
   }
 }
 
+// DEFAULT FIREBASE ONLINE CONFIGURATION (PERMINTAAN TOKO - REAL LIVE DATABASE)
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDTQdgmBi39SqLZ1j_aa8tj-mimCIXJTa0",
+  authDomain: "permintaan-toko-e3b5d.firebaseapp.com",
+  projectId: "permintaan-toko-e3b5d",
+  storageBucket: "permintaan-toko-e3b5d.firebasestorage.app",
+  messagingSenderId: "1072410401023",
+  appId: "1:1072410401023:web:465e23030d2259b56454ca",
+  measurementId: "G-KFHDYEP3VD"
+};
+
+let firebaseApp = null;
+let dbFirestore = null;
+let dbRealtime = null;
+
+function getActiveFirebaseConfig() {
+  const saved = appStorage.getItem(FIREBASE_USER_CONFIG_KEY);
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      if (parsed && typeof parsed === 'object' && parsed.projectId && !parsed.projectId.includes('demo') && !parsed.projectId.includes('jabar')) {
+        return parsed;
+      }
+    } catch (e) {}
+  }
+  return DEFAULT_FIREBASE_CONFIG;
+}
+
+function initFirebaseDB() {
+  try {
+    if (typeof firebase !== 'undefined') {
+      const activeConfig = getActiveFirebaseConfig();
+      if (!firebase.apps.length) {
+        firebaseApp = firebase.initializeApp(activeConfig);
+      } else {
+        firebaseApp = firebase.app();
+      }
+
+      // FIRESTORE ENGINE (UTAMA)
+      if (typeof firebase.firestore === 'function') {
+        try {
+          dbFirestore = firebase.firestore();
+
+          dbFirestore.collection('requests').onSnapshot(snapshot => {
+            if (!snapshot.empty) {
+              const reqs = [];
+              snapshot.forEach(doc => reqs.push(doc.data()));
+              if (reqs.length > 0) {
+                appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(reqs));
+                if (typeof currentUser !== 'undefined' && currentUser) {
+                  if (typeof loadDashboard === 'function') loadDashboard();
+                  if (typeof loadRiwayat === 'function') loadRiwayat();
+                }
+              }
+            }
+
+            const dot = document.getElementById('firebaseOnlineDot');
+            if (dot) {
+              dot.style.background = '#10b981';
+              dot.style.boxShadow = '0 0 10px #10b981';
+              dot.title = `FIREBASE DATABASE ONLINE: TERHUBUNG (${activeConfig.projectId})`;
+            }
+          }, err => {
+            console.warn("[FIRESTORE NOTICE]:", err.message);
+          });
+
+          // JIKA FIRESTORE BERHASIL DIINISIALISASI, SET BULAT HIJAU
+          const dot = document.getElementById('firebaseOnlineDot');
+          if (dot) {
+            dot.style.background = '#10b981';
+            dot.style.boxShadow = '0 0 10px #10b981';
+            dot.title = `FIREBASE DATABASE ONLINE: TERHUBUNG (${activeConfig.projectId})`;
+          }
+        } catch (e) {
+          console.warn("[FIRESTORE INIT NOTICE]:", e.message);
+        }
+      }
+
+      // REALTIME DATABASE (JIKA ADANYA CONFIG DATABASEURL)
+      if (activeConfig.databaseURL && typeof firebase.database === 'function') {
+        try {
+          dbRealtime = firebase.database();
+        } catch (e) {
+          dbRealtime = null;
+        }
+      }
+
+      const statusBadge = document.getElementById('firebaseStatusBadge');
+      if (statusBadge) {
+        statusBadge.textContent = `STATUS: TERHUBUNG KE FIREBASE ONLINE (${activeConfig.projectId})`;
+        statusBadge.style.color = '#10b981';
+      }
+
+      console.log(`[FIREBASE ONLINE ENGINE]: Connected to ${activeConfig.projectId}`);
+    }
+  } catch (err) {
+    const dot = document.getElementById('firebaseOnlineDot');
+    if (dot) {
+      dot.style.background = '#ef4444';
+      dot.style.boxShadow = '0 0 10px #ef4444';
+      dot.title = 'FIREBASE DATABASE ONLINE: TERPUTUS / DISKONEK';
+    }
+    console.warn("[FIREBASE ENGINE NOTICE]:", err.message);
+  }
+}
+
+function loadFirebaseConfigInput() {
+  const input = document.getElementById('firebaseConfigJsonInput');
+  if (!input) return;
+  const saved = appStorage.getItem(FIREBASE_USER_CONFIG_KEY);
+  if (saved) {
+    input.value = saved;
+  } else {
+    input.value = JSON.stringify(DEFAULT_FIREBASE_CONFIG, null, 2);
+  }
+}
+
+function simpanFirebaseConfigUser() {
+  const input = document.getElementById('firebaseConfigJsonInput');
+  const val = input ? input.value.trim() : '';
+
+  if (!val) {
+    appStorage.removeItem(FIREBASE_USER_CONFIG_KEY);
+    showNotif('KONFIGURASI FIREBASE DI-RESET KE DEFAULT!', 'info');
+    initFirebaseDB();
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(val);
+    if (!parsed.projectId) {
+      showNotif('INVALID CONFIG! PROJECT ID TIDAK DITEMUKAN.', 'warning');
+      return;
+    }
+    appStorage.setItem(FIREBASE_USER_CONFIG_KEY, JSON.stringify(parsed));
+    showNotif('BERHASIL MENYIMPAN DATA!', 'success');
+    initFirebaseDB();
+  } catch (e) {
+    showNotif('FORMAT JSON KONFIGURASI FIREBASE TIDAK VALID!', 'error');
+  }
+}
+
 function startCentralCloudSyncEngine() {
-  setOnDataChangeCallback(onSupabaseDataChange);
-  
-  // HAPUS INTERVAL 5 DETIK! 
-  // Supabase sudah menggunakan WebSocket Real-Time yang otomatis.
-  // Polling manual hanya akan membuat bentrok data (race condition) saat kita menyimpan data.
+  initFirebaseDB();
+  if (typeof setOnDataChangeCallback === 'function') {
+    setOnDataChangeCallback(onSupabaseDataChange);
+  }
   if (cloudSyncInterval) {
     clearInterval(cloudSyncInterval);
     cloudSyncInterval = null;
   }
 }
+
+async function syncAllDataToCache() {
+  try {
+    if (typeof pushToSupabaseNow === 'function') {
+      await pushToSupabaseNow();
+    }
+
+    if (dbFirestore) {
+      try {
+        // 1. SYNC REQUESTS DATA
+        const reqSnapshot = await dbFirestore.collection('requests').get();
+        if (!reqSnapshot.empty) {
+          const reqs = [];
+          reqSnapshot.forEach(doc => reqs.push(doc.data()));
+          if (reqs.length > 0) {
+            appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(reqs));
+          }
+        }
+
+        // 2. SYNC USERS MASTER DATA
+        const userSnapshot = await dbFirestore.collection('users').get();
+        if (!userSnapshot.empty) {
+          const usrs = [];
+          userSnapshot.forEach(doc => usrs.push(doc.data()));
+          if (usrs.length > 0) {
+            appStorage.setItem(USERS_DB_KEY, JSON.stringify(usrs));
+          }
+        }
+
+        // 3. SYNC APP SETTINGS, NOTIFICATIONS, CHATS, THEMES, TOKENS
+        const configDoc = await dbFirestore.collection('app_settings').doc('config').get();
+        if (configDoc.exists) {
+          const cfg = configDoc.data() || {};
+          if (cfg.notifications) appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(cfg.notifications));
+          if (cfg.chatMessages) appStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify(cfg.chatMessages));
+          if (cfg.theme) {
+            appStorage.setItem(THEME_KEY, cfg.theme);
+            if (typeof loadSavedTheme === 'function') loadSavedTheme();
+          }
+          if (cfg.fonteToken) appStorage.setItem(FONTE_TOKEN_KEY, cfg.fonteToken);
+          if (cfg.adminReminder !== undefined) appStorage.setItem(ADMIN_REMINDER_KEY, String(cfg.adminReminder));
+          if (cfg.adminReminderTime) appStorage.setItem(ADMIN_REMINDER_TIME_KEY, cfg.adminReminderTime);
+          if (cfg.featurePhotos !== undefined) appStorage.setItem(FEATURE_PHOTOS_KEY, String(cfg.featurePhotos));
+          if (cfg.kodeUnitMap) {
+            const existingMap = JSON.parse(appStorage.getItem(KODE_UNIT_MAP_KEY) || '{}');
+            const mergedMap = { ...existingMap, ...cfg.kodeUnitMap };
+            appStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify(mergedMap));
+          }
+        }
+      } catch (err) {
+        console.warn("[FIREBASE SYNC NOTICE]:", err.message);
+      }
+    }
+  } catch (err) {
+    console.error("Sync error:", err);
+  }
+}
+
 async function pushCentralCloudDB() {
-  await pushToSupabaseNow();
+  try {
+    if (dbFirestore) {
+      try {
+        // 1. PUSH REQUESTS
+        const requests = getRequestsFromDB();
+        const reqBatch = dbFirestore.batch();
+        requests.forEach(r => {
+          if (r && r.noSurat) {
+            const docId = r.noSurat.replace(/[\/\.]/g, '_');
+            const docRef = dbFirestore.collection('requests').doc(docId);
+            reqBatch.set(docRef, r, { merge: true });
+          }
+        });
+        await reqBatch.commit();
+
+        // 2. PUSH USERS MASTER DATA
+        const users = getUsersFromDB();
+        const userBatch = dbFirestore.batch();
+        users.forEach(u => {
+          if (u && u.username) {
+            const docId = String(u.username).toUpperCase();
+            const docRef = dbFirestore.collection('users').doc(docId);
+            userBatch.set(docRef, u, { merge: true });
+          }
+        });
+        await userBatch.commit();
+
+        // 3. PUSH APP CONFIG, NOTIFICATIONS, CHAT MESSAGES, THEME, FONTE TOKEN, KODE UNIT MAP
+        const notifs = getSystemNotifications();
+        const chatMsgs = JSON.parse(appStorage.getItem(CHAT_MESSAGES_KEY) || '[]');
+        const theme = appStorage.getItem(THEME_KEY) || 'dark-mode';
+        const fonteToken = getFonteToken();
+        const adminReminder = getAdminReminderEnabled();
+        const adminReminderTime = getAdminReminderTime();
+        const featurePhotos = getFeaturePhotosEnabled();
+        const kodeUnitMap = getKodeUnitMap();
+
+        await dbFirestore.collection('app_settings').doc('config').set({
+          notifications: notifs,
+          chatMessages: chatMsgs,
+          theme: theme,
+          fonteToken: fonteToken,
+          adminReminder: adminReminder,
+          adminReminderTime: adminReminderTime,
+          featurePhotos: featurePhotos,
+          kodeUnitMap: kodeUnitMap,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+
+      } catch (err) {
+        console.warn("[FIREBASE PUSH NOTICE]:", err.message);
+      }
+    }
+
+    if (dbRealtime) {
+      try {
+        const requests = getRequestsFromDB();
+        const users = getUsersFromDB();
+        const notifs = getSystemNotifications();
+        const chatMsgs = JSON.parse(appStorage.getItem(CHAT_MESSAGES_KEY) || '[]');
+
+        dbRealtime.ref('requests').set(requests);
+        dbRealtime.ref('users').set(users);
+        dbRealtime.ref('notifications').set(notifs);
+        dbRealtime.ref('chat_messages').set(chatMsgs);
+        dbRealtime.ref('settings').set({
+          theme: appStorage.getItem(THEME_KEY) || 'dark-mode',
+          fonteToken: getFonteToken(),
+          adminReminder: getAdminReminderEnabled(),
+          adminReminderTime: getAdminReminderTime(),
+          featurePhotos: getFeaturePhotosEnabled()
+        });
+      } catch (err) {
+        console.warn("[FIREBASE REALTIME PUSH NOTICE]:", err.message);
+      }
+    }
+
+    await syncAllDataToCache();
+  } finally {
+    setTimeout(() => {
+      hideLoading();
+    }, 300);
+  }
 }
 
 function updateCloudStatusUI(isOnline) {
-  updateSupabaseStatusUI(isOnline);
+  if (typeof updateSupabaseStatusUI === 'function') {
+    updateSupabaseStatusUI(isOnline);
+  }
 }
 
-async function uploadFotoToFirebaseStorage(file, fileName) {
-  return uploadPhotoToSupabaseStorage(file);
-}
-
-function syncRequestToCloud(reqObj) {
-  pushCentralCloudDB();
-}
-
-function syncUserToCloud(userObj) {
-  pushCentralCloudDB();
-}
-
-function initFirebaseCloudDB() {
-  /* legacy noop — diganti Supabase */
-}
-
-/* ======================================================
-   ADMIN FEATURE TOGGLE FOR UPLOAD FOTO INPUT
-   ====================================================== */
 function getFeaturePhotosEnabled() {
   const val = appStorage.getItem(FEATURE_PHOTOS_KEY);
   return val !== 'false';
@@ -814,123 +1053,6 @@ function updatePhotoSectionVisibility() {
   if (statusText) {
     statusText.textContent = isEnabled ? 'AKTIF (ON)' : 'NONAKTIF (OFF)';
     statusText.style.color = isEnabled ? '#10b981' : '#ef4444';
-  }
-}
-
-/* ======================================================
-   FIREBASE CLOUD FIRESTORE & STORAGE REALTIME DATABASE ENGINE
-   ====================================================== */
-let dbCloud = null;
-let storageCloud = null;
-let isCloudDBActive = false;
-
-// Firebase Cloud Firestore Web Configuration
-const FIREBASE_CONFIG_STORAGE_KEY = 'FIREBASE_CUSTOM_CONFIG_V1';
-
-function getFirebaseConfig() {
-  const customConfigStr = appStorage.getItem(FIREBASE_CONFIG_STORAGE_KEY);
-  if (customConfigStr) {
-    try {
-      const parsed = JSON.parse(customConfigStr);
-      if (parsed && parsed.projectId) return parsed;
-    } catch(e) {}
-  }
-  return {
-    apiKey: "AIzaSyB-DEFAULT_PLACEHOLDER_KEY",
-    authDomain: "permintaantoko.firebaseapp.com",
-    projectId: "permintaantoko",
-    storageBucket: "permintaantoko.firebasestorage.app",
-    messagingSenderId: "123456789012",
-    appId: "1:123456789012:web:abc123def456"
-  };
-}
-
-const firebaseConfig = getFirebaseConfig();
-
-function initFirebaseCloudDB() {
-  if (typeof firebase !== 'undefined' && firebase.initializeApp) {
-    try {
-      if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-      }
-      dbCloud = firebase.firestore();
-      try { storageCloud = firebase.storage(); } catch (sErr) {}
-      isCloudDBActive = true;
-      console.log('✅ FIREBASE CLOUD FIRESTORE & STORAGE TERHUBUNG BERHASIL!');
-      setupFirestoreRealtimeListeners();
-    } catch (err) {
-      console.warn('⚠️ FIREBASE FIRESTORE OFFLINE FALLBACK (LOCALSTORAGE MODE):', err.message);
-    }
-  }
-}
-
-async function uploadFotoToFirebaseStorage(file, fileName) {
-  if (storageCloud && isCloudDBActive) {
-    try {
-      const ref = storageCloud.ref('photos/' + (fileName || ('FOTO_' + Date.now() + '.jpg')));
-      const snapshot = await ref.put(file);
-      const downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
-    } catch (e) {
-      console.warn('Firebase Storage error, falling back:', e);
-    }
-  }
-  return null;
-}
-
-function setupFirestoreRealtimeListeners() {
-  if (!dbCloud || !isCloudDBActive) return;
-
-  // Realtime Sync for Requests Collection
-  dbCloud.collection('requests').onSnapshot((snapshot) => {
-    if (snapshot && !snapshot.empty) {
-      const cloudRequests = [];
-      snapshot.forEach(doc => {
-        cloudRequests.push(doc.data());
-      });
-      if (cloudRequests.length > 0) {
-        appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(cloudRequests));
-        if (currentUser) {
-          loadDashboard();
-          loadRiwayat();
-          if (document.getElementById('masterDbTableBody')) loadMasterDbTable();
-        }
-      }
-    }
-  }, (err) => console.warn('Firestore Sync:', err.message));
-
-  // Realtime Sync for Users Collection
-  dbCloud.collection('users').onSnapshot((snapshot) => {
-    if (snapshot && !snapshot.empty) {
-      const cloudUsers = [];
-      snapshot.forEach(doc => {
-        cloudUsers.push(doc.data());
-      });
-      if (cloudUsers.length > 0) {
-        appStorage.setItem(USERS_DB_KEY, JSON.stringify(cloudUsers));
-        if (currentUser && document.getElementById('userTableBody')) {
-          loadUsersManagement();
-        }
-      }
-    }
-  }, (err) => console.warn('Firestore Users Sync:', err.message));
-}
-
-function syncRequestToCloud(reqObj) {
-  if (!dbCloud || !isCloudDBActive || !reqObj || !reqObj.noSurat) return;
-  try {
-    dbCloud.collection('requests').doc(reqObj.noSurat).set(reqObj, { merge: true });
-  } catch (e) {
-    console.warn('Cloud Request Sync Error:', e);
-  }
-}
-
-function syncUserToCloud(userObj) {
-  if (!dbCloud || !isCloudDBActive || !userObj || !userObj.id) return;
-  try {
-    dbCloud.collection('users').doc(userObj.id).set(userObj, { merge: true });
-  } catch (e) {
-    console.warn('Cloud User Sync Error:', e);
   }
 }
 
@@ -973,48 +1095,28 @@ function clearAllAppCacheAndData(force = false) {
     if (window.appStorage) {
       window.appStorage.clear();
     }
-  } catch (err) {
-    console.warn('clearAllAppCacheAndData appStorage clear failed:', err);
-  }
+  } catch (err) {}
 
   try {
     const keysToRemove = Object.keys(localStorage || {});
     keysToRemove.forEach(key => {
-      if (String(key).startsWith('STORE_') || String(key).startsWith('FIREBASE_')) {
+      if (String(key).startsWith('STORE_')) {
         localStorage.removeItem(key);
       }
     });
-  } catch (err) {
-    console.warn('clearAllAppCacheAndData localStorage failed:', err);
-  }
+  } catch (err) {}
 
   try {
-    if (typeof caches !== 'undefined' && Array.isArray(caches)) {
+    if (typeof caches !== 'undefined' && caches.keys) {
       caches.keys().then(names => names.forEach(n => caches.delete(n))).catch(() => {});
     }
-  } catch (err) {
-    console.warn('clearAllAppCacheAndData caches failed:', err);
-  }
+  } catch (err) {}
 
   const sessionKeys = [
-    SESSION_KEY,
-    THEME_KEY,
-    USERS_DB_KEY,
-    REQUESTS_DB_KEY,
-    CHAT_DB_KEY,
-    CHAT_ROOM_DB_KEY,
-    TTD_DB_KEY,
-    STORES_DB_KEY,
-    DELETED_STORES_KEY,
-    NOTIFICATIONS_DB_KEY,
-    KODE_UNIT_MAP_KEY,
-    FEATURE_PHOTOS_KEY,
-    DELETED_REQUESTS_KEY,
-    DELETED_USERS_KEY,
-    FONTE_TOKEN_KEY,
-    ADMIN_REMINDER_KEY,
-    ADMIN_SECRET_KEY_STORAGE_KEY,
-    ADMIN_SCRIPT_URL_KEY
+    SESSION_KEY, THEME_KEY, USERS_DB_KEY, REQUESTS_DB_KEY, CHAT_DB_KEY, CHAT_ROOM_DB_KEY,
+    TTD_DB_KEY, STORES_DB_KEY, DELETED_STORES_KEY, NOTIFICATIONS_DB_KEY, KODE_UNIT_MAP_KEY,
+    FEATURE_PHOTOS_KEY, DELETED_REQUESTS_KEY, DELETED_USERS_KEY, FONTE_TOKEN_KEY,
+    ADMIN_REMINDER_KEY, ADMIN_SECRET_KEY_STORAGE_KEY, ADMIN_SCRIPT_URL_KEY
   ];
 
   sessionKeys.forEach(key => {
@@ -1059,20 +1161,15 @@ function simpanAdminScriptUrl() {
 }
 
 function initDatabase() {
-  // Hanya membaca tema dari Local Storage untuk mencegah layar berkedip putih saat booting
   const currentTheme = localStorage.getItem(THEME_KEY);
-  
   if (currentTheme) {
     document.body.className = currentTheme;
   }
-  
   if (typeof updatePhotoSectionVisibility === 'function') {
     updatePhotoSectionVisibility();
   }
-  
-  // NOTE: Logika pembuatan Data Default telah dipindahkan seluruhnya ke "seedSupabaseDefaults" 
-  // di blok DOMContentLoaded agar jauh lebih aman.
 }
+
 function getUsersFromDB() {
   let users = [];
   try {
@@ -1125,14 +1222,15 @@ function saveRequestsToDB(requests) {
   }
 }
 
-// AUTOMATED WHATSAPP NOTIFICATION ENGINE (FONTE / FONNTE API)
 function getFonteToken() {
   return appStorage.getItem(FONTE_TOKEN_KEY) || '';
 }
 
 function simpanFonteToken() {
-  const token = document.getElementById('fonteTokenInput').value.trim();
+  const input = document.getElementById('fonteTokenInput');
+  const token = input ? input.value.trim() : '';
   appStorage.setItem(FONTE_TOKEN_KEY, token);
+  pushCentralCloudDB();
   showNotif(token ? 'TOKEN WA FONTE BERHASIL DISIMPAN!' : 'TOKEN WA DIKOSONGKAN!', 'info');
 }
 
@@ -1180,7 +1278,6 @@ function kirimNotifikasiWA(targetPhone, message) {
   return true;
 }
 
-// 10 THEME ENGINE
 function loadSavedTheme() {
   const saved = appStorage.getItem(THEME_KEY) || 'dark-mode';
   document.body.className = saved;
@@ -1195,6 +1292,7 @@ function toggleTheme() {
   document.body.className = t.id;
   appStorage.setItem(THEME_KEY, t.id);
   updateThemeIcon();
+  pushCentralCloudDB();
 }
 
 function updateThemeIcon() {
@@ -1205,15 +1303,38 @@ function updateThemeIcon() {
   });
 }
 
-// AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
-// AUTHENTICATION & SESSION (DIUBAH AGAR MEMBACA SESSION ATAU LOCAL STORAGE)
+const STORE_REMEMBER_LOGIN_CREDS_KEY = 'STORE_REMEMBER_LOGIN_CREDS_V1';
+
 function autoLogin() {
-  // Hanya membaca dari memori RAM yang sedang berjalan.
-  // Jika browser di-refresh, currentUser otomatis hilang dan kembali ke halaman login (Lebih Aman).
+  if (!currentUser) {
+    try {
+      const savedSession = appStorage.getItem(SESSION_KEY);
+      if (savedSession) {
+        currentUser = JSON.parse(savedSession);
+      }
+    } catch (e) {
+      currentUser = null;
+    }
+  }
+
   if (typeof currentUser !== 'undefined' && currentUser !== null) {
     bukaMainApp();
   } else {
     pindahHalaman('loginPage');
+    
+    // PRE-FILL USERNAME & PASSWORD HANYA JIKA INGAT SANDI DILAKUKAN DI PENYIMPANAN LOKAL
+    const savedCredsStr = appStorage.getItem(STORE_REMEMBER_LOGIN_CREDS_KEY);
+    if (savedCredsStr) {
+      try {
+        const creds = JSON.parse(savedCredsStr);
+        const uEl = document.getElementById('username');
+        const pEl = document.getElementById('password');
+        const remEl = document.getElementById('rememberMe');
+        if (uEl && creds.username) uEl.value = creds.username;
+        if (pEl && creds.password) pEl.value = creds.password;
+        if (remEl) remEl.checked = true;
+      } catch(e) {}
+    }
   }
 }
 
@@ -1224,69 +1345,47 @@ async function prosesLogin() {
 
   const u = uEl.value.trim().toUpperCase();
   const p = pEl.value.trim();
+  const remember = document.getElementById('rememberMe')?.checked === true;
 
   if (!u || !p) {
     showNotif('USERNAME DAN PASSWORD WAJIB DIISI!', 'warning');
     return;
   }
 
-  // Ubah teks loading agar user tahu sistem sedang bekerja ganda
-  showLoading('');
+  showLoading('MEMPROSES LOGIN...');
 
   try {
-    // =========================================================================
-    // SAPU BERSIH CACHE OTOMATIS (SILENT CLEANUP TANPA RELOAD)
-    // =========================================================================
-    if (window.localStorage) localStorage.clear();
-    if (window.sessionStorage) sessionStorage.clear();
-    if (window.appStorage && typeof window.appStorage.clear === 'function') {
-      window.appStorage.clear();
-    }
-    // Hapus Cache browser di latar belakang (Background Task)
-    if (typeof caches !== 'undefined' && caches.keys) {
-      caches.keys().then(names => {
-        names.forEach(name => caches.delete(name));
-      }).catch(() => {});
-    }
-    // =========================================================================
-
-    // Pastikan Supabase sudah aktif
-    if (!supabaseClient) {
-      await initSupabaseDB();
-    }
-
-    // 1. Ambil data users LANGSUNG dari server Supabase
-    const { data, error } = await supabaseClient
-      .from('app_storage')
-      .select('value')
-      .eq('key', USERS_DB_KEY)
-      .single();
-
-    let users = [];
-    if (data && data.value) {
-      users = typeof data.value === 'string' ? JSON.parse(data.value) : data.value;
-    }
-
+    // AMBIL DARI LOCAL STORAGE & SEED UNTUK RESPONSE LOGIN KILAT TANPA BLOCKING
+    let users = getUsersFromDB();
     if (!Array.isArray(users) || !users.length) {
       users = [...SEED_USERS];
     }
     
-    // 2. Verifikasi Username & Password
     let user = users.find(x => x && x.username && x.username.toUpperCase() === u && String(x.password).trim() === p);
 
-    // Bypass khusus Admin Master
     if (!user && u === 'ADMIN' && p === '1') {
       user = SEED_USERS[0];
     }
 
     if (user) {
-      // 3. LOGIN BERHASIL: Simpan hanya di variabel Global (RAM)
       currentUser = user;
 
-      // 4. Catat Log ke tabel 'log_login' di Supabase
+      // HANYA SIMPAN SESI & SANDI KE PENYIMPANAN LOKAL JIKA 'INGAT SANDI' DICENTANG
+      if (remember) {
+        appStorage.setItem(SESSION_KEY, JSON.stringify(user));
+        appStorage.setItem(STORE_REMEMBER_LOGIN_CREDS_KEY, JSON.stringify({ username: u, password: p }));
+      } else {
+        appStorage.removeItem(SESSION_KEY);
+        appStorage.removeItem(STORE_REMEMBER_LOGIN_CREDS_KEY);
+      }
+
       catatLogLogin(user.username, user.fullName, user.area, 'BERHASIL');
-      
       bukaMainApp();
+
+      // SINKRONISASI DATA DI BACKGROUND UNTUK KINERJA MAKSIMAL
+      if (typeof syncAllDataToCache === 'function') {
+        syncAllDataToCache().catch(() => {});
+      }
 
       setTimeout(() => {
         if (typeof aturTampilanLonceng === 'function') aturTampilanLonceng('dashboardPage');
@@ -1295,33 +1394,31 @@ async function prosesLogin() {
       }, 150);
 
     } else {
-      // 5. LOGIN GAGAL
       catatLogLogin(u, '-', '-', 'GAGAL - PASSWORD SALAH');
       showNotif('USERNAME ATAU PASSWORD SALAH!', 'error');
     }
   } catch (error) {
     console.error("Login error:", error);
-    showNotif('GAGAL TERHUBUNG KE SERVER SUPABASE!', 'error');
+    showNotif('GAGAL MEMPROSES LOGIN!', 'error');
   } finally {
     hideLoading();
   }
 }
-// Fungsi untuk mencatat aktivitas login ke Supabase
+window.prosesLogin = prosesLogin;
+
 async function catatLogLogin(username, nama, area, status) {
-  if (!supabaseClient) return;
-  try {
-    // Pastikan Anda membuat tabel "log_login" di dashboard Supabase
-    // dengan kolom: username (text), nama_lengkap (text), area (text), status (text)
-    await supabaseClient.from('log_login').insert([{
-      username: username,
-      nama_lengkap: nama,
-      area: area,
-      status: status
-    }]);
-  } catch (e) {
-    console.warn('Gagal mencatat log login. Pastikan tabel log_login sudah dibuat di Supabase.');
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    try {
+      await supabaseClient.from('log_login').insert([{
+        username: username,
+        nama_lengkap: nama,
+        area: area,
+        status: status
+      }]);
+    } catch (e) {}
   }
 }
+
 function fillLogin(u, p) {
   const uEl = document.getElementById('username');
   const pEl = document.getElementById('password');
@@ -1332,25 +1429,34 @@ function fillLogin(u, p) {
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
-    // Kosongkan memori RAM
     currentUser = null;
+    appStorage.removeItem(SESSION_KEY);
     
-    // Bersihkan UI
+    // TIDAK MENGHAPUS CREDS JIKA USER MEMANG PERNAH MENYIMPAN INGAT SANDI, ATAU SESUAIKAN DENGAN FORM
+    const remEl = document.getElementById('rememberMe');
+    if (!remEl || !remEl.checked) {
+      appStorage.removeItem(STORE_REMEMBER_LOGIN_CREDS_KEY);
+      const uEl = document.getElementById('username');
+      const pEl = document.getElementById('password');
+      if (uEl) uEl.value = '';
+      if (pEl) pEl.value = '';
+    }
+
     tutupAkun();
     tutupNotificationModal();
     const popupBantuan = document.getElementById('popupBantuan');
     if (popupBantuan) popupBantuan.classList.remove('show');
-    document.getElementById('bottomMenu').style.display = 'none';
-    document.getElementById('helpButton').style.display = 'none';
+    const bottomMenu = document.getElementById('bottomMenu');
+    if (bottomMenu) bottomMenu.style.display = 'none';
+    const helpBtn = document.getElementById('helpButton');
+    if (helpBtn) helpBtn.style.display = 'none';
     
     pindahHalaman('loginPage');
     if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
     
-    showNotif('BERHASIL LOGOUT DARI SISTEM', 'success');
+    showNotif('BERHASIL LOGOUT', 'success');
   });
 }
-// Deklarasikan variabel global penanda agar auto-sync tidak berjalan double
-let autoSyncInterval = null;
 
 function bukaMainApp() {
   const loginPage = document.getElementById('loginPage');
@@ -1381,7 +1487,6 @@ function bukaMainApp() {
   
   pindahHalaman(savedPage);
 
-  // LAPISAN PENGAMAN GANDA: Paksa munculkan ikon dengan jeda waktu render
   setTimeout(() => {
     if (typeof aturTampilanLonceng === 'function') {
       aturTampilanLonceng('dashboardPage');
@@ -1394,9 +1499,6 @@ function bukaMainApp() {
     }
   }, 400);
 
-  // =========================================================================
-  // HUBUNGKAN UI DENGAN SUPABASE REALTIME (GANTINYA AUTO-SYNC 5 DETIK)
-  // =========================================================================
   if (typeof setOnDataChangeCallback === 'function' && typeof onSupabaseDataChange === 'function') {
     setOnDataChangeCallback(onSupabaseDataChange);
   }
@@ -1406,39 +1508,21 @@ function bukaMainApp() {
   if (typeof updateAdminReminderUI === 'function') updateAdminReminderUI();
   if (typeof checkAndTriggerPendingReminders === 'function') checkAndTriggerPendingReminders();
 }
-function showPage(pageId) {
-  if (modeEdit && pageId !== 'inputPage') {
-    showConfirm('KELUAR DARI MENU EDIT?', () => {
-      bersihkanForm();
-      closeAllPopups();
-      pindahHalaman(pageId);
-      aturTampilanLonceng(pageId); // Sesuaikan lonceng setelah setuju keluar edit
-    });
-    return;
-  }
-  
-  closeAllPopups();
-  pindahHalaman(pageId);
-  aturTampilanLonceng(pageId); // Sesuaikan lonceng untuk perpindahan normal
-}
 
-// =========================================================================
-// FUNGSI BANTUAN KHUSUS UNTUK MENYEMBUNYIKAN/MENAMPILKAN LONCENG NOTIF
-// =========================================================================
 function showPage(pageId) {
   if (modeEdit && pageId !== 'inputPage') {
     showConfirm('KELUAR DARI MENU EDIT?', () => {
       bersihkanForm();
       closeAllPopups();
       pindahHalaman(pageId);
-      aturTampilanLonceng(pageId); // Sesuaikan lonceng setelah setuju keluar edit
+      aturTampilanLonceng(pageId);
     });
     return;
   }
   
   closeAllPopups();
   pindahHalaman(pageId);
-  aturTampilanLonceng(pageId); // Sesuaikan lonceng untuk perpindahan normal
+  aturTampilanLonceng(pageId);
 }
 
 function aturTampilanLonceng(pageId) {
@@ -1448,7 +1532,6 @@ function aturTampilanLonceng(pageId) {
   const isDashboard = (pageId === 'dashboardPage' && typeof currentUser !== 'undefined' && currentUser !== null);
 
   if (notifBtn) {
-    // Jika di dashboard, tampilkan. Jika di halaman lain, sembunyikan paksa.
     notifBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
   }
   
@@ -1456,6 +1539,7 @@ function aturTampilanLonceng(pageId) {
     helpBtn.style.setProperty('display', isDashboard ? 'flex' : 'none', 'important');
   }
 }
+
 let mobileBackspaceCount = 0;
 let mobileBackspaceTimer = null;
 
@@ -1465,16 +1549,24 @@ function pushPopupHistoryState() {
   } catch (e) {}
 }
 
-// ======================================================
-// MOBILE BACK BUTTON ENGINE (DENGAN PENGAMAN MODE EDIT)
-// ======================================================
 function initMobileBackButtonEngine() {
   try {
     history.pushState({ page: 'dashboardPage' }, '', location.href);
   } catch(e) {}
 
   window.addEventListener('popstate', (e) => {
-    // 1. Cek apakah ada popup/modal yang sedang terbuka
+    const popTTD = document.getElementById('popupTTD');
+    const isTtdOpen = popTTD && (popTTD.classList.contains('show') || popTTD.style.display === 'flex' || popTTD.style.display === 'block');
+
+    // JIKA POPUP TTD TERBUKA & DI-BACK DARI HP -> KEMBALI KE POPUP AKUN
+    if (isTtdOpen) {
+      if (typeof tutupTTD === 'function') tutupTTD();
+      if (typeof bukaAkun === 'function') bukaAkun();
+      try { history.pushState({ page: getCurrentActivePageId() }, '', location.href); } catch(err) {}
+      if (typeof aturTampilanLonceng === 'function') aturTampilanLonceng(getCurrentActivePageId());
+      return;
+    }
+
     const openModals = [
       document.getElementById('popupDetail'),
       document.getElementById('popupNotifList'),
@@ -1483,7 +1575,6 @@ function initMobileBackButtonEngine() {
       document.getElementById('popupUserForm'),
       document.getElementById('pdfModal'),
       document.getElementById('rejectOverlay'),
-      document.getElementById('popupTTD'),
       document.getElementById('popupTambahToko'),
       document.getElementById('popupPdfModelsModal'),
       document.getElementById('confirmOverlay'),
@@ -1503,26 +1594,30 @@ function initMobileBackButtonEngine() {
     if (closedAnyModal) {
       if (typeof tutupScanner === 'function') tutupScanner();
       if (typeof tutupImageViewer === 'function') tutupImageViewer();
-      try { history.pushState({ page: getCurrentActivePageId() }, '', location.href); } catch(err) {}
+      
+      // JAGA AGAR TOMBOL ICON HEADER (LONCENG & BANTUAN) TETAP TERSEDIA DI DASHBOARD
+      const activePage = getCurrentActivePageId();
+      if (typeof aturTampilanLonceng === 'function') {
+        aturTampilanLonceng(activePage);
+      }
+
+      try { history.pushState({ page: activePage }, '', location.href); } catch(err) {}
       return;
     }
 
     const currentActivePage = getCurrentActivePageId();
 
-    // 2. TAMBAHAN: PENGAMAN JIKA TEKAN BACK HP SAAT MODE EDIT
     if (currentActivePage === 'inputPage' && typeof modeEdit !== 'undefined' && modeEdit) {
-      // Tahan riwayat browser agar tidak benar-benar mundur dulu
       try { history.pushState({ page: 'inputPage' }, '', location.href); } catch(err) {}
       
       showConfirm('KELUAR DARI MENU EDIT?', () => {
         if (typeof bersihkanForm === 'function') bersihkanForm();
         closeAllPopups();
-        pindahHalaman('dashboardPage'); // Arahkan kembali ke Dashboard jika pilih YA
+        pindahHalaman('dashboardPage');
       });
       return;
     }
 
-    // 3. Logika navigasi mundur default
     if (currentActivePage !== 'dashboardPage' && currentActivePage !== 'loginPage') {
       pindahHalaman('dashboardPage', false);
       try { history.pushState({ page: 'dashboardPage' }, '', location.href); } catch(err) {}
@@ -1530,7 +1625,6 @@ function initMobileBackButtonEngine() {
       return;
     }
 
-    // 4. Logika keluar aplikasi jika menekan back berkali-kali di Dashboard
     if (currentActivePage === 'dashboardPage') {
       if (typeof mobileBackspaceCount === 'undefined') window.mobileBackspaceCount = 0;
       mobileBackspaceCount++;
@@ -1546,6 +1640,7 @@ function initMobileBackButtonEngine() {
     }
   });
 }
+
 function getCurrentActivePageId() {
   const activeEl = document.querySelector('.page.active');
   return activeEl ? activeEl.id : 'dashboardPage';
@@ -1582,7 +1677,6 @@ function pindahHalaman(pageId, pushHistory = true) {
 
   updateBottomMenuHighlight(pageId);
 
-  // FITUR BARU: Simpan halaman aktif agar tidak kembali ke Dashboard saat refresh
   if (pageId !== 'loginPage') {
     sessionStorage.setItem('LAST_ACTIVE_PAGE', pageId);
   }
@@ -1603,17 +1697,16 @@ function pindahHalaman(pageId, pushHistory = true) {
     loadMasterDbTable();
   } else if (pageId === 'userManagementPage') {
     loadFonteToken();
+    loadFirebaseConfigInput();
     loadUsersManagement();
     updateActivePdfModelBadge();
   }
 }
-/// DATA ACCESS BY ROLE & AREA (ADMIN & DM HAVE UNRESTRICTED ACCESS TO ALL AREAS)
-/// DATA ACCESS BY ROLE & AREA (ADMIN & DM HAVE UNRESTRICTED ACCESS TO ALL AREAS)
+
 function getAccessibleRequests() {
   const requests = getRequestsFromDB();
   if (!currentUser) return [];
 
-  // ADMIN & DM HAVE FULL ACCESS TO ALL DATA ACROSS ALL AREAS
   if (
     currentUser.category === 'ADMIN' ||
     currentUser.category === 'DM' ||
@@ -1622,10 +1715,6 @@ function getAccessibleRequests() {
     return requests;
   }
 
-  // =========================================================================
-  // FIX KEBOCORAN TOKO: Toko HANYA boleh melihat datanya sendiri (Berdasarkan ID atau Nama)
-  // Tidak boleh melihat berdasarkan Area (nanti bisa lihat toko lain di kota yang sama)
-  // =========================================================================
   if (currentUser.category === 'TOKO') {
     return requests.filter(r => 
       r.userId === currentUser.id || 
@@ -1633,10 +1722,9 @@ function getAccessibleRequests() {
     );
   }
 
-  // All SERVICE users (including TSM) and SALES are scoped strictly to their own area
   return requests.filter(r => r.area === currentUser.area);
 }
-// DASHBOARD: FILTER LIST BY METRIC CARDS (DEFAULT: PENDING)
+
 function filterDashboardRecent(status) {
   dashboardFilterStatus = status;
   loadDashboard();
@@ -1645,8 +1733,10 @@ function filterDashboardRecent(status) {
 function loadDashboard() {
   if (!currentUser) return;
 
-  document.getElementById('namaUser').textContent = currentUser.fullName;
-  document.getElementById('areaUser').textContent = `${currentUser.category} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
+  const nameEl = document.getElementById('namaUser');
+  const areaEl = document.getElementById('areaUser');
+  if (nameEl) nameEl.textContent = currentUser.fullName;
+  if (areaEl) areaEl.textContent = `${currentUser.category} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
 
   const data = getAccessibleRequests();
 
@@ -1656,10 +1746,15 @@ function loadDashboard() {
   const done = data.filter(r => r.status === 'DONE').length;
   const total = data.length || 1;
 
-  document.getElementById('pending').textContent = pending;
-  document.getElementById('approve').textContent = approve;
-  document.getElementById('reject').textContent = reject;
-  document.getElementById('done').textContent = done;
+  const elPending = document.getElementById('pending');
+  const elApprove = document.getElementById('approve');
+  const elReject = document.getElementById('reject');
+  const elDone = document.getElementById('done');
+
+  if (elPending) elPending.textContent = pending;
+  if (elApprove) elApprove.textContent = approve;
+  if (elReject) elReject.textContent = reject;
+  if (elDone) elDone.textContent = done;
 
   const barPending = document.getElementById('barPending');
   const barApprove = document.getElementById('barApprove');
@@ -1671,16 +1766,15 @@ function loadDashboard() {
   if (barReject) barReject.style.width = `${data.length ? Math.max(12, Math.round((reject / total) * 100)) : 15}%`;
   if (barDone) barDone.style.width = `${data.length ? Math.max(12, Math.round((done / total) * 100)) : 15}%`;
 
-  // DYNAMICALLY UPDATE DASHBOARD TITLE ACCORDING TO ACTIVE FILTER
   const titleEl = document.getElementById('dashboardRecentTitle');
   if (titleEl) {
     titleEl.textContent = `PERMINTAAN [ ${dashboardFilterStatus} ] (KLIK BARIS UNTUK LIHAT DETAIL)`;
   }
 
   const lastDataContainer = document.getElementById('lastData');
+  if (!lastDataContainer) return;
   lastDataContainer.innerHTML = '';
 
-  // FILTER LIST ON DASHBOARD BY SELECTED STATUS (DEFAULT: PENDING)
   const filteredData = data.filter(r => r.status === dashboardFilterStatus);
 
   if (filteredData.length === 0) {
@@ -1688,71 +1782,27 @@ function loadDashboard() {
     return;
   }
 
-    filteredData.forEach(r => {
-      const div = document.createElement('div');
-      div.className = 'lastItem';
-      div.style.cursor = 'pointer';
-      div.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
-      div.onclick = () => bukaDetailDariDashboard(r.noSurat);
-      div.innerHTML = `
-        <div class="colTanggal">${formatDateDDMMYYYYString(r.tanggal)}</div>
-        <div class="colNo">${r.noSurat}</div>
-        <div class="colToko">${r.toko} <small style="color:var(--primary);">(${r.area})</small></div>
-        <div class="colStatus">${getBadgeStatus(r)}</div>
-      `;
-      lastDataContainer.appendChild(div);
-    });
+  filteredData.forEach(r => {
+    const isWaitingDM = (r.status === 'PENDING' && r.serviceApprove);
+    const div = document.createElement('div');
+    div.className = `lastItem ${isWaitingDM ? 'rowWaitingDmBlink' : ''}`;
+    div.style.cursor = 'pointer';
+    div.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
+    div.onclick = () => bukaDetailDariDashboard(r.noSurat);
+    div.innerHTML = `
+      <div class="colTanggal">${formatDateDDMMYYYYString(r.tanggal)}</div>
+      <div class="colNo">${r.noSurat}</div>
+      <div class="colToko">${r.toko} <small style="color:var(--primary);">(${r.area})</small></div>
+      <div class="colStatus">${getBadgeStatus(r)}</div>
+    `;
+    lastDataContainer.appendChild(div);
+  });
 }
 
-// KLIK BARIS DASHBOARD: TETAP DI DASHBOARD & BUKA POPUP DETAIL DENGAN TOMBOL LENGKAP
 function bukaDetailDariDashboard(noSurat) {
   lihatDetail(noSurat, true);
 }
 
-// DYNAMIC FORM MULTI-ROW ENGINE WITH CAMERA SCANNER TOOL IN EVERY SERIAL COLUMN
-// DYNAMIC FORM MULTI-ROW ENGINE
-function lssoadForm() {
-  document.getElementById('tanggal').value = getFormattedDateDDMMYYYY();
-
-  const tokoSelect = document.getElementById('toko');
-  if (tokoSelect) tokoSelect.innerHTML = '';
-
-  // Pengisian Dropdown Toko
-  if (currentUser.category === 'TOKO') {
-    if (tokoSelect) tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
-  } else {
-    const users = getUsersFromDB();
-    // Filter toko khusus sesuai area user yang sedang login
-    const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
-    if (stores.length > 0) {
-      stores.forEach(s => {
-        if (tokoSelect) tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
-      });
-    } else {
-      if (tokoSelect) tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
-    }
-  }
-
-  // =========================================================================
-  // KUNCI FINAL: Sembunyikan container + TAMBAH TOKO khusus kategori TOKO
-  // =========================================================================
-  const containerTambahToko = document.getElementById('containerTambahToko');
-  if (containerTambahToko) {
-    // Jika TOKO -> hilangkan (none). Jika BUKAN TOKO -> tampilkan (block)
-    containerTambahToko.style.display = (currentUser.category === 'TOKO') ? 'none' : 'block';
-  }
-
-  // Pastikan fitur foto tetap dirender sesuai pengaturan pusat
-  if (typeof updatePhotoSectionVisibility === 'function') {
-    updatePhotoSectionVisibility();
-  }
-
-  // Bersihkan inputan jika bukan sedang mengedit data
-  if (!modeEdit) {
-    bersihkanForm();
-  }
-}
-// PLAIN TEXT STATUS WITH ROLE-BASED CONDITIONAL LABELS
 function getBadgeStatus(r) {
   if (typeof r === 'string') {
     if (r === 'DONE') return '<span>SUDAH DIPENUHI</span>';
@@ -1765,36 +1815,24 @@ function getBadgeStatus(r) {
   const st = r.status;
   const serviceAppv = r.serviceApprove;
 
-  if (st === 'DONE') {
-    return '<span>SUDAH DIPENUHI</span>';
-  }
-
-  if (st === 'REJECT') {
-    return '<span>DITOLAK</span>';
-  }
-
-  if (st === 'APPROVE') {
-    return '<span>DISETUJUI</span>';
-  }
+  if (st === 'DONE') return '<span>SUDAH DIPENUHI</span>';
+  if (st === 'REJECT') return '<span>DITOLAK</span>';
+  if (st === 'APPROVE') return '<span>DISETUJUI</span>';
 
   if (st === 'PENDING') {
     if (!serviceAppv) {
-      if (role === 'DM') {
-        return '<span>TUNGGU SERVICE</span>';
-      }
       return '<span>TUNGGU SERVICE</span>';
     } else {
       if (role === 'SERVICE' || role === 'TOKO' || role === 'SALES') {
         return '<span>TUNGGU DM</span>';
       }
-      return '<span>TUNGGU APPROVAL DM</span>';
+      return '<span>TUNGGU DM</span>';
     }
   }
 
   return `<span>${st}</span>`;
 }
 
-// DYNAMIC FORM MULTI-ROW ENGINE WITH CAMERA SCANNER TOOL IN EVERY SERIAL COLUMN
 function loadForm() {
   const tglEl = document.getElementById('tanggal');
   if (tglEl && !tglEl.value) {
@@ -1802,7 +1840,6 @@ function loadForm() {
   }
 
   const tokoSelect = document.getElementById('toko');
-  // Cegah kedap-kedip: Hanya render ulang daftar toko jika masih kosong
   if (tokoSelect && tokoSelect.options.length === 0) {
     if (currentUser.category === 'TOKO') {
       tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
@@ -1828,24 +1865,25 @@ function loadForm() {
     updatePhotoSectionVisibility();
   }
 
-  // KUNCI PERBAIKAN: 
-  // Jangan panggil bersihkanForm() di sini!
-  // Cukup tambahkan baris input baru JIKA form benar-benar kosong dan bukan mode edit
   const detailContainer = document.getElementById('detailContainer');
   if (detailContainer && detailContainer.children.length === 0 && !modeEdit) {
     tambahRow();
   }
 }
+
 function gantiJenis() {
   const container = document.getElementById('detailContainer');
-  if (container.children.length > 0 && !modeEdit) {
+  if (container && container.children.length > 0 && !modeEdit) {
     container.innerHTML = '';
     tambahRow();
   }
 }
+
 function tambahRow() {
-  const jenis = document.getElementById('jenisPermintaan').value;
+  const jenisEl = document.getElementById('jenisPermintaan');
+  const jenis = jenisEl ? jenisEl.value : 'DEFAULT';
   const container = document.getElementById('detailContainer');
+  if (!container) return;
 
   const div = document.createElement('div');
   div.className = `detailRow ${jenis === 'DUS' ? 'dus' : 'seri'}`;
@@ -1886,7 +1924,6 @@ function tambahRow() {
   container.appendChild(div);
 }
 
-// DYNAMIC KODE UNIT LOOKUP MAP ENGINE
 function getKodeUnitMap() {
   const customMap = JSON.parse(appStorage.getItem(KODE_UNIT_MAP_KEY) || '{}');
   const merged = { ...KODE_UNIT_MAP, ...customMap };
@@ -1903,10 +1940,6 @@ function getKodeUnitMap() {
   return cleanMap;
 }
 
-// CAMERA BARCODE / QR SCANNER ENGINE (INSTANT AUTO-EXIT & AUTO-FOCUS TO PERMINTAAN COLUMN)
-// ======================================================
-// CAMERA SCANNER ENGINE (FIXED & INSTANT INPUT)
-// ======================================================
 function bukaScanner(btn) {
   const row = btn.closest('.detailRow');
   if (row) {
@@ -1935,12 +1968,10 @@ function bukaScanner(btn) {
             if (activeScanInput) {
               const cleanCode = String(decodedText || '').trim().toUpperCase();
               
-              // Masukkan nilai ke kotak input TANPA notifikasi
               activeScanInput.value = cleanCode;
               activeScanInput.setAttribute('value', cleanCode);
               activeScanInput.dispatchEvent(new Event('input', { bubbles: true }));
               
-              // Otomatis pindah fokus ke kolom 'PERMINTAAN BARANG'
               const targetRow = activeScanInput.closest('.detailRow');
               if (targetRow) {
                 const namaInput = targetRow.querySelector('.namaBarang');
@@ -1951,12 +1982,9 @@ function bukaScanner(btn) {
                 }
               }
             }
-            // Langsung tutup kamera seketika
             tutupScanner();
           },
-          (errorMessage) => {
-            // Abaikan error frame agar tidak nyepam
-          }
+          (errorMessage) => {}
         ).catch(err => {
           showNotif('KAMERA TIDAK TERSEDIA ATAU DIBLOKIR BROWSER!', 'warning');
           tutupScanner();
@@ -1969,6 +1997,7 @@ function bukaScanner(btn) {
     showNotif('MODUL SCANNER BELUM SIAP!', 'warning');
   }
 }
+
 function tutupScanner() {
   const modal = document.getElementById('scannerModal');
   if (modal) modal.style.display = 'none';
@@ -1976,7 +2005,7 @@ function tutupScanner() {
   if (html5QrCodeScanner) {
     try {
       const scannerRef = html5QrCodeScanner;
-      html5QrCodeScanner = null; // Putus referensi segera
+      html5QrCodeScanner = null;
       scannerRef.stop().then(() => {
         try { scannerRef.clear(); } catch(e) {}
       }).catch(err => {
@@ -1986,17 +2015,16 @@ function tutupScanner() {
       html5QrCodeScanner = null;
     }
   }
-  // Biarkan activeScanInput bernilai null SETELAH semuanya selesai
   setTimeout(() => {
     activeScanInput = null;
   }, 500);
 }
+
 function lookupTypeRow(el, isFromScanner = false) {
   if (!el) return;
   const rawValue = String(el.value || '').trim().toUpperCase();
   el.value = rawValue;
 
-  // STRICT RULE: Must be AT LEAST 4 characters long! (1, 2, or 3 digits are ignored)
   if (!rawValue || rawValue.length < 4) return;
 
   const first4Chars = rawValue.substring(0, 4);
@@ -2005,7 +2033,6 @@ function lookupTypeRow(el, isFromScanner = false) {
 
   let matchedType = null;
 
-  // 1. Check exact 4-character prefix match
   for (const key of keys) {
     const cleanKey = String(key).trim().toUpperCase();
     if (cleanKey.substring(0, 4) === first4Chars) {
@@ -2014,7 +2041,6 @@ function lookupTypeRow(el, isFromScanner = false) {
     }
   }
 
-  // 2. Check if rawValue starts with key (if key is 4+ chars)
   if (!matchedType) {
     for (const key of keys) {
       const cleanKey = String(key).trim().toUpperCase();
@@ -2047,7 +2073,7 @@ function hapusRow(btn) {
   const row = btn.closest('.detailRow');
   if (row) row.remove();
   const container = document.getElementById('detailContainer');
-  if (container.children.length === 0) tambahRow();
+  if (container && container.children.length === 0) tambahRow();
 }
 
 function kompresiFoto(file, maxDimension = 720, quality = 0.65) {
@@ -2092,52 +2118,32 @@ function kompresiFoto(file, maxDimension = 720, quality = 0.65) {
 }
 
 function pilihFoto() {
-  document.getElementById('foto').click();
+  const fileInput = document.getElementById('foto');
+  if (fileInput) fileInput.click();
 }
 
-async function uploadPhotoToDriveCloud(file) {
-  try {
-    const compressedBase64 = await kompresiFoto(file, 720, 0.65);
-    if (!compressedBase64) return '';
-
-    const payload = {
-      action: 'uploadPhoto',
-      base64: compressedBase64,
-      fileName: `FOTO_${Date.now()}_${Math.floor(Math.random()*1000)}.jpg`
-    };
-
-    const targetUrl = GOOGLE_SHEET_WEBAPP_URL || PUBLIC_CLOUD_DB_URL;
-    const res = await fetch(targetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.status === 'success' && data.url) {
-        return data.url;
+async function uploadPhotoToSupabaseStorage(file) {
+  if (typeof supabaseClient !== 'undefined' && supabaseClient) {
+    try {
+      const fileName = `FOTO_${Date.now()}_${Math.floor(Math.random()*1000)}.jpg`;
+      const { data, error } = await supabaseClient.storage.from('photos').upload(fileName, file);
+      if (!error && data) {
+        const { data: pubData } = supabaseClient.storage.from('photos').getPublicUrl(fileName);
+        if (pubData && pubData.publicUrl) return pubData.publicUrl;
       }
-    }
-    return await kompresiFoto(file, 400, 0.4);
-  } catch (err) {
-    console.warn('Upload Drive Error, fallback base64:', err);
-    return await kompresiFoto(file, 400, 0.4);
+    } catch (e) {}
   }
+  return await kompresiFoto(file, 400, 0.4);
 }
 
-// =========================================================================
-// PREVIEW & PROSES UPLOAD FOTO (BATAS MAKSIMAL 5 FOTO)
-// =========================================================================
 async function previewFoto(event) {
   const files = Array.from(event.target.files);
   if (!files.length) return;
 
-  // Validasi batas maksimal 5 foto
   if (currentPhotos.length + files.length > 5) {
     showNotif('MAKSIMAL FOTO DIBATASI HINGGA 5 FOTO SAJA!', 'warning');
     event.target.value = ''; 
-    return; // Hentikan proses jika melebihi 5
+    return;
   }
 
   const previewText = document.getElementById('previewText');
@@ -2149,7 +2155,6 @@ async function previewFoto(event) {
   for (let i = 0; i < files.length; i++) {
     if (currentPhotos.length < 5) {
       try {
-        // Langsung panggil fungsi upload tanpa fungsi kompresi
         const url = await uploadPhotoToSupabaseStorage(files[i]);
         if (url) {
           currentPhotos.push(url);
@@ -2175,11 +2180,12 @@ function hapusFotoItem(idx) {
 
 function renderPhotoGrid() {
   const grid = document.getElementById('photoPreviewsGrid');
+  if (!grid) return;
   grid.innerHTML = '';
   currentPhotos.forEach((src, idx) => {
     const div = document.createElement('div');
     div.className = 'photo-preview-card';
-    div.title = "KLIK UNTUK BUKA FOTO DI GOOGLE DRIVE / TAB BARU";
+    div.title = "KLIK UNTUK BUKA FOTO DILAYAR PENUH";
     div.onclick = () => window.open(src, '_blank');
     div.innerHTML = `
       <img src="${src}" alt="Foto ${idx + 1}">
@@ -2225,10 +2231,8 @@ function bersihkanForm() {
     container.innerHTML = '';
   }
 
-  // Re-create 1 fresh blank row
   tambahRow();
 
-  // Sweep and wipe ALL input and textarea elements inside #inputPage
   const allInputs = document.querySelectorAll('#inputPage input, #inputPage textarea');
   allInputs.forEach(ipt => {
     if (ipt.id === 'tanggal') return;
@@ -2244,20 +2248,23 @@ function bersihkanForm() {
 }
 
 function simpanData() {
-  const toko = document.getElementById('toko').value;
-  const jenis = document.getElementById('jenisPermintaan').value;
-  const catatan = document.getElementById('catatan').value.trim().toUpperCase();
+  const tokoSelect = document.getElementById('toko');
+  const toko = tokoSelect ? tokoSelect.value : '';
+  const jenisEl = document.getElementById('jenisPermintaan');
+  const jenis = jenisEl ? jenisEl.value : 'DEFAULT';
+  const catatanEl = document.getElementById('catatan');
+  const catatan = catatanEl ? catatanEl.value.trim().toUpperCase() : '';
 
   const rows = document.querySelectorAll('.detailRow');
   let items = [];
   let valid = true;
 
   rows.forEach(r => {
-    const type = r.querySelector('.typeBarang').value.trim().toUpperCase();
-    const seri = r.querySelector('.seriBarang').value.trim().toUpperCase();
-    const barang = r.querySelector('.namaBarang').value.trim().toUpperCase();
-    const alasan = r.querySelector('.alasan').value.trim().toUpperCase();
-    const qty = parseInt(r.querySelector('.qty').value) || 1;
+    const type = r.querySelector('.typeBarang') ? r.querySelector('.typeBarang').value.trim().toUpperCase() : '';
+    const seri = r.querySelector('.seriBarang') ? r.querySelector('.seriBarang').value.trim().toUpperCase() : '';
+    const barang = r.querySelector('.namaBarang') ? r.querySelector('.namaBarang').value.trim().toUpperCase() : '';
+    const alasan = r.querySelector('.alasan') ? r.querySelector('.alasan').value.trim().toUpperCase() : '';
+    const qty = parseInt(r.querySelector('.qty') ? r.querySelector('.qty').value : '1') || 1;
     const dus = r.querySelector('.seriDusBarang') ? r.querySelector('.seriDusBarang').value.trim().toUpperCase() : '';
 
     if (!type || !seri || !barang || !alasan) valid = false;
@@ -2271,7 +2278,6 @@ function simpanData() {
     return;
   }
 
-  // SERIAL DUPLICATE CHECK IN DATABASE
   const allReq = getRequestsFromDB();
   let duplicateSerial = null;
   let duplicateNoSurat = null;
@@ -2299,7 +2305,6 @@ function simpanData() {
 }
 
 function prosesSimpanKeDB(toko, jenis, catatan, items) {
-  
   setTimeout(() => {
     hideLoading();
     const requests = getRequestsFromDB();
@@ -2312,9 +2317,26 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
         requests[idx].catatan = catatan;
         requests[idx].items = items;
         requests[idx].photos = [...currentPhotos];
+        
         saveRequestsToDB(requests);
-        showNotif(`PERMINTAAN #${editNoSurat} BERHASIL DIPERBARUI!`, 'success');
+
+        const docId = String(editNoSurat).replace(/[\/\.]/g, '_');
+        if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+          dbFirestore.collection('requests').doc(docId).set(requests[idx], { merge: true }).catch(e => console.warn(e));
+        }
+        if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+          dbRealtime.ref(`requests/${docId}`).set(requests[idx]).catch(e => console.warn(e));
+        }
+
+        if (typeof pushCentralCloudDB === 'function') {
+          pushCentralCloudDB();
+        }
+
+        showNotif(`PERMINTAAN #${editNoSurat} DATA BERHASIL DIPERBARUHI!`, 'success');
         bersihkanForm();
+        pindahHalaman('riwayatPage');
+        if (typeof loadRiwayat === 'function') loadRiwayat();
+        if (typeof loadDashboard === 'function') loadDashboard();
       }
     } else {
       const now = new Date();
@@ -2348,10 +2370,22 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
       };
       requests.unshift(newRecord);
       saveRequestsToDB(requests);
-      showNotif(`PERMINTAAN #${noSurat} BERHASIL DISIMPAN!`, 'success');
+
+      const docId = String(noSurat).replace(/[\/\.]/g, '_');
+      if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+        dbFirestore.collection('requests').doc(docId).set(newRecord).catch(e => console.warn('[FIRESTORE SAVE NOTICE]:', e));
+      }
+      if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+        dbRealtime.ref(`requests/${docId}`).set(newRecord).catch(e => console.warn('[REALTIME SAVE NOTICE]:', e));
+      }
+
+      if (typeof pushCentralCloudDB === 'function') {
+        pushCentralCloudDB();
+      }
+
+      showNotif(`PERMINTAAN #${noSurat} DATA BERHASIL DISIMPAN!`, 'success');
       bersihkanForm();
 
-      // WA AUTOMATION TRIGGER 1: NEW REQUEST CREATED -> NOTIFY SERVICE IN AREA
       tambahNotifikasiSistem(['SERVICE'], currentUser.area, `PERMINTAAN BARU #${noSurat} DARI ${toko} (${currentUser.area}). MOHON SEGERA DIPERIKSA DI APLIKASI.`, noSurat);
       const allUsers = getUsersFromDB();
       const serviceUsers = allUsers.filter(u => u.category === 'SERVICE' && u.area === currentUser.area);
@@ -2360,23 +2394,28 @@ function prosesSimpanKeDB(toko, jenis, catatan, items) {
           kirimNotifikasiWA(srv.phone, `PERMINTAAN BARU #${noSurat} DARI ${toko} (${currentUser.area}). MOHON SEGERA DIPERIKSA DI APLIKASI.`);
         }
       });
-    }
 
-    // STAY ON INPUT FORM PAGE AFTER SAVING SUCCESSFUL
-    pindahHalaman('inputPage');
-  }, 400);
+      pindahHalaman('riwayatPage');
+      if (typeof loadRiwayat === 'function') loadRiwayat();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM' && typeof loadMasterDbTable === 'function') {
+        loadMasterDbTable();
+      }
+    }
+  }, 200);
 }
 
-// MAIN HISTORY TABLE
 function bukaMenuRiwayat() {
   filterStatusRiwayat = '';
-  document.getElementById('searchRiwayat').value = '';
+  const searchInput = document.getElementById('searchRiwayat');
+  if (searchInput) searchInput.value = '';
   showPage('riwayatPage');
 }
 
 function bukaRiwayat(status) {
   filterStatusRiwayat = status;
-  document.getElementById('searchRiwayat').value = '';
+  const searchInput = document.getElementById('searchRiwayat');
+  if (searchInput) searchInput.value = '';
   showPage('riwayatPage');
 }
 
@@ -2389,14 +2428,18 @@ function loadRiwayat() {
 }
 
 function filterRiwayatDropdown() {
-  filterStatusRiwayat = document.getElementById('filterStatusDropdown').value;
-  if (filterStatusRiwayat === 'ALL') filterStatusRiwayat = '';
+  const dropdown = document.getElementById('filterStatusDropdown');
+  if (dropdown) {
+    filterStatusRiwayat = dropdown.value;
+    if (filterStatusRiwayat === 'ALL') filterStatusRiwayat = '';
+  }
   filterRiwayat();
 }
 
 function filterRiwayat() {
   let data = getAccessibleRequests();
-  const search = document.getElementById('searchRiwayat').value.toLowerCase().trim();
+  const searchInput = document.getElementById('searchRiwayat');
+  const search = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
   if (filterStatusRiwayat && filterStatusRiwayat !== 'ALL') {
     data = data.filter(r => r.status === filterStatusRiwayat);
@@ -2412,7 +2455,9 @@ function filterRiwayat() {
 
   const thead = document.querySelector('.historyTable thead');
   const tbody = document.getElementById('riwayatData');
-  const role = currentUser.category;
+  if (!thead || !tbody) return;
+
+  const role = currentUser ? currentUser.category : '';
 
   thead.innerHTML = `
     <tr>
@@ -2436,10 +2481,8 @@ function filterRiwayat() {
   data.forEach(r => {
     let aksi = '';
 
-    const isCreator = currentUser && (r.userId === currentUser.id || r.createdBy === currentUser.fullName || (currentUser.category === 'TOKO' && r.toko.toUpperCase() === currentUser.fullName.toUpperCase()));
     const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
 
-    // TOMBOL APPROVE/REJECT/DONE SESUAI ROLE
     if (isAdminUser) {
       if (r.status === 'PENDING' && !r.serviceApprove) {
         aksi += `
@@ -2476,11 +2519,22 @@ function filterRiwayat() {
       }
     }
 
-    // ==============================================================================
-    // PERMINTAAN: TOMBOL EDIT & HAPUS SUDAH DIHILANGKAN DARI SINI (HANYA ADA DI POPUP DETAIL)
-    // ==============================================================================
+    const isOwner = currentUser && (r.userId === currentUser.id || r.createdBy === currentUser.fullName || r.createdBy === currentUser.username);
+    const canEdit = (r.status === 'PENDING' && !r.serviceApprove && isOwner) || (isAdminUser && r.status === 'PENDING');
+    const canDelete = (r.status === 'PENDING' && !r.serviceApprove && isOwner) || isAdminUser;
 
-    // TOMBOL INFO DETAIL SELALU MUNCUL DI TABEL
+    if (canEdit) {
+      aksi += `
+        <button class="btnIcon btnEdit" onclick="editPermintaan('${r.noSurat}')" title="EDIT PERMINTAAN"><span class="material-symbols-rounded">edit</span></button>
+      `;
+    }
+
+    if (canDelete) {
+      aksi += `
+        <button class="btnIcon btnDelete" onclick="hapusData('${r.noSurat}')" title="HAPUS PERMINTAAN"><span class="material-symbols-rounded">delete</span></button>
+      `;
+    }
+
     aksi += `
       <button class="btnIcon btnInfo" onclick="lihatDetail('${r.noSurat}')" title="LIHAT DETAIL"><span class="material-symbols-rounded">visibility</span></button>
     `;
@@ -2499,7 +2553,11 @@ function filterRiwayat() {
       `;
     }
 
+    const isWaitingDM = (r.status === 'PENDING' && r.serviceApprove);
     const tr = document.createElement('tr');
+    if (isWaitingDM) {
+      tr.className = 'rowWaitingDmBlink';
+    }
     tr.innerHTML = `
       <td><div style="display:flex; gap:4px; align-items:center;">${aksi}</div></td>
       <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
@@ -2512,15 +2570,15 @@ function filterRiwayat() {
     tbody.appendChild(tr);
   });
 }
+
 function lihatFotoByNoSurat(noSurat) {
   const requests = getRequestsFromDB();
   const req = requests.find(r => r.noSurat === noSurat);
   if (req && req.photos && req.photos.length > 0) {
-    viewerPhotos = req.photos; // Ambil seluruh array (kumpulan) foto
-    viewerCurrentIndex = 0; // Mulai dari foto indeks ke-0 (pertama)
+    viewerPhotos = req.photos;
+    viewerCurrentIndex = 0;
     tampilkanFotoViewerAktif();
     
-    // Beri tahu HP bahwa ada popup terbuka (agar tombol back tidak keluar aplikasi)
     if (typeof pushPopupHistoryState === 'function') {
       pushPopupHistoryState();
     }
@@ -2528,30 +2586,28 @@ function lihatFotoByNoSurat(noSurat) {
     showNotif('TIDAK ADA FOTO UNTUK PERMINTAAN INI!', 'warning');
   }
 }
+
 function tampilkanFotoViewerAktif() {
-  currentZoom = 1; // Reset zoom setiap kali ganti foto
+  currentZoom = 1;
   const img = document.getElementById('viewerImage');
   if (img && viewerPhotos.length > 0) {
     img.src = viewerPhotos[viewerCurrentIndex];
     img.style.transform = `scale(${currentZoom})`;
   }
-  document.getElementById('imageViewer').style.display = 'flex';
+  const modal = document.getElementById('imageViewer');
+  if (modal) modal.style.display = 'flex';
   
-  // Atur Tampilan Tombol Navigasi (< dan >) & Angka Counter
   const btnLeft = document.getElementById('navViewerLeft');
   const btnRight = document.getElementById('navViewerRight');
   const textCounter = document.getElementById('viewerCounter');
   
-  // Jika foto lebih dari 1, tampilkan tombol. Jika cuma 1, sembunyikan.
-  if(btnLeft) btnLeft.style.display = viewerPhotos.length > 1 ? 'flex' : 'none';
-  if(btnRight) btnRight.style.display = viewerPhotos.length > 1 ? 'flex' : 'none';
-  if(textCounter) textCounter.textContent = `${viewerCurrentIndex + 1} / ${viewerPhotos.length}`;
+  if (btnLeft) btnLeft.style.display = viewerPhotos.length > 1 ? 'flex' : 'none';
+  if (btnRight) btnRight.style.display = viewerPhotos.length > 1 ? 'flex' : 'none';
+  if (textCounter) textCounter.textContent = `${viewerCurrentIndex + 1} / ${viewerPhotos.length}`;
 }
-// Fungsi jika tombol < atau > ditekan
+
 function gantiFotoViewer(arah) {
   viewerCurrentIndex += arah;
-  
-  // Efek Looping (Muter): Jika mentok di akhir, kembali ke foto pertama.
   if (viewerCurrentIndex < 0) {
     viewerCurrentIndex = viewerPhotos.length - 1;
   } else if (viewerCurrentIndex >= viewerPhotos.length) {
@@ -2560,9 +2616,8 @@ function gantiFotoViewer(arah) {
   tampilkanFotoViewerAktif();
 }
 
-// APPROVAL ACTIONS WITH WA AUTOMATION TRIGGERS
 function approveService(noSurat) {
-  showConfirm(`APPROVE PERMINTAAN?`, () => {
+  showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, () => {
     showLoading('');
     setTimeout(() => {
       hideLoading();
@@ -2572,7 +2627,6 @@ function approveService(noSurat) {
         requests[idx].serviceApprove = true;
         requests[idx].serviceUserName = currentUser.fullName;
 
-        // Auto attach Service User's Digital Signature from profile
         const ttdMap = JSON.parse(appStorage.getItem(TTD_DB_KEY) || '{}');
         const sig = ttdMap[currentUser.id] || ttdMap[currentUser.username] || ttdMap['SERVICE_' + currentUser.area] || ttdMap['SERVICE'] || '';
         if (sig) {
@@ -2587,9 +2641,8 @@ function approveService(noSurat) {
           time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
         });
         saveRequestsToDB(requests);
-        showNotif(`APPROVE SERVICE BERHASIL UNTUK #${noSurat}!`, 'info');
+        showNotif(`APPROVE BERHASIL`, 'info');
 
-        // WA AUTOMATION TRIGGER 2: SERVICE APPROVE -> NOTIFY DM PUSAT
         tambahNotifikasiSistem(['DM'], 'ALL', `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} TELAH DISETUJUI SERVICE (${currentUser.fullName}). MOHON APPROVAL DM.`, noSurat);
         const users = getUsersFromDB();
         const dmUsers = users.filter(u => u.category === 'DM');
@@ -2629,7 +2682,6 @@ function approveDM(noSurat) {
         requests[idx].status = 'APPROVE';
         requests[idx].dmUserName = currentUser.fullName;
 
-        // Auto attach DM User's Digital Signature from profile
         const ttdMap = JSON.parse(appStorage.getItem(TTD_DB_KEY) || '{}');
         const sig = ttdMap[currentUser.id] || ttdMap[currentUser.username] || ttdMap['DM'] || '';
         if (sig) {
@@ -2640,19 +2692,18 @@ function approveDM(noSurat) {
         requests[idx].log.push({
           action: 'APPROVE_DM',
           user: currentUser.fullName,
-          notes: 'DISETUJUI DM PUSAT',
+          notes: 'DISETUJUI DM',
           time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
         });
         saveRequestsToDB(requests);
-        showNotif(`APPROVE DM PUSAT BERHASIL UNTUK #${noSurat}!`, 'info');
+        showNotif(`APPROVE BERHASIL`, 'info');
 
-        // WA AUTOMATION TRIGGER 3: DM APPROVE -> NOTIFY SERVICE IN AREA & TOKO
         tambahNotifikasiSistem(['SERVICE', 'TOKO', 'SALES'], requests[idx].area, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} TELAH DISETUJUI DM PUSAT. SILAKAN DIPROSES.`, noSurat);
         const users = getUsersFromDB();
         const serviceUsers = users.filter(u => u.category === 'SERVICE' && u.area === requests[idx].area);
         serviceUsers.forEach(srv => {
           if (srv.phone) {
-            kirimNotifikasiWA(srv.phone, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} TELAH DISETUJUI DM PUSAT. SILAKAN DIPROSES.`);
+            kirimNotifikasiWA(srv.phone, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} TELAH DISETUJUI DM. SILAKAN DIPROSES.`);
           }
         });
 
@@ -2683,7 +2734,6 @@ function doneService(noSurat) {
         saveRequestsToDB(requests);
         showNotif(`PERMINTAAN #${noSurat} DITANDAI DONE!`, 'info');
 
-        // WA AUTOMATION TRIGGER 4: SERVICE SETS DONE -> NOTIFY CREATOR (TOKO/SALES)
         tambahNotifikasiSistem(['TOKO', 'SALES'], requests[idx].area, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} TELAH SELESAI (DONE).`, noSurat);
         const users = getUsersFromDB();
         const creator = users.find(u => u.id === requests[idx].userId || u.fullName === requests[idx].createdBy);
@@ -2700,16 +2750,24 @@ function doneService(noSurat) {
 }
 
 function tolakServiceModal(noSurat, roleType) {
-  document.getElementById('rejectNoSurat').value = noSurat;
-  document.getElementById('rejectRoleType').value = roleType;
-  document.getElementById('rejectReason').value = '';
-  document.getElementById('rejectTitle').textContent = `TOLAK PERMINTAAN`;
-  document.getElementById('rejectOverlay').style.display = 'flex';
+  const elNo = document.getElementById('rejectNoSurat');
+  const elRole = document.getElementById('rejectRoleType');
+  const elReason = document.getElementById('rejectReason');
+  const elTitle = document.getElementById('rejectTitle');
+
+  if (elNo) elNo.value = noSurat;
+  if (elRole) elRole.value = roleType;
+  if (elReason) elReason.value = '';
+  if (elTitle) elTitle.textContent = `TOLAK PERMINTAAN`;
+  
+  const modal = document.getElementById('rejectOverlay');
+  if (modal) modal.style.display = 'flex';
   pushPopupHistoryState();
 }
 
 function closeReject() {
-  document.getElementById('rejectOverlay').style.display = 'none';
+  const modal = document.getElementById('rejectOverlay');
+  if (modal) modal.style.display = 'none';
 }
 
 function kirimReject() {
@@ -2739,27 +2797,25 @@ function kirimReject() {
         time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
       });
       saveRequestsToDB(requests);
-      showNotif(`PERMINTAAN #${noSurat} BERHASIL DITOLAK.`, 'info');
+      showNotif(`PERMINTAAN BERHASIL DITOLAK`, 'info');
 
       const users = getUsersFromDB();
       const creator = users.find(u => u.id === requests[idx].userId || u.fullName === requests[idx].createdBy);
 
       if (roleType === 'SERVICE') {
-        // WA AUTOMATION TRIGGER 5: SERVICE REJECTS -> NOTIFY CREATOR
         tambahNotifikasiSistem(['TOKO', 'SALES'], requests[idx].area, `PERMINTAAN #${noSurat} DITOLAK SERVICE. CATATAN: ${alasan}`, noSurat);
         if (creator && creator.phone) {
           kirimNotifikasiWA(creator.phone, `PERMINTAAN #${noSurat} DITOLAK SERVICE. CATATAN: ${alasan}`);
         }
       } else if (roleType === 'DM') {
-        // WA AUTOMATION TRIGGER 6: DM REJECTS -> NOTIFY SERVICE IN AREA & CREATOR
-        tambahNotifikasiSistem(['SERVICE', 'TOKO', 'SALES'], requests[idx].area, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} DITOLAK DM PUSAT. CATATAN: ${alasan}`, noSurat);
+        tambahNotifikasiSistem(['SERVICE', 'TOKO', 'SALES'], requests[idx].area, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} DITOLAK DM. CATATAN: ${alasan}`, noSurat);
         if (creator && creator.phone) {
-          kirimNotifikasiWA(creator.phone, `PERMINTAAN #${noSurat} DITOLAK DM PUSAT. CATATAN: ${alasan}`);
+          kirimNotifikasiWA(creator.phone, `PERMINTAAN #${noSurat} DITOLAK DM. CATATAN: ${alasan}`);
         }
         const serviceUsers = users.filter(u => u.category === 'SERVICE' && u.area === requests[idx].area);
         serviceUsers.forEach(srv => {
           if (srv.phone) {
-            kirimNotifikasiWA(srv.phone, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} DITOLAK DM PUSAT. CATATAN: ${alasan}`);
+            kirimNotifikasiWA(srv.phone, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} DITOLAK DM. CATATAN: ${alasan}`);
           }
         });
       }
@@ -2787,64 +2843,105 @@ function editPermintaan(noSurat) {
 
   pindahHalaman('inputPage');
 
-  document.getElementById('toko').value = req.toko;
-  document.getElementById('jenisPermintaan').value = req.jenis;
-  document.getElementById('catatan').value = req.catatan || '';
+  const tokoEl = document.getElementById('toko');
+  const jenisEl = document.getElementById('jenisPermintaan');
+  const catatanEl = document.getElementById('catatan');
+
+  if (tokoEl) tokoEl.value = req.toko;
+  if (jenisEl) jenisEl.value = req.jenis;
+  if (catatanEl) catatanEl.value = req.catatan || '';
 
   gantiJenis();
 
   const container = document.getElementById('detailContainer');
-  container.innerHTML = '';
+  if (container) {
+    container.innerHTML = '';
 
-  req.items.forEach(item => {
-    tambahRow();
-    const row = container.lastElementChild;
-    if (row.querySelector('.typeBarang')) row.querySelector('.typeBarang').value = item.type || '';
-    if (row.querySelector('.seriBarang')) row.querySelector('.seriBarang').value = item.seri || '';
-    if (row.querySelector('.seriDusBarang')) row.querySelector('.seriDusBarang').value = item.dus || '';
-    if (row.querySelector('.namaBarang')) row.querySelector('.namaBarang').value = item.barang || '';
-    if (row.querySelector('.qty')) row.querySelector('.qty').value = item.qty || 1;
-    if (row.querySelector('.alasan')) row.querySelector('.alasan').value = item.alasan || '';
-  });
+    req.items.forEach(item => {
+      tambahRow();
+      const row = container.lastElementChild;
+      if (row.querySelector('.typeBarang')) row.querySelector('.typeBarang').value = item.type || '';
+      if (row.querySelector('.seriBarang')) row.querySelector('.seriBarang').value = item.seri || '';
+      if (row.querySelector('.seriDusBarang')) row.querySelector('.seriDusBarang').value = item.dus || '';
+      if (row.querySelector('.namaBarang')) row.querySelector('.namaBarang').value = item.barang || '';
+      if (row.querySelector('.qty')) row.querySelector('.qty').value = item.qty || 1;
+      if (row.querySelector('.alasan')) row.querySelector('.alasan').value = item.alasan || '';
+    });
+  }
 
   currentPhotos = [...(req.photos || [])];
   renderPhotoGrid();
 
-  document.getElementById('btnSimpan').textContent = 'SIMPAN PERUBAHAN';
+  const btnSimpan = document.getElementById('btnSimpan');
+  if (btnSimpan) btnSimpan.textContent = 'SIMPAN PERUBAHAN';
 }
 
+function editData(noSurat) {
+  editPermintaan(noSurat);
+}
+window.editData = editData;
+window.editPermintaan = editPermintaan;
+
 function hapusData(noSurat) {
-  showConfirm(`HAPUS PERMANEN DATA PERMINTAAN #${noSurat}?`, () => {
-    showLoading('MENGHAPUS...');
-    setTimeout(() => {
-      hideLoading();
-      const requests = getRequestsFromDB().filter(r => r.noSurat !== noSurat);
+  if (!noSurat) return;
+  showConfirm(`HAPUS DATA PERMINTAAN #${noSurat}?`, () => {
+    try {
+      // 1. HAPUS DARI CACHE LOKAL SEKETIKA
+      const currentReqs = getRequestsFromDB();
+      const updatedReqs = currentReqs.filter(r => r.noSurat !== noSurat);
       
       const delReqs = JSON.parse(appStorage.getItem(DELETED_REQUESTS_KEY) || '[]');
       if (!delReqs.includes(noSurat)) delReqs.push(noSurat);
       appStorage.setItem(DELETED_REQUESTS_KEY, JSON.stringify(delReqs));
 
-      saveRequestsToDB(requests);
-      showNotif(`PERMINTAAN #${noSurat} BERHASIL DIHAPUS.`, 'info');
-      loadRiwayat();
-      loadDashboard();
-      if (currentUser.category === 'SERVICE' && currentUser.area === 'TSM') loadMasterDbTable();
-    }, 300);
+      saveRequestsToDB(updatedReqs);
+
+      // 2. HAPUS DOKUMEN DARI FIREBASE FIRESTORE & REALTIME DB ONLINE
+      const docId = String(noSurat).replace(/[\/\.]/g, '_');
+      if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+        dbFirestore.collection('requests').doc(docId).delete().catch(err => console.warn('[FIRESTORE DELETE NOTICE]:', err));
+      }
+      if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+        dbRealtime.ref(`requests/${docId}`).remove().catch(err => console.warn('[REALTIME DELETE NOTICE]:', err));
+      }
+
+      // 3. SINKRONKAN KE FIREBASE CLOUD
+      if (typeof pushCentralCloudDB === 'function') {
+        pushCentralCloudDB();
+      }
+
+      // 4. RE-RENDER TAMPILAN & TAMPILKAN NOTIFIKASI
+      hideLoading();
+      showNotif(`PERMINTAAN BERHASIL DIHAPUS!`, 'info');
+      
+      if (typeof loadRiwayat === 'function') loadRiwayat();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM' && typeof loadMasterDbTable === 'function') {
+        loadMasterDbTable();
+      }
+    } catch (err) {
+      hideLoading();
+      console.error('[HAPUS DATA ERROR]:', err);
+      showNotif('GAGAL MENGHAPUS DATA PERMINTAAN!', 'error');
+    }
   });
 }
+window.hapusData = hapusData;
 
-// LIHAT DETAIL POPUP MODAL (SHOW ALL ACTION BUTTONS AT BOTTOM WHEN CLICKED FROM DASHBOARD)
 function lihatDetail(noSurat, fromDashboard = false) {
   const requests = getRequestsFromDB();
   const req = requests.find(r => r.noSurat === noSurat);
   if (!req) return;
 
-  document.getElementById('popupTitle').textContent = 'DETAIL PERMINTAAN';
+  const popupTitle = document.getElementById('popupTitle');
+  if (popupTitle) popupTitle.textContent = 'DETAIL PERMINTAAN';
   const msgBox = document.getElementById('popupMessage');
+  if (!msgBox) return;
 
   let headerInfoHtml = `
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom:10px; margin-bottom:14px; font-size:13px; color:var(--text-main);">
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom:10px; margin-bottom:14px; font-size:13px; color:var(--text-main); flex-wrap:wrap; gap:8px;">
       <div style="text-align:left;">NO SURAT : <span style="color:var(--primary); font-weight:bold;">${req.noSurat}</span></div>
+      <span style="user-select:none;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
       <div style="text-align:right;">TOKO : <span style="font-weight:bold;">${req.toko}</span></div>
     </div>
   `;
@@ -2865,7 +2962,7 @@ function lihatDetail(noSurat, fromDashboard = false) {
 
   let bottomActionsHtml = '';
   let actionButtons = [];
-  const role = currentUser.category;
+  const role = currentUser ? currentUser.category : '';
   const isAdminUser = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
 
   if (req.status === 'PENDING') {
@@ -2975,14 +3072,15 @@ function lihatDetail(noSurat, fromDashboard = false) {
     ${bottomActionsHtml}
   `;
 
-  document.getElementById('popupDetail').style.display = 'flex';
+  const popupDetail = document.getElementById('popupDetail');
+  if (popupDetail) popupDetail.style.display = 'flex';
 
-  // PASTIKAN IKON TETAP MUNCUL SAAT DETAIL DIBUKA DI DASHBOARD
   const notifBtn = document.getElementById('notifBellBtn');
   const helpBtn = document.getElementById('helpButton');
   if (notifBtn) notifBtn.style.setProperty('display', 'flex', 'important');
   if (helpBtn) helpBtn.style.setProperty('display', 'flex', 'important');
 }
+
 function closeDetail() {
   const detailModal = document.getElementById('popupDetail');
   if (detailModal) {
@@ -2990,7 +3088,6 @@ function closeDetail() {
     detailModal.classList.remove('show');
   }
 
-  // PAKSA MUNCULKAN KEMBALI IKON LONCENG DAN BANTUAN DI DASHBOARD
   setTimeout(() => {
     const notifBtn = document.getElementById('notifBellBtn');
     const helpBtn = document.getElementById('helpButton');
@@ -3003,7 +3100,6 @@ function closeDetail() {
   }, 100);
 }
 
-// PDF TEMPLATE 5-MODEL SELECTION & SINGLE FULL POPUP PREVIEW ENGINE
 const PDF_MODEL_KEY = 'SELECTED_PDF_MODEL';
 let currentlyPreviewedModel = 'MODEL_1';
 
@@ -3031,12 +3127,14 @@ function bukaModalPdfModels() {
   currentlyPreviewedModel = getActivePdfModel();
   renderFullPdfPreviewDocument(currentlyPreviewedModel);
   updatePdfModelSelectorButtons();
-  document.getElementById('popupPdfModelsModal').style.display = 'flex';
+  const modal = document.getElementById('popupPdfModelsModal');
+  if (modal) modal.style.display = 'flex';
   pushPopupHistoryState();
 }
 
 function tutupModalPdfModels() {
-  document.getElementById('popupPdfModelsModal').style.display = 'none';
+  const modal = document.getElementById('popupPdfModelsModal');
+  if (modal) modal.style.display = 'none';
 }
 
 function switchPdfPreviewModel(modelId) {
@@ -3054,17 +3152,18 @@ function konfirmasiGunakanModelPdf() {
 
 function updatePdfModelSelectorButtons() {
   PDF_MODELS_DATA.forEach(m => {
-    const btn = document.getElementById(`btnPdf${m.id.replace('_', '')}`);
+    const num = m.id.replace('MODEL_', '');
+    const btn = document.getElementById(`btnPdfModel${num}`) || document.getElementById(`btnPdf${m.id}`);
     if (btn) {
       if (m.id === currentlyPreviewedModel) {
         btn.style.background = m.color === '#0f172a' ? '#0f172a' : (m.color || '#7c3aed');
-        btn.style.color = '#111827';
+        btn.style.color = '#ffffff';
         btn.style.border = '2px solid #ffffff';
         btn.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
         btn.innerHTML = `<span class="material-symbols-rounded" style="vertical-align:middle; font-size:16px;">check_circle</span> ${m.title.split(':')[0]}`;
       } else {
         btn.style.background = 'var(--bg-header)';
-        btn.style.color = '#111827';
+        btn.style.color = 'var(--text-main)';
         btn.style.border = '1px solid var(--border-color)';
         btn.style.boxShadow = 'none';
         btn.innerHTML = `${m.title.split(':')[0]}`;
@@ -3117,10 +3216,8 @@ function renderFullPdfPreviewDocument(modelId) {
   }
 
   container.innerHTML = `
-    <!-- FULL A4 PAPER CONTAINER FOR PREVIEW -->
     <div style="background: #ffffff; color: #0f172a; width: 100%; max-width: 720px; margin: 0 auto; padding: 24px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); font-family: Arial, sans-serif; box-sizing: border-box;">
       
-      <!-- BADGE INDIKATOR TEMPLATE MODEL -->
       <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #cbd5e1; padding: 8px 12px; border-radius: 8px; margin-bottom: 16px;">
         <span style="font-size: 12px; font-weight: 800; color: ${m.color};">
           <span class="material-symbols-rounded" style="vertical-align: middle; font-size: 16px;">style</span> ${m.title}
@@ -3130,7 +3227,6 @@ function renderFullPdfPreviewDocument(modelId) {
 
       ${headerTitleHtml}
 
-      <!-- HEADER META METADATA -->
       <div style="display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 14px; background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 14px; border-radius: 8px; flex-wrap: wrap; gap: 8px;">
         <div><b>NO SURAT:</b> <span style="color:${m.color}; font-weight:800;">PRM/2026/001</span></div>
         <div><b>TOKO:</b> TOKO UTAMA BANDUNG</div>
@@ -3138,7 +3234,6 @@ function renderFullPdfPreviewDocument(modelId) {
         <div><b>JENIS:</b> UNIT</div>
       </div>
 
-      <!-- MAIN DATA TABLE -->
       <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px;">
         <thead>
           <tr style="background: ${tableHeaderBg}; color: #ffffff;">
@@ -3153,7 +3248,7 @@ function renderFullPdfPreviewDocument(modelId) {
         <tbody>
           <tr>
             <td style="text-align:center; padding:8px; border:1px solid #cbd5e1;">1</td>
-            <td style="padding:8px; border:1px solid #cbd5e1;">AC DANGIN 2 PK</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">AC DAIKIN 2 PK</td>
             <td style="padding:8px; border:1px solid #cbd5e1;">SN-889920112</td>
             <td style="padding:8px; border:1px solid #cbd5e1;">UNIT INDOOR AC 2PK</td>
             <td style="padding:8px; border:1px solid #cbd5e1;">KOMPRESOR BOCOR FREON</td>
@@ -3161,7 +3256,7 @@ function renderFullPdfPreviewDocument(modelId) {
           </tr>
           <tr>
             <td style="text-align:center; padding:8px; border:1px solid #cbd5e1;">2</td>
-            <td style="padding:8px; border:1px solid #cbd5e1;">KULKAS 2 PINTO</td>
+            <td style="padding:8px; border:1px solid #cbd5e1;">KULKAS 2 PINTU</td>
             <td style="padding:8px; border:1px solid #cbd5e1;">SN-776655100</td>
             <td style="padding:8px; border:1px solid #cbd5e1;">UNIT KULKAS INVERTER</td>
             <td style="padding:8px; border:1px solid #cbd5e1;">KARET PINTU LONGGAR</td>
@@ -3170,7 +3265,6 @@ function renderFullPdfPreviewDocument(modelId) {
         </tbody>
       </table>
 
-      <!-- DIGITAL TTD SIGNATURE SECTION -->
       <div style="display: flex; justify-content: space-around; font-size: 11px; text-align: center; margin-top: 24px; font-weight: bold; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
         <div>
           <div>PEMOHON (TOKO)</div>
@@ -3183,7 +3277,7 @@ function renderFullPdfPreviewDocument(modelId) {
           <div style="font-weight: normal; text-decoration: underline;">SERVICE BANDUNG</div>
         </div>
         <div>
-          <div>DISETUJUI (DM PUSAT)</div>
+          <div>DISETUJUI (DM)</div>
           <div style="height: 45px; margin: 6px 0; color: #7c3aed; font-size: 10px; display: flex; align-items: center; justify-content: center; font-style: italic;">[ DM APPROVAL ]</div>
           <div style="font-weight: normal; text-decoration: underline;">DISTRICT MANAGER</div>
         </div>
@@ -3192,7 +3286,6 @@ function renderFullPdfPreviewDocument(modelId) {
   `;
 }
 
-// PDF DOCUMENT GENERATOR & PRINT
 function bukaPdfModal(noSurat) {
   const requests = getRequestsFromDB();
   const req = requests.find(r => r.noSurat === noSurat);
@@ -3219,7 +3312,6 @@ function bukaPdfModal(noSurat) {
   const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area) || users.find(u => u.category === 'SERVICE');
   const dmUser = users.find(u => u.category === 'DM') || users.find(u => u.username === 'ADMIN');
   const serviceName = req.serviceUserName || (serviceUser ? serviceUser.fullName : 'SERVICE SUPERVISOR');
-  const dmName = req.dmUserName || (dmUser ? dmUser.fullName : 'FERRY EDIYANTO');
 
   const ttdMap = JSON.parse(appStorage.getItem(TTD_DB_KEY) || '{}');
   let serviceTTD = req.serviceTTD || '';
@@ -3235,7 +3327,7 @@ function bukaPdfModal(noSurat) {
     dmTTD = ttdMap[dmUser.id] || ttdMap[dmUser.username] || ttdMap[dmUser.fullName] || '';
   }
   if (!dmTTD) {
-    dmTTD = ttdMap['DM'] || ttdMap['DM_PUSAT'] || '';
+    dmTTD = ttdMap['DM'] || ttdMap['DM'] || '';
   }
 
   const nowPrint = new Date();
@@ -3245,7 +3337,7 @@ function bukaPdfModal(noSurat) {
   const pHour = String(nowPrint.getHours()).padStart(2, '0');
   const pMin = String(nowPrint.getMinutes()).padStart(2, '0');
   const pSec = String(nowPrint.getSeconds()).padStart(2, '0');
-  const timestampStr = `DI CETAK PADA ${pDay}/${pMonth}/${pYear} Pukul ${pHour}:${pMin}:${pSec}`;
+  const timestampStr = `DICETAK PADA ${pDay}/${pMonth}/${pYear} Pukul ${pHour}:${pMin}:${pSec}`;
 
   let photoSection = '';
   if (req.photos && req.photos.length > 0) {
@@ -3313,10 +3405,8 @@ function bukaPdfModal(noSurat) {
   pdfContainer.innerHTML = `
     <div class="pdf-paper" style="min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; padding: 22px; color: #0f172a; background: #ffffff; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
       <div>
-        <!-- HEADER DOCUMENT -->
         ${headerTitleHtml}
 
-        <!-- 4 KETERANGAN UTAMA (NO SURAT, TOKO, TANGGAL, JENIS) -->
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px; border: 1px solid #cbd5e1; background: #f8fafc;">
           <tr>
             <td style="padding: 7px 10px; width: 14%; font-weight: bold; border-bottom: 1px solid #e2e8f0;">NO SURAT</td>
@@ -3332,11 +3422,10 @@ function bukaPdfModal(noSurat) {
             <td style="padding: 7px 10px; font-weight: 700;">${req.toko}</td>
             <td style="padding: 7px 10px; font-weight: bold;">JENIS</td>
             <td style="padding: 7px 4px;">:</td>
-            <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">${req.jenis || req.jenisPermintaan || 'DEFAULT'}</td>
+            <td style="padding: 7px 10px; font-weight: 700; color: #16a34a;">${req.jenis || 'DEFAULT'}</td>
           </tr>
         </table>
 
-        <!-- DETAIL PERMINTAAN TABLE -->
         <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px; color: #0f172a;">DETAIL PERMINTAAN:</div>
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #cbd5e1;">
           <thead>
@@ -3344,7 +3433,7 @@ function bukaPdfModal(noSurat) {
               <th style="width: 32px; text-align:center; padding:6px 8px; border:1px solid ${tableHeaderBg};">NO</th>
               <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">TIPE BARANG</th>
               <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">NO. SERI</th>
-              ${(req.jenis === 'DUS' || req.jenisPermintaan === 'DUS') ? `<th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">NO. SERI DUS</th>` : ''}
+              ${req.jenis === 'DUS' ? `<th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">NO. SERI DUS</th>` : ''}
               <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">PERMINTAAN BARANG</th>
               <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">ALASAN PERMINTAAN</th>
               <th style="width: 45px; text-align:center; padding:6px 8px; border:1px solid ${tableHeaderBg};">QTY</th>
@@ -3353,12 +3442,10 @@ function bukaPdfModal(noSurat) {
           <tbody>${itemRowsHtml}</tbody>
         </table>
 
-        <!-- FOTO BARANG PENDUKUNG (SAMA KOTAKNYA JIKA ADA FOTO) -->
         ${photoSection}
 
-        <!-- CATATAN (DITAMPILKAN HANYA JIKA ADA CATATAN ISINYA) -->
         ${(() => {
-          const cTxt = (req.catatan || req.notes || req.rejectReason || '').trim();
+          const cTxt = (req.catatan || '').trim();
           if (cTxt && cTxt !== '-') {
             return `
               <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid ${tableHeaderBg}; border-radius: 0 8px 8px 0;">
@@ -3371,9 +3458,7 @@ function bukaPdfModal(noSurat) {
       </div>
 
       <div>
-        <!-- TTD 3 KOLOM SEJAJAR: KIRI = PEMOHON (SELALU KOSONG), TENGAH = DIPERIKSA, KANAN = DISETUJUI -->
         <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; text-align: center; font-size: 11px;">
-          <!-- KIRI: PEMOHON (LANGSUNG TERISI NAMA TOKO) -->
           <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 120px;">
             <div style="font-weight: bold;">PEMOHON</div>
             <div style="height: 50px;"></div>
@@ -3382,7 +3467,6 @@ function bukaPdfModal(noSurat) {
             </div>
           </div>
 
-          <!-- TENGAH: DIPERIKSA (SERVICE SUPERVISOR AREA) -->
           <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 120px;">
             <div style="font-weight: bold;">DIPERIKSA</div>
             <div style="height: 50px; display: flex; align-items: center; justify-content: center;">${serviceTTD ? `<img src="${serviceTTD}" style="height: 48px; max-width: 100%; object-fit: contain;">` : ''}</div>
@@ -3392,7 +3476,6 @@ function bukaPdfModal(noSurat) {
             </div>
           </div>
 
-          <!-- KANAN: DISETUJUI (FERRY EDIYANTO - DISTRICT MANAGER) -->
           <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 120px;">
             <div style="font-weight: bold;">DISETUJUI</div>
             <div style="height: 50px; display: flex; align-items: center; justify-content: center;">${dmTTD ? `<img src="${dmTTD}" style="height: 48px; max-width: 100%; object-fit: contain;">` : ''}</div>
@@ -3403,7 +3486,6 @@ function bukaPdfModal(noSurat) {
           </div>
         </div>
 
-        <!-- PRINT TIMESTAMP AT BOTTOM RIGHT (SMALLER FONT & FARTHER SPACING FROM TTD) -->
         <div style="margin-top: 36px; text-align: right; font-size: 8px; font-style: italic; color: #64748b; opacity: 0.85; letter-spacing: 0.2px;">
           ${timestampStr}
         </div>
@@ -3411,24 +3493,29 @@ function bukaPdfModal(noSurat) {
     </div>
   `;
 
-  document.getElementById('pdfModal').style.display = 'flex';
+  const pdfModal = document.getElementById('pdfModal');
+  if (pdfModal) pdfModal.style.display = 'flex';
 }
 
 function tutupPdfModal() {
-  document.getElementById('pdfModal').style.display = 'none';
+  const pdfModal = document.getElementById('pdfModal');
+  if (pdfModal) pdfModal.style.display = 'none';
 }
 
 function cetakDokumenPdf() {
   window.print();
 }
 
-// DIGITAL SIGNATURE (TTD) CANVAS ENGINE
 function bukaTTD() {
-  if (currentUser.category !== 'SERVICE' && currentUser.category !== 'DM') {
+  if (!currentUser || (currentUser.category !== 'SERVICE' && currentUser.category !== 'DM')) {
     showNotif('TANDA TANGAN DIGITAL KHUSUS UNTUK SERVICE & DM!', 'warning');
     return;
   }
-  document.getElementById('popupTTD').classList.add('show');
+  const modal = document.getElementById('popupTTD');
+  if (modal) {
+    modal.classList.add('show');
+    modal.style.display = 'flex';
+  }
   pushPopupHistoryState();
   setTimeout(() => {
     initCanvasTTD();
@@ -3440,20 +3527,14 @@ function tutupTTD() {
   const modalTTD = document.getElementById('popupTTD');
   if (modalTTD) {
     modalTTD.classList.remove('show');
-    modalTTD.style.display = 'none'; // Pastikan display-nya disembunyikan
+    modalTTD.style.display = 'none';
   }
 }
-
-// ======================================================================
-// DIGITAL SIGNATURE (TTD) CANVAS ENGINE - FIX KOORDINAT & TOUCH SCROLL
-// ======================================================================
 
 function initCanvasTTD() {
   canvasTTD = document.getElementById('canvasTTD');
   if (!canvasTTD) return;
 
-  // FIX UTAMA: Samakan resolusi internal canvas dengan ukuran aslinya di layar
-  // Ini mencegah garis offset (meleset) dari titik sentuhan jari atau kursor mouse
   const rect = canvasTTD.getBoundingClientRect();
   canvasTTD.width = rect.width || canvasTTD.offsetWidth || 540;
   canvasTTD.height = rect.height || canvasTTD.offsetHeight || 220;
@@ -3466,19 +3547,16 @@ function initCanvasTTD() {
 
   ctxTTD.clearRect(0, 0, canvasTTD.width, canvasTTD.height);
 
-  // Hapus listener lama jika ada agar tidak double
   canvasTTD.onmousedown = null;
   canvasTTD.onmousemove = null;
   canvasTTD.onmouseup = null;
   canvasTTD.onmouseleave = null;
 
-  // Event Mouse (Komputer / Laptop)
   canvasTTD.onmousedown = startDraw;
   canvasTTD.onmousemove = draw;
   canvasTTD.onmouseup = stopDraw;
   canvasTTD.onmouseleave = stopDraw;
 
-  // Event Touch (HP) - Pakai addEventListener agar touch tidak men-scroll layar
   canvasTTD.addEventListener('touchstart', startDrawTouch, { passive: false });
   canvasTTD.addEventListener('touchmove', drawTouch, { passive: false });
   canvasTTD.addEventListener('touchend', stopDraw);
@@ -3490,7 +3568,6 @@ function getCanvasPointFromEvent(e) {
   const rect = canvasTTD.getBoundingClientRect();
   let clientX, clientY;
 
-  // Deteksi apakah ini sentuhan HP atau klik Mouse
   if (e.touches && e.touches.length > 0) {
     clientX = e.touches[0].clientX;
     clientY = e.touches[0].clientY;
@@ -3499,7 +3576,6 @@ function getCanvasPointFromEvent(e) {
     clientY = e.clientY;
   }
 
-  // Koordinat langsung dihitung murni berdasarkan batas pinggir (karena skala sudah 1:1)
   return {
     x: clientX - rect.left,
     y: clientY - rect.top
@@ -3507,7 +3583,7 @@ function getCanvasPointFromEvent(e) {
 }
 
 function startDrawTouch(e) {
-  if (e.cancelable) e.preventDefault(); // Cegah layar ikut ter-scroll saat tanda tangan
+  if (e.cancelable) e.preventDefault();
   isDrawing = true;
   const point = getCanvasPointFromEvent(e);
   lastX = point.x;
@@ -3517,7 +3593,7 @@ function startDrawTouch(e) {
 }
 
 function drawTouch(e) {
-  if (e.cancelable) e.preventDefault(); // Cegah layar ikut ter-scroll saat tanda tangan
+  if (e.cancelable) e.preventDefault();
   if (!isDrawing) return;
   const point = getCanvasPointFromEvent(e);
   const x = point.x;
@@ -3555,11 +3631,12 @@ function draw(e) {
 function stopDraw() { isDrawing = false; }
 
 function hapusTTD() {
-  if (ctxTTD) ctxTTD.clearRect(0, 0, canvasTTD.width, canvasTTD.height);
+  if (ctxTTD && canvasTTD) ctxTTD.clearRect(0, 0, canvasTTD.width, canvasTTD.height);
 }
 
 function simpanTTD() {
   showConfirm('SIMPAN TANDA TANGAN DIGITAL INI?', () => {
+    if (!canvasTTD) return;
     const png = canvasTTD.toDataURL('image/png');
     const ttdMap = JSON.parse(appStorage.getItem(TTD_DB_KEY) || '{}');
     const key = currentUser.category === 'DM' ? 'DM' : `SERVICE_${currentUser.area}`;
@@ -3573,16 +3650,23 @@ function simpanTTD() {
       ttdMap['HODS'] = png;
     }
     appStorage.setItem(TTD_DB_KEY, JSON.stringify(ttdMap));
+    
+    // SIMPAN PERSISTEN KE LOCAL STORAGE BERDASARKAN ID USER
+    if (currentUser && currentUser.id) {
+      appStorage.setItem(`LOCAL_TTD_${currentUser.id}`, png);
+    }
+    
     pushCentralCloudDB();
-    showNotif('TANDA TANGAN DIGITAL BERHASIL DISIMPAN!', 'info');
+    showNotif('TANDA TANGAN BERHASIL DISIMPAN DI LOKAL & CLOUD!', 'info');
     tutupTTD();
   });
 }
 
 function loadTTD() {
   const ttdMap = JSON.parse(appStorage.getItem(TTD_DB_KEY) || '{}');
-  const data = ttdMap[currentUser.fullName];
-  if (data && ctxTTD) {
+  const localTTD = currentUser ? appStorage.getItem(`LOCAL_TTD_${currentUser.id}`) : null;
+  const data = localTTD || (currentUser ? (ttdMap[currentUser.id] || ttdMap[currentUser.username] || ttdMap[currentUser.fullName]) : null);
+  if (data && ctxTTD && canvasTTD) {
     const img = new Image();
     img.onload = () => {
       ctxTTD.clearRect(0, 0, canvasTTD.width, canvasTTD.height);
@@ -3594,13 +3678,9 @@ function loadTTD() {
 
 let fastChatInterval = null;
 
-// LIVE CHAT WIDGET
 function bukaBantuan() {
   if (currentUser) {
-    // ================================================================
-    // PERBAIKAN AKSES: Buka UI Admin Chat khusus ADMIN & SERVICE TSM
-    // ================================================================
-    isAdminChat = (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN') || (currentUser.category === 'SERVICE' && currentUser.area === 'TSM'));
+    isAdminChat = (currentUser.category === 'ADMIN' || currentUser.category === 'SERVICE' || currentUser.category === 'DM' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
   }
   
   const popup = document.getElementById('popupBantuan');
@@ -3609,15 +3689,9 @@ function bukaBantuan() {
   if (popup) {
     popup.style.display = 'block';
     popup.classList.add('show');
-    
-    // ================================================================
-    // TAMBAHAN FIX: Beritahu HP bahwa popup terbuka (agar tombol Back berfungsi)
-    // ================================================================
     try { history.pushState({ popup: 'bantuan' }, '', location.href); } catch(e) {}
   }
 
-  // KONEKSI CHAT SUDAH REAL-TIME VIA WEBSOCKET SUPABASE
-  // Hapus interval polling manual agar tidak bentrok saat kirim pesan
   if (fastChatInterval) {
     clearInterval(fastChatInterval);
     fastChatInterval = null;
@@ -3645,6 +3719,7 @@ function bukaBantuan() {
     loadChatUser();
   }
 }
+
 function tutupBantuan() {
   const popup = document.getElementById('popupBantuan');
   if (popup) {
@@ -3652,13 +3727,11 @@ function tutupBantuan() {
     setTimeout(() => popup.style.display = 'none', 250); 
   }
   
-  // Panggil pengatur tampilan agar ikon kembali muncul jika di Dashboard
   const activePage = typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage';
   if (typeof aturTampilanLonceng === 'function') {
     aturTampilanLonceng(activePage);
   }
 
-  // Reset angka notifikasi chat secara visual
   const badge = document.getElementById('unreadBadge');
   if (badge) {
     badge.innerText = '0';
@@ -3669,6 +3742,7 @@ function tutupBantuan() {
     cekUnreadNotif();
   }
 }
+
 function loadDaftarChatAdmin() {
   const chatList = document.getElementById('chatList');
   if (!chatList) return;
@@ -3684,7 +3758,7 @@ function loadDaftarChatAdmin() {
     const item = document.createElement('div');
     item.style.cssText = 'padding:12px; border-bottom:1px solid var(--border-color); cursor:pointer;';
     item.innerHTML = `
-      <div style="font-size:13px;">
+      <div style="font-size:13px; font-weight:700; color:var(--text-main);">
         ${r.user} ${r.unreadAdmin > 0 ? `<span style="background:#ef4444; color:#fff; border-radius:10px; padding:2px 6px; font-size:10px;">${r.unreadAdmin}</span>` : ''}
       </div>
       <div style="color:var(--text-muted); font-size:11px; margin-top:2px;">${r.last}</div>
@@ -3706,11 +3780,17 @@ function bukaRoomAdmin(room, user) {
     pushCentralCloudDB();
   }
 
-  document.getElementById('chatList').style.display = 'none';
-  document.getElementById('chatBody').style.display = 'block';
-  document.getElementById('chatFooter').style.display = 'flex';
-  document.getElementById('btnBackAdmin').style.display = 'inline-block';
-  document.getElementById('chatHeaderTitle').innerText = 'CHAT WITH ' + user;
+  const chatList = document.getElementById('chatList');
+  const chatBody = document.getElementById('chatBody');
+  const chatFooter = document.getElementById('chatFooter');
+  const btnBack = document.getElementById('btnBackAdmin');
+  const headerTitle = document.getElementById('chatHeaderTitle');
+
+  if (chatList) chatList.style.display = 'none';
+  if (chatBody) chatBody.style.display = 'block';
+  if (chatFooter) chatFooter.style.display = 'flex';
+  if (btnBack) btnBack.style.display = 'inline-block';
+  if (headerTitle) headerTitle.innerText = 'CHAT WITH ' + user;
   loadChatAdmin(room);
 }
 
@@ -3722,7 +3802,7 @@ function loadChatAdmin(room) {
   body.innerHTML = '';
 
   roomChats.forEach(c => {
-    const isSelf = (c.pengirim === 'ADMIN');
+    const isSelf = (c.senderId === currentUser.id || c.senderUsername === currentUser.username || c.pengirim === 'ADMIN' || (currentUser && currentUser.category === 'SERVICE' && c.pengirim === 'SERVICE'));
     const div = document.createElement('div');
     div.className = isSelf ? 'chatUser' : 'chatAdmin';
     div.innerHTML = `
@@ -3737,12 +3817,11 @@ function loadChatAdmin(room) {
 
 function loadChatUser() {
   const allChats = JSON.parse(appStorage.getItem(CHAT_DB_KEY) || '[]');
-  const userChats = allChats.filter(c => c.user === currentUser.username);
+  const userChats = allChats.filter(c => c.user === currentUser.username || c.room === ('ROOM_' + currentUser.username));
   const body = document.getElementById('chatBody');
   if (!body) return;
   body.innerHTML = '';
 
-  // Reset / Hapus Notif Badge User karena chat sudah dibuka/dibaca
   const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
   const roomName = 'ROOM_' + currentUser.username;
   const rIdx = rooms.findIndex(x => x.room === roomName);
@@ -3750,7 +3829,7 @@ function loadChatUser() {
     rooms[rIdx].unreadUser = 0;
     appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify(rooms));
     pushCentralCloudDB(); 
-    cekUnreadNotif(); // Sembunyikan badge
+    cekUnreadNotif();
   }
 
   if (userChats.length === 0) {
@@ -3759,7 +3838,7 @@ function loadChatUser() {
   }
 
   userChats.forEach(c => {
-    const isSelf = (c.pengirim === 'USER');
+    const isSelf = (c.senderId === currentUser.id || c.senderUsername === currentUser.username || c.pengirim === 'USER');
     const div = document.createElement('div');
     div.className = isSelf ? 'chatUser' : 'chatAdmin';
     div.innerHTML = `
@@ -3771,6 +3850,7 @@ function loadChatUser() {
 
   body.scrollTop = body.scrollHeight;
 }
+
 function kirimPesanChat() {
   const txt = document.getElementById('chatPesan');
   if (!txt) return;
@@ -3779,21 +3859,25 @@ function kirimPesanChat() {
 
   const allChats = JSON.parse(appStorage.getItem(CHAT_DB_KEY) || '[]');
   const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
+  const senderId = currentUser.id;
+  const senderUsername = currentUser.username;
+  const timeStr = getFormattedDateDDMMYYYY() + ' ' + new Date().toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
 
   if (isAdminChat) {
     allChats.push({
       room: currentRoom,
       user: currentChatUser,
       pengirim: 'ADMIN',
+      senderId,
+      senderUsername,
       pesan,
-      tanggal: getFormattedDateDDMMYYYY() + ' ' + new Date().toLocaleTimeString('id-ID')
+      tanggal: timeStr
     });
     
-    // Tambahkan angka notif untuk User yang dituju!
     const rIdx = rooms.findIndex(x => x.room === currentRoom);
     if (rIdx !== -1) {
       rooms[rIdx].last = pesan;
-      rooms[rIdx].unreadUser = (rooms[rIdx].unreadUser || 0) + 1; // <--- FIX NOTIF USER
+      rooms[rIdx].unreadUser = (rooms[rIdx].unreadUser || 0) + 1;
     }
 
     appStorage.setItem(CHAT_DB_KEY, JSON.stringify(allChats));
@@ -3808,8 +3892,10 @@ function kirimPesanChat() {
       room,
       user: currentUser.username,
       pengirim: 'USER',
+      senderId,
+      senderUsername,
       pesan,
-      tanggal: getFormattedDateDDMMYYYY() + ' ' + new Date().toLocaleTimeString('id-ID')
+      tanggal: timeStr
     });
     appStorage.setItem(CHAT_DB_KEY, JSON.stringify(allChats));
 
@@ -3829,11 +3915,17 @@ function kirimPesanChat() {
 }
 
 function kembaliKeDaftarAdmin() {
-  document.getElementById('chatBody').style.display = 'none';
-  document.getElementById('chatFooter').style.display = 'none';
-  document.getElementById('chatList').style.display = 'block';
-  document.getElementById('btnBackAdmin').style.display = 'none';
-  document.getElementById('chatHeaderTitle').innerText = 'DAFTAR PESAN MASUK';
+  const chatList = document.getElementById('chatList');
+  const chatBody = document.getElementById('chatBody');
+  const chatFooter = document.getElementById('chatFooter');
+  const btnBack = document.getElementById('btnBackAdmin');
+  const headerTitle = document.getElementById('chatHeaderTitle');
+
+  if (chatBody) chatBody.style.display = 'none';
+  if (chatFooter) chatFooter.style.display = 'none';
+  if (chatList) chatList.style.display = 'block';
+  if (btnBack) btnBack.style.display = 'none';
+  if (headerTitle) headerTitle.innerText = 'DAFTAR PESAN MASUK';
   loadDaftarChatAdmin();
 }
 
@@ -3845,7 +3937,6 @@ function cekUnreadNotif() {
   const rooms = JSON.parse(appStorage.getItem(CHAT_ROOM_DB_KEY) || '[]');
 
   if (isAdminChat) {
-    // Hitung jumlah pesan belum dibaca untuk ADMIN
     const total = rooms.reduce((acc, curr) => acc + (curr.unreadAdmin || 0), 0);
     if (total > 0) {
       badge.textContent = total > 99 ? '99+' : total;
@@ -3854,7 +3945,6 @@ function cekUnreadNotif() {
       badge.style.display = 'none';
     }
   } else {
-    // Hitung jumlah pesan belum dibaca untuk USER (TOKO)
     const myRoom = rooms.find(r => r.room === 'ROOM_' + currentUser.username);
     if (myRoom && myRoom.unreadUser > 0) {
       badge.textContent = myRoom.unreadUser > 99 ? '99+' : myRoom.unreadUser;
@@ -3864,7 +3954,7 @@ function cekUnreadNotif() {
     }
   }
 }
-// USER MANAGEMENT ENGINE
+
 function loadUsersManagement() {
   loadAdminScriptUrlInput();
   const tbody = document.getElementById('userTableBody');
@@ -3964,7 +4054,6 @@ function simpanUserData() {
   if (editId) {
     const idx = users.findIndex(u => u && u.id === editId);
     if (idx !== -1) {
-      const targetUsername = String(users[idx].username || '').trim();
       const duplicateWithOtherUser = users.some(u => {
         if (!u || !u.username || u.id === editId) return false;
         return String(u.username).trim().toUpperCase() === username;
@@ -3983,14 +4072,25 @@ function simpanUserData() {
       users[idx].category = category;
       users[idx].area = area;
       saveUsersToDB(users);
-      showNotif(`USER ${username} DIPERBARUI!`, 'info');
+
+      const docId = String(username).toUpperCase();
+      if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+        dbFirestore.collection('users').doc(docId).set(users[idx], { merge: true }).catch(e => console.warn(e));
+      }
+      if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+        dbRealtime.ref(`users/${docId}`).set(users[idx]).catch(e => console.warn(e));
+      }
+      if (typeof pushCentralCloudDB === 'function') {
+        pushCentralCloudDB();
+      }
+
+      showNotif(`USER ${username} DIPERBARUI & DISINKRONKAN KE FIREBASE!`, 'info');
       tutupUserModal();
       loadUsersManagement();
       return;
     }
   }
 
-  // TAMBAH USER BARU: Cek duplikasi username di antara user yang aktif
   const deletedUserKeys = new Set(
     (JSON.parse(appStorage.getItem(DELETED_USERS_KEY) || '[]') || [])
       .filter(Boolean)
@@ -4013,7 +4113,6 @@ function simpanUserData() {
     return;
   }
 
-  // Bersihkan dari daftar hapus lama
   const delUsers = JSON.parse(appStorage.getItem(DELETED_USERS_KEY) || '[]');
   const cleanDelUsers = delUsers.filter(x => {
     const value = String(x || '').trim();
@@ -4035,7 +4134,19 @@ function simpanUserData() {
 
   users.push(newUser);
   saveUsersToDB(users);
-  showNotif(`USER ${fullName} (${username}) BERHASIL DISIMPAN!`, 'success');
+
+  const docId = String(username).toUpperCase();
+  if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+    dbFirestore.collection('users').doc(docId).set(newUser).catch(e => console.warn(e));
+  }
+  if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+    dbRealtime.ref(`users/${docId}`).set(newUser).catch(e => console.warn(e));
+  }
+  if (typeof pushCentralCloudDB === 'function') {
+    pushCentralCloudDB();
+  }
+
+  showNotif(`USER ${fullName} (${username}) BERHASIL DISIMPAN & DISINKRONKAN KE FIREBASE!`, 'success');
 
   tutupUserModal();
   loadUsersManagement();
@@ -4046,7 +4157,7 @@ function hapusUser(userId) {
   const u = users.find(x => x.id === userId);
   if (!u) return;
 
-  if (u.username.toUpperCase() === currentUser.username.toUpperCase()) {
+  if (currentUser && u.username.toUpperCase() === currentUser.username.toUpperCase()) {
     showNotif('TIDAK DAPAT MENGHAPUS AKUN AKTIF ANDA!', 'error');
     return;
   }
@@ -4056,13 +4167,20 @@ function hapusUser(userId) {
     if (!delUsers.includes(userId)) delUsers.push(userId);
     appStorage.setItem(DELETED_USERS_KEY, JSON.stringify(delUsers));
 
+    const docId = String(u.username).toUpperCase();
+    if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+      dbFirestore.collection('users').doc(docId).delete().catch(e => console.warn(e));
+    }
+    if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+      dbRealtime.ref(`users/${docId}`).remove().catch(e => console.warn(e));
+    }
+
     saveUsersToDB(users.filter(x => x.id !== userId));
-    showNotif(`USER ${u.username} DIHAPUS.`, 'info');
+    showNotif(`USER ${u.username} BERHASIL DIHAPUS!`, 'info');
     loadUsersManagement();
   });
 }
 
-// MASTER DATABASE PERMINTAAN FOR ADMIN (SERVICE TSM)
 function loadMasterDbTable() {
   const tbody = document.getElementById('masterDbTableBody');
   if (!tbody) return;
@@ -4110,7 +4228,7 @@ function loadMasterDbTable() {
       <td>${getBadgeStatus(r.status)}</td>
       <td style="word-break:break-word; max-width:200px;">${r.catatan || '-'}</td>
       <td style="text-align:center;">
-        <button class="btnIcon btnDelete" onclick="hapusDataMaster('${r.noSurat}')" title="HAPUS PERMANEN"><span class="material-symbols-rounded">delete</span></button>
+        <button class="btnIcon btnDelete" onclick="hapusDataMaster('${r.noSurat}')" title="HAPUS DATA"><span class="material-symbols-rounded">delete</span></button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -4118,21 +4236,39 @@ function loadMasterDbTable() {
 }
 
 function hapusDataMaster(noSurat) {
-  showConfirm(`ADMIN: HAPUS PERMANEN DATA PERMINTAAN #${noSurat} DARI MASTER DATABASE?`, () => {
-    showLoading('MENGHAPUS DATA MASTER...');
-    setTimeout(() => {
+  if (!noSurat) return;
+  showConfirm(`ADMIN: HAPUS DATA PERMINTAAN #${noSurat} DARI MASTER DATABASE?`, () => {
+    try {
+      const currentReqs = getRequestsFromDB();
+      const updatedReqs = currentReqs.filter(r => r.noSurat !== noSurat);
+      saveRequestsToDB(updatedReqs);
+
+      const docId = String(noSurat).replace(/[\/\.]/g, '_');
+      if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+        dbFirestore.collection('requests').doc(docId).delete().catch(err => console.warn('[FIRESTORE DELETE NOTICE]:', err));
+      }
+      if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+        dbRealtime.ref(`requests/${docId}`).remove().catch(err => console.warn('[REALTIME DELETE NOTICE]:', err));
+      }
+
+      if (typeof pushCentralCloudDB === 'function') {
+        pushCentralCloudDB();
+      }
+
       hideLoading();
-      const requests = getRequestsFromDB().filter(r => r.noSurat !== noSurat);
-      saveRequestsToDB(requests);
-      showNotif(`PERMINTAAN #${noSurat} BERHASIL DIHAPUS DARI MASTER DATABASE!`, 'info');
-      loadMasterDbTable();
-      loadRiwayat();
-      loadDashboard();
-    }, 300);
+      showNotif(`PERMINTAAN #${noSurat} BERHASIL DIHAPUS!`, 'info');
+      
+      if (typeof loadMasterDbTable === 'function') loadMasterDbTable();
+      if (typeof loadRiwayat === 'function') loadRiwayat();
+      if (typeof loadDashboard === 'function') loadDashboard();
+    } catch (err) {
+      hideLoading();
+      console.error('[HAPUS MASTER ERROR]:', err);
+      showNotif('GAGAL MENGHAPUS DATA MASTER!', 'error');
+    }
   });
 }
 
-// GENUINE .XLSX EXPORT ENGINE FOR ADMIN MASTER DATABASE
 function downloadMasterExcel() {
   const data = getRequestsFromDB();
   if (data.length === 0) {
@@ -4184,7 +4320,6 @@ function downloadMasterExcel() {
   }, 400);
 }
 
-// UPLOAD & PARSE DYNAMIC 2-COLUMN EXCEL LOOKUP FILE (BEBAS COPAS: KOLOM A = KODE/PREFIX SERI, KOLOM B = TYPE/NAMA BARANG)
 function prosesUploadExcelLookup(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -4212,7 +4347,6 @@ function prosesUploadExcelLookup(event) {
           const colA = String(row[0] !== undefined && row[0] !== null ? row[0] : '').trim().toUpperCase();
           const colB = String(row[1] !== undefined && row[1] !== null ? row[1] : '').trim().toUpperCase();
 
-          // Skip header row if contains KODE, TYPE, SERI, BARANG, NAMA
           if (idx === 0 && (colA.includes('KODE') || colB.includes('TYPE') || colA.includes('SERI') || colB.includes('BARANG') || colB.includes('NAMA'))) return;
 
           if (colA && colB) {
@@ -4227,7 +4361,6 @@ function prosesUploadExcelLookup(event) {
         const updatedMap = { ...existingMap, ...newLookup };
         appStorage.setItem(KODE_UNIT_MAP_KEY, JSON.stringify(updatedMap));
 
-        // PUSH UPDATED EXCEL LOOKUP MAPPING TO GLOBAL CLOUD DATABASE WORLDWIDE
         pushCentralCloudDB();
 
         hideLoading();
@@ -4247,82 +4380,57 @@ function prosesUploadExcelLookup(event) {
   event.target.value = '';
 }
 
-
 function bukaAkun() {
   if (!currentUser) return;
 
-  // =========================================================================
-  // 1. PENGAMAN MODE EDIT
-  // =========================================================================
   if (typeof modeEdit !== 'undefined' && modeEdit) {
     showConfirm('KELUAR DARI MENU EDIT?', () => {
       if (typeof bersihkanForm === 'function') bersihkanForm();
       closeAllPopups();
-      prosesBukaAkun(); // Lanjutkan buka akun setelah konfirmasi YA
+      prosesBukaAkun();
     });
     return;
   }
 
-  // Jika tidak sedang mengedit, langsung buka
   prosesBukaAkun();
 }
 
 function prosesBukaAkun() {
-  // Isi data form profil
-  document.getElementById('akunNama').value = currentUser.fullName || '';
-  document.getElementById('akunHP').value = currentUser.phone || '-';
-  document.getElementById('akunArea').value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
-  document.getElementById('akunKategori').value = currentUser.category || '';
-  document.getElementById('akunPassword').value = '';
+  const elNama = document.getElementById('akunNama');
+  const elHP = document.getElementById('akunHP');
+  const elArea = document.getElementById('akunArea');
+  const elKat = document.getElementById('akunKategori');
+  const elPass = document.getElementById('akunPassword');
 
-  // Atur visibilitas tombol Tanda Tangan Digital
+  if (elNama) elNama.value = currentUser.fullName || '';
+  if (elHP) elHP.value = currentUser.phone || '-';
+  if (elArea) elArea.value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
+  if (elKat) elKat.value = currentUser.category || '';
+  if (elPass) elPass.value = '';
+
   const menuTTD = document.getElementById('menuTTD');
   if (menuTTD) {
     menuTTD.style.display = (currentUser.category === 'SERVICE' || currentUser.category === 'DM') ? 'block' : 'none';
   }
 
-  // =========================================================================
-  // 2. KUNCI FINAL: Sembunyikan menu "Kelola / Tambah Toko" untuk TOKO
-  // =========================================================================
   const isToko = (currentUser.category === 'TOKO');
   
-  // A. Menggunakan ID yang baru kita bahas
   const menuKelolaTokoAkun = document.getElementById('menuKelolaTokoAkun');
   if (menuKelolaTokoAkun) {
     menuKelolaTokoAkun.style.display = isToko ? 'none' : 'block';
   }
 
-  // B. Menggunakan ID versi awal (sebagai cadangan)
-  const menuTambahTokoAkun = document.getElementById('menuTambahTokoAkun');
-  if (menuTambahTokoAkun) {
-    menuTambahTokoAkun.style.display = isToko ? 'none' : 'block';
-  }
-
-  // C. Sapu Bersih (Mencari tombol yang mengandung teks "TAMBAH TOKO")
-  const popupAkun = document.getElementById('popupAkun');
-  if (popupAkun) {
-    const semuaElemen = popupAkun.querySelectorAll('button, div, a');
-    semuaElemen.forEach(el => {
-      const teks = (el.innerText || '').trim().toUpperCase();
-      if (teks.includes('TAMBAH TOKO') && (el.tagName === 'BUTTON' || el.onclick)) {
-        // Jangan timpa jika elemennya sudah diatur oleh ID di atas
-        if (el.id !== 'menuKelolaTokoAkun' && el.id !== 'menuTambahTokoAkun') {
-          el.style.display = isToko ? 'none' : ''; 
-        }
-      }
-    });
-  }
-
-  // Tampilkan modal/popup
-  document.getElementById('popupAkun').classList.add('show');
+  const modal = document.getElementById('popupAkun');
+  if (modal) modal.classList.add('show');
   if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 }
 
-// Pastikan fungsi bisa diakses dari file HTML
 window.bukaAkun = bukaAkun;
 window.prosesBukaAkun = prosesBukaAkun;
+
 function tutupAkun() {
-  document.getElementById('popupAkun').classList.remove('show');
+  const modal = document.getElementById('popupAkun');
+  if (modal) modal.classList.remove('show');
 }
 
 function simpanAkun() {
@@ -4348,7 +4456,7 @@ function simpanAkun() {
       currentUser = users[idx];
       appStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
 
-      showNotif('PROFIL AKUN BERHASIL DIPERBARUI!', 'info');
+      showNotif('PROFIL BERHASIL DIPERBARUI!', 'info');
 
       const akunArea = document.getElementById('akunArea');
       if (akunArea) akunArea.value = `${currentUser.area} - ${AREA_MAP[currentUser.area] || currentUser.area}`;
@@ -4373,7 +4481,6 @@ function simpanAkun() {
   });
 }
 
-// MODAL TAMBAH TOKO ENGINE FOR ALL USERS
 function bukaModalTambahToko() {
   if (!currentUser) return;
   const modalAreaText = document.getElementById('tokoModalAreaText');
@@ -4443,7 +4550,6 @@ function simpanTokoBaru() {
     return;
   }
 
-  // Remove from DELETED_STORES_KEY blacklist if previously deleted
   const storeKey = `${namaToko}_${currentUser.area}`;
   let deletedStoreKeys = JSON.parse(appStorage.getItem(DELETED_STORES_KEY) || '[]');
   if (deletedStoreKeys.includes(storeKey)) {
@@ -4454,7 +4560,6 @@ function simpanTokoBaru() {
   const generatedCode = generateStoreCode(namaToko);
   const newId = `STK-${Date.now()}`;
 
-  // 1. Add to STORES_DB_KEY
   const localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
   const newStore = {
     id: newId,
@@ -4466,11 +4571,11 @@ function simpanTokoBaru() {
   localStores.push(newStore);
   appStorage.setItem(STORES_DB_KEY, JSON.stringify(localStores));
 
-  // 2. Add directly into USERS_DB_KEY (Database Admin)
   const users = getUsersFromDB();
   const safeUsername = namaToko.replace(/[^A-Z0-9]/gi, '_').toUpperCase();
+  let newUserAcc = null;
   if (!users.some(u => u.username.toUpperCase() === safeUsername)) {
-    const newUserAcc = {
+    newUserAcc = {
       id: newId,
       username: safeUsername,
       password: '123',
@@ -4485,7 +4590,24 @@ function simpanTokoBaru() {
     saveUsersToDB(users);
   }
 
-  showNotif(`BERHASIL DITAMBAHKAN!`, 'info');
+  // SINKRONKAN LANGSUNG KE FIREBASE FIRESTORE & REALTIME DB
+  if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+    dbFirestore.collection('stores').doc(newId).set(newStore).catch(e => console.warn(e));
+    if (newUserAcc) {
+      dbFirestore.collection('users').doc(safeUsername).set(newUserAcc).catch(e => console.warn(e));
+    }
+  }
+  if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+    dbRealtime.ref(`stores/${newId}`).set(newStore).catch(e => console.warn(e));
+    if (newUserAcc) {
+      dbRealtime.ref(`users/${safeUsername}`).set(newUserAcc).catch(e => console.warn(e));
+    }
+  }
+  if (typeof pushCentralCloudDB === 'function') {
+    pushCentralCloudDB();
+  }
+
+  showNotif(`TOKO '${namaToko}' BERHASIL DITAMBAHKAN & DISINKRONKAN KE FIREBASE!`, 'info');
   if (inputEl) inputEl.value = '';
   loadDaftarTokoModal();
   loadForm();
@@ -4501,12 +4623,10 @@ function hapusTokoCustom(id) {
   const storeArea = store ? store.area : currentUser.area;
 
   showConfirm(`HAPUS TOKO '${name}' DARI DAFTAR & DATABASE ADMIN?`, () => {
-    // 1. Remove from STORES_DB_KEY
     const localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
     const updatedLocal = localStores.filter(s => s.id !== id && s.fullName.toUpperCase() !== name.toUpperCase());
     appStorage.setItem(STORES_DB_KEY, JSON.stringify(updatedLocal));
 
-    // 2. Add to DELETED_STORES_KEY blacklist
     const deletedStoreKeys = JSON.parse(appStorage.getItem(DELETED_STORES_KEY) || '[]');
     const storeKey = `${name.toUpperCase()}_${storeArea}`;
     if (!deletedStoreKeys.includes(storeKey)) {
@@ -4514,12 +4634,25 @@ function hapusTokoCustom(id) {
       appStorage.setItem(DELETED_STORES_KEY, JSON.stringify(deletedStoreKeys));
     }
 
-    // 3. Remove directly from USERS_DB_KEY (Database Admin)
     const users = getUsersFromDB();
     const updatedUsers = users.filter(u => u.id !== id && !(u.category === 'TOKO' && u.fullName.toUpperCase() === name.toUpperCase()));
     saveUsersToDB(updatedUsers);
 
-    showNotif(`BERHASIL DIHAPUS!`, 'info');
+    // HAPUS DOKUMEN LANGSUNG DARI FIREBASE ONLINE
+    const safeUsername = name.replace(/[^A-Z0-9]/gi, '_').toUpperCase();
+    if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+      dbFirestore.collection('stores').doc(id).delete().catch(e => console.warn(e));
+      dbFirestore.collection('users').doc(safeUsername).delete().catch(e => console.warn(e));
+    }
+    if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+      dbRealtime.ref(`stores/${id}`).remove().catch(e => console.warn(e));
+      dbRealtime.ref(`users/${safeUsername}`).remove().catch(e => console.warn(e));
+    }
+    if (typeof pushCentralCloudDB === 'function') {
+      pushCentralCloudDB();
+    }
+
+    showNotif(`TOKO '${name}' BERHASIL DIHAPUS DARI CACHE & FIREBASE!`, 'info');
     loadDaftarTokoModal();
     loadForm();
     if (document.getElementById('userTableBody')) {
@@ -4528,7 +4661,6 @@ function hapusTokoCustom(id) {
   });
 }
 
-// GENUINE .XLSX EXPORT ENGINE FOR ACCESSIBLE REQUESTS WITH ITEM DETAILS
 function downloadExcel() {
   const data = getAccessibleRequests();
   if (data.length === 0) {
@@ -4600,7 +4732,6 @@ function downloadExcel() {
   }, 400);
 }
 
-// UTILITY DIALOGS & OVERLAYS
 function closeAllPopups() {
   const allOverlays = document.querySelectorAll('.popupOverlay, #imageViewer, #rejectOverlay, #confirmOverlay, #pdfModal, #popupDetail, #popupAkun, #popupUserForm, #popupTTD, #popupNotifList, #popupBantuan');
   allOverlays.forEach(el => {
@@ -4613,14 +4744,17 @@ function closeAllPopups() {
 window.closeAllPopups = closeAllPopups;
 
 function showConfirm(msg, callback) {
-  document.getElementById('confirmMessage').innerHTML = msg;
+  const msgEl = document.getElementById('confirmMessage');
+  if (msgEl) msgEl.innerHTML = msg;
   confirmCallback = callback;
-  document.getElementById('confirmOverlay').style.display = 'flex';
+  const modal = document.getElementById('confirmOverlay');
+  if (modal) modal.style.display = 'flex';
   pushPopupHistoryState();
 }
 
 function closeConfirm() {
-  document.getElementById('confirmOverlay').style.display = 'none';
+  const modal = document.getElementById('confirmOverlay');
+  if (modal) modal.style.display = 'none';
   confirmCallback = null;
 }
 
@@ -4673,52 +4807,48 @@ function closePopup() {
   const notifOverlay = document.getElementById('popupNotif');
   if (notifOverlay) notifOverlay.style.display = 'none';
 
-  // KODE BERSIHKAN FORM DI SINI TELAH DIHAPUS AGAR INPUTAN TIDAK HILANG!
-
-  // Paksa periksa dan tampilkan kembali ikon lonceng/bantuan jika sedang di Dashboard
   const activePage = typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage';
   if (typeof aturTampilanLonceng === 'function') {
     aturTampilanLonceng(activePage);
   }
 }
-function showLoading(text) {
-  const textEl = document.getElementById('loadingText');
-  if (textEl) textEl.textContent = text || '';
-  document.getElementById('loadingOverlay').style.display = 'flex';
+
+function showLoading() {
+  const modal = document.getElementById('loadingOverlay');
+  if (modal) modal.style.display = 'flex';
 }
 
 function hideLoading() {
-  document.getElementById('loadingOverlay').style.display = 'none';
+  const modal = document.getElementById('loadingOverlay');
+  if (modal) modal.style.display = 'none';
 }
 
-// ======================================================
-// LIGHTBOX IMAGE VIEWER & ZOOM ENGINE
-// ======================================================
 let currentZoom = 1;
 
 function zoomFoto(src) {
-  currentZoom = 1; // Reset zoom ke awal
+  currentZoom = 1;
   const img = document.getElementById('viewerImage');
   if (img) {
     img.src = src;
     img.style.transform = `scale(${currentZoom})`;
   }
-  document.getElementById('imageViewer').style.display = 'flex';
+  const modal = document.getElementById('imageViewer');
+  if (modal) modal.style.display = 'flex';
   
-  // TAMBAHAN: Beri tahu HP bahwa ada popup terbuka (agar tombol back berfungsi)
   if (typeof pushPopupHistoryState === 'function') {
     pushPopupHistoryState();
   }
 }
 
 function tutupImageViewer() {
-  document.getElementById('imageViewer').style.display = 'none';
+  const modal = document.getElementById('imageViewer');
+  if (modal) modal.style.display = 'none';
 }
 
 function zoomImage(step) {
   currentZoom += step;
-  if (currentZoom < 0.2) currentZoom = 0.2; // Batas maksimal perkecil
-  if (currentZoom > 5) currentZoom = 5;     // Batas maksimal perbesar
+  if (currentZoom < 0.2) currentZoom = 0.2;
+  if (currentZoom > 5) currentZoom = 5;
   const img = document.getElementById('viewerImage');
   if (img) {
     img.style.transform = `scale(${currentZoom})`;
@@ -4733,16 +4863,12 @@ function resetZoom() {
   }
 }
 
-/* ======================================================
-   UNIVERSAL DRAGGABLE FLOATING BUTTON ENGINE (HP TOUCH & MOUSE)
-   ====================================================== */
 function initDraggableElement(element, storageKey) {
   const el = typeof element === 'string' ? document.getElementById(element) : element;
   if (!el) return;
 
   el.classList.add('draggable-btn');
 
-  // Restore saved position if exists
   const savedPos = appStorage.getItem(storageKey);
   if (savedPos) {
     try {
@@ -4800,8 +4926,6 @@ function initDraggableElement(element, storageKey) {
       if (e.cancelable) e.preventDefault();
 
       let newLeft = initialLeft + deltaX;
-      
-      // KUNCI: Biarkan posisi atas (top) tetap diam, hanya geser kiri-kanan (left)
       let newTop = initialTop; 
 
       const maxX = window.innerWidth - (el.offsetWidth || 48);
@@ -4809,11 +4933,12 @@ function initDraggableElement(element, storageKey) {
 
       el.style.position = 'fixed';
       el.style.left = newLeft + 'px';
-      el.style.top = newTop + 'px'; // Tetap di garis lurus
+      el.style.top = newTop + 'px';
       el.style.right = 'auto';
       el.style.bottom = 'auto';
     }
   }
+
   function onPointerUp(e) {
     window.removeEventListener('mousemove', onPointerMove);
     window.removeEventListener('mouseup', onPointerUp);
@@ -4840,132 +4965,51 @@ function initDraggableElement(element, storageKey) {
 }
 
 function initAllDraggableButtons() {
-  setTimeout(() => {
-    // Keduanya menggunakan fungsi draggable yang sama agar bisa digeser horizontal/bebas
-    initDraggableElement('helpButton', 'POS_HELP_BUTTON_V5');
-    initDraggableElement('notifBellBtn', 'POS_NOTIF_BELL_BUTTON_V5');
-    initDraggableElement(document.querySelector('.theme-toggle-btn'), 'POS_THEME_BUTTON_V5');
-  }, 100);
+  // Fixed top-header layout per user instruction (non-draggable)
 }
-/* ======================================================
-   PENGAMAN ANTI-KEDIP: SEMBUNYIKAN IKON SAAT SCRIPT DIMUAT
-   ====================================================== */
+
 (function() {
-  const currentPath = window.location.hash || '';
-  // Jika tidak di dashboard, pastikan di-hidden secara instan
   const styleTag = document.createElement('style');
   styleTag.innerHTML = `
     body:not(:has(#dashboardPage.active)) #notifBellBtn,
     body:not(:has(#dashboardPage.active)) .notif-bell-btn,
     body:not(:has(#dashboardPage.active)) #helpButton,
-    body:not(:has(#dashboardPage.active)) .helpButton {
+    body:not(:has(#dashboardPage.active)) .helpButton,
+    body:not(:has(#dashboardPage.active)) #firebaseOnlineDot {
       display: none !important;
     }
   `;
   document.head.appendChild(styleTag);
 })();
-// =========================================================================
-// AUTO-SYNC: Cek data baru secara otomatis setiap 5 detik tanpa refresh
-// =========================================================================
-function initAutoSync() {
-  // Jalankan pengecekan setiap 5000 milidetik (5 detik)
-  setInterval(() => {
-    // Pastikan user sedang login dan aplikasi tidak sedang dalam mode edit/input berat
-    if (typeof currentUser !== 'undefined' && currentUser) {
-      
-      // 1. Cek unread notifikasi secara otomatis
-      if (typeof cekUnreadNotif === 'function') {
-        cekUnreadNotif();
-      }
-      
-      // 2. Jika popup daftar notifikasi sedang terbuka, update list-nya otomatis
-      const notifListPopup = document.getElementById('popupNotifList');
-      if (notifListPopup && notifListPopup.classList.contains('show')) {
-        if (typeof loadNotificationList === 'function') {
-          loadNotificationList();
-        }
-      }
-
-      // 3. Jika sedang di halaman dashboard atau tabel data, refresh datanya
-      // (Opsional: sesuaikan dengan fungsi pemuat tabel utama Anda, contoh: muatDataTabel())
-      if (typeof muatDataDashboard === 'function') {
-        // muatDataDashboard(); // Nyalakan jika ingin dashboard ikut update otomatis
-      }
-    }
-  }, 5000); // 5000ms = 5 detik
-}
-let globalDataSyncInterval = null;
-
-function startAutoDataSync() {
-  if (globalDataSyncInterval) clearInterval(globalDataSyncInterval);
-
-  globalDataSyncInterval = setInterval(() => {
-    if (typeof currentUser !== 'undefined' && currentUser) {
-      
-      // 1. Refresh notifikasi lonceng
-      if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
-      if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
-
-      // 2. Refresh halaman yang sedang aktif (Trik muat ulang data)
-      // Ini akan memicu ulang fungsi pembuat tabel/dashboard Anda
-      const activePage = document.querySelector('.page.active');
-      if (activePage && typeof pindahHalaman === 'function') {
-        const pageId = activePage.id;
-        // Hanya refresh jika sedang di halaman yang butuh update real-time
-        if (pageId === 'dashboardPage' || pageId === 'requestListPage' || pageId === 'statusPage') {
-           pindahHalaman(pageId); 
-        }
-      }
-
-    }
-  }, 5000); // 5000 = 5 detik
-}
-// =========================================================================
-// FUNGSI SAPU BERSIH: HAPUS SEMUA DATA LOKAL & CACHE BROWSER
-// =========================================================================
 
 function hapusSemuaDataLokal() {
   showConfirm('YAKIN INGIN MENGHAPUS SEMUA DATA LOKAL & CACHE? (Aplikasi akan keluar dan dimuat ulang)', () => {
-    
     showLoading('');
     
     setTimeout(async () => {
       try {
-        // 1. Hapus seluruh LocalStorage bawaan browser
         if (window.localStorage) {
           localStorage.clear();
         }
-
-        // 2. Hapus seluruh SessionStorage
         if (window.sessionStorage) {
           sessionStorage.clear();
         }
-
-        // 3. Kosongkan memori RAM aplikasi (appStorage / memoryCache)
         if (window.appStorage && typeof window.appStorage.clear === 'function') {
           window.appStorage.clear();
         }
-
-        // 4. Hapus Cache Browser (Penting jika ada file gambar/script yang tersangkut)
         if (typeof caches !== 'undefined' && caches.keys) {
           const cacheNames = await caches.keys();
           for (let name of cacheNames) {
             await caches.delete(name);
           }
         }
-
-        // 5. Logout pengguna dari RAM
         currentUser = null;
-
-        // 6. Muat ulang halaman secara paksa (Hard Reload)
         window.location.reload(true);
-
       } catch (error) {
         hideLoading();
         console.error('Gagal menghapus data lokal:', error);
         showNotif('TERJADI KESALAHAN SAAT MENGHAPUS DATA!', 'error');
       }
-    }, 800); // Beri jeda animasi sedikit
-    
+    }, 800);
   });
 }
