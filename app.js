@@ -1371,10 +1371,10 @@ function bukaMainApp() {
   }, 400);
 
   // =========================================================================
-  // AKTIFKAN AUTO-SYNC DI SINI (Jalankan sinkronisasi otomatis tiap 5 detik)
+  // HUBUNGKAN UI DENGAN SUPABASE REALTIME (GANTINYA AUTO-SYNC 5 DETIK)
   // =========================================================================
-  if (!autoSyncInterval && typeof initAutoSync === 'function') {
-    initAutoSync();
+  if (typeof setOnDataChangeCallback === 'function' && typeof onSupabaseDataChange === 'function') {
+    setOnDataChangeCallback(onSupabaseDataChange);
   }
 
   if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
