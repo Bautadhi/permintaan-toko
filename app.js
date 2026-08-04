@@ -1207,7 +1207,7 @@ async function prosesLogin() {
   }
 
   // Ubah teks loading agar user tahu sistem sedang bekerja ganda
-  showLoading('MEMBERSIHKAN CACHE & MEMERIKSA DATABASE...');
+  showLoading('');
 
   try {
     // =========================================================================
