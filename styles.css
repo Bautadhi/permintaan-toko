@@ -478,7 +478,7 @@ body {
 
 .chatBody {
   flex: 1;
-  padding: 12px;
+  padding: 10px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -486,32 +486,48 @@ body {
   background: var(--bg-header);
 }
 
+/* PESAN SAYA / KITA (DIBALAS / DIKIRIM) - ALIGN RIGHT / KANAN */
 .chatUser {
-  align-self: flex-end;
-  background: var(--primary);
-  color: #ffffff;
-  padding: 8px 12px;
-  border-radius: 12px 12px 2px 12px;
-  max-width: 82%;
-  font-size: 12px;
+  align-self: flex-end !important;
+  text-align: right !important;
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  color: #ffffff !important;
+  padding: 7px 11px !important;
+  border-radius: 14px 14px 2px 14px !important;
+  max-width: 80% !important;
+  font-size: 11.5px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  margin-left: auto !important;
+  margin-right: 0 !important;
 }
 
+/* PESAN LAWAN BICARA (MASUK / DIBALAS SESEORANG) - ALIGN LEFT / KIRI */
 .chatAdmin {
-  align-self: flex-start;
-  background: var(--bg-box);
-  color: var(--text-main);
-  border: 1px solid var(--border-color);
-  padding: 8px 12px;
-  border-radius: 12px 12px 12px 2px;
-  max-width: 82%;
-  font-size: 12px;
+  align-self: flex-start !important;
+  text-align: left !important;
+  background: var(--bg-box) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-color) !important;
+  padding: 7px 11px !important;
+  border-radius: 14px 14px 14px 2px !important;
+  max-width: 80% !important;
+  font-size: 11.5px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  margin-left: 0 !important;
+  margin-right: auto !important;
+}
+
+.chatText {
+  font-size: 11.5px !important;
+  line-height: 1.4 !important;
+  word-break: break-word !important;
 }
 
 .chatTime {
-  font-size: 9px;
-  opacity: 0.7;
-  margin-top: 4px;
-  text-align: right;
+  font-size: 8.5px !important;
+  opacity: 0.75 !important;
+  margin-top: 3px !important;
+  text-align: right !important;
 }
 
 .chatFooter {
@@ -524,9 +540,9 @@ body {
 
 .chatFooter input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 11.5px;
 }
 
 .chatFooter button {
@@ -1022,8 +1038,8 @@ input:focus, select:focus, textarea:focus {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
-  overflow-y: auto !important;
   overflow-x: auto !important;
+  overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   border: 1px solid var(--border-color) !important;
   border-radius: 10px !important;
@@ -1032,7 +1048,7 @@ input:focus, select:focus, textarea:focus {
   position: relative !important;
 }
 
-/* STICKY RATA KIRI HEADER DASHBOARD */
+/* FROZEN / STICKY TABLE HEADER FOR DASHBOARD */
 .lastHeader {
   flex-shrink: 0 !important;
   position: sticky !important;
@@ -1045,28 +1061,32 @@ input:focus, select:focus, textarea:focus {
   border-radius: 0 !important;
   text-align: left !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
 }
 
 #lastData {
   display: flex !important;
   flex-direction: column !important;
   width: 100% !important;
+  min-width: 100% !important;
   overflow: visible !important;
   height: auto !important;
   flex: none !important;
 }
 
+/* FULL SCREEN WIDTH AUTO-FIT GRID: 100% STRETCH & PERFECT VERTICAL COLUMN ALIGNMENT */
 .lastHeader, .lastItem {
   display: grid !important;
-  grid-template-columns: 1.2fr 2.2fr 2.5fr 1.5fr !important;
+  grid-template-columns: minmax(90px, 1fr) minmax(160px, 1.8fr) minmax(180px, 2.5fr) minmax(120px, 1.2fr) !important;
   align-items: center !important;
-  gap: 12px !important;
+  gap: 10px !important;
   padding: 10px 14px !important;
   width: 100% !important;
+  min-width: 100% !important;
   font-size: 12.5px !important;
-  white-space: nowrap !important;
   box-sizing: border-box !important;
+  white-space: normal !important;
+  word-break: break-word !important;
 }
 
 .lastHeader > div {
@@ -1076,10 +1096,11 @@ input:focus, select:focus, textarea:focus {
   justify-content: flex-start !important;
   border-right: none !important;
   border-left: none !important;
-  padding-left: 8px !important;
-  padding-right: 8px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
   box-sizing: border-box !important;
   font-weight: 700 !important;
+  white-space: nowrap !important;
 }
 
 .lastHeader > div:last-child {
@@ -1107,12 +1128,12 @@ input:focus, select:focus, textarea:focus {
   justify-content: flex-start !important;
   border-right: none !important;
   border-left: none !important;
-  padding-left: 8px !important;
-  padding-right: 8px !important;
+  padding-left: 4px !important;
+  padding-right: 4px !important;
   box-sizing: border-box !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
   white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
 }
 
 .lastItem > div:last-child {
@@ -1276,12 +1297,68 @@ input:focus, select:focus, textarea:focus {
   display: flex; align-items: center; justify-content: center;
 }
 
+/* FROZEN TOP SECTION FOR DETAIL DATA / RIWAYAT PAGE & MASTER DB PAGE (DOWNLOAD EXCEL & SEARCH FIXED AT TOP) */
+#riwayatPage,
+#masterDbPage {
+  display: none;
+  flex-direction: column !important;
+  height: calc(100vh - 65px) !important;
+  overflow: hidden !important;
+  padding-bottom: 8px !important;
+  box-sizing: border-box !important;
+}
+
+#riwayatPage.active,
+#masterDbPage.active {
+  display: flex !important;
+}
+
+#riwayatPage .box,
+#masterDbPage .box {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 16px 14px !important;
+}
+
+#riwayatPage .box > h3,
+#masterDbPage .box > h3,
+#riwayatPage .searchToolbar,
+#masterDbPage .searchToolbar,
+#masterDbPage .box > div:first-child {
+  flex-shrink: 0 !important;
+}
+
+#riwayatPage .tableWrap,
+#masterDbPage .tableWrap {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 10px !important;
+}
+
+#riwayatPage .historyTable th,
+#masterDbPage .historyTable th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--bg-header) !important;
+  color: var(--text-muted) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
 /* SEARCH & HISTORY TABLE */
 .searchToolbar {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
   flex-wrap: wrap;
 }
 
@@ -1299,23 +1376,36 @@ input:focus, select:focus, textarea:focus {
 
 .historyTable {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   background: var(--bg-box);
   font-size: 13px;
   color: var(--text-main);
   table-layout: auto;
 }
 
-.historyTable th {
-  background: var(--primary);
-  color: #fff;
+.historyTable thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 30 !important;
+}
+
+.historyTable th,
+.historyTable thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 30 !important;
+  background: var(--primary) !important;
+  color: #ffffff !important;
   padding: 12px 10px;
   text-align: left;
   white-space: nowrap;
   font-size: 12px;
+  border-bottom: 2px solid var(--border-color) !important;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* AUTO-FIT AKSI COLUMN */
+/* NORMAL AUTO-FIT AKSI COLUMN (UNLOCKED HORIZONTALLY) */
 .historyTable th:first-child,
 .historyTable td:first-child {
   white-space: nowrap !important;
@@ -1410,14 +1500,20 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* COMPACT POPUP DIMENSIONS FOR CONFIRM & REJECT POPUPS */
-/* SINGLE-LINE NO WRAPTEXT FOR ALL POPUPS */
+/* AUTO-WRAP TEXT FOR ALL POPUP CONFIRMATIONS, NOTIFICATIONS & MESSAGES */
 .popupNotifBody p,
 .popupNotifCard p,
 #confirmMessage,
 #popupNotifMessage,
 .confirmBox p,
+.rejectBodyPopup p {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  line-height: 1.5 !important;
+}
+
 .rejectHeaderPopup,
-.rejectBodyPopup p,
 .popupHeader span,
 .popupHeader,
 .popupBox h3,
@@ -1502,7 +1598,7 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 14px;
 }
 
-/* DYNAMICALLY AUTOSIZING WIDE DETAIL POPUP BOX & DATA CARDS (1MM GAP ON LEFT AND RIGHT EDGES) */
+/* DYNAMICALLY AUTOSIZING WIDE POPUP BOX & MODALS (1MM GAP ON LEFT AND RIGHT EDGES FOR MODALS ONLY) */
 .popupBox,
 .popupBoxDetail,
 .popupOverlay .popupBox,
@@ -1514,7 +1610,6 @@ input:focus, select:focus, textarea:focus {
 #popupDetail .popupBox,
 #popupDetail .popupBoxDetail,
 #pdfModal .popupBox,
-#detailDashboard,
 .box-full {
   width: calc(100vw - 2mm) !important;
   max-width: calc(100vw - 2mm) !important;
@@ -1545,20 +1640,28 @@ input:focus, select:focus, textarea:focus {
   border-collapse: collapse !important;
   font-size: 12.5px !important;
   margin-top: 10px !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 .detailTable2 th,
 .detailTable2 td {
   border: 1px solid var(--border-color) !important;
-  padding: 8px 26px !important;
+  padding: 8px 14px !important;
   white-space: nowrap !important;
   text-align: center !important;
 }
 
 .detailTable2 th {
-  background: var(--bg-header) !important;
-  color: var(--text-muted) !important;
-  font-weight: 700 !important;
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+}
+
+.detailTable2 td {
+  background: var(--bg-box) !important;
+  color: var(--text-main) !important;
 }
 
 #lastData, #detailDashboard, .popupTableScroll {
@@ -1566,7 +1669,7 @@ input:focus, select:focus, textarea:focus {
   -webkit-overflow-scrolling: touch !important;
 }
 
-/* BEAUTIFUL THEME-MATCHED POPUP CLOSE BUTTON (X ONLY, WARNA MENGIKUTI TEMA) */
+/* ALL POPUP CLOSE BUTTONS (BOLD BRIGHT RED 'X') */
 .popupClose,
 .closeViewer,
 .chatClose,
@@ -1575,15 +1678,16 @@ input:focus, select:focus, textarea:focus {
 .detailHeader button {
   background: transparent !important;
   border: none !important;
-  color: var(--primary) !important;
+  color: #ef4444 !important;
   font-size: 26px !important;
-  font-weight: 800 !important;
+  font-weight: 900 !important;
   line-height: 1 !important;
   cursor: pointer !important;
   padding: 0 4px !important;
   margin: 0 !important;
   outline: none !important;
   box-shadow: none !important;
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.5) !important;
   transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s ease !important;
   display: inline-flex !important;
   align-items: center !important;
@@ -2331,10 +2435,9 @@ button.btnKembali {
   color: #ffffff !important;
 }
 
-/* ALL TABLES ACROSS APP (PC & MOBILE HP): NO VERTICAL GRIDLINES, HORIZONTAL LINES ONLY */
+/* ALL TABLES ACROSS APP (PC & MOBILE HP): NO VERTICAL GRIDLINES EXCEPT POPUP DETAIL TABLE */
 .historyTable th, .historyTable td,
 .lastHeader > div, .lastItem > div,
-.detailTable2 th, .detailTable2 td,
 #tableMasterDb th, #tableMasterDb td,
 #tableUserMgmt th, #tableUserMgmt td {
   border-right: none !important;
@@ -2343,6 +2446,16 @@ button.btnKembali {
 
 /* DESKTOP / PC VIEW (MIN-WIDTH 769PX): COMPACT ELEGANT SCALE & HEIGHT ADJUSTMENT */
 @media(min-width: 769px) {
+  /* FROZEN / STICKY HEADER FOR DASHBOARD TABLE */
+  #detailDashboard .lastHeader,
+  .lastHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background: var(--bg-header) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  }
+
   .stats {
     gap: 12px !important;
     margin: 8px 0 12px 0 !important;
@@ -2394,17 +2507,23 @@ button.btnKembali {
     opacity: 0.12 !important;
   }
 
-  /* PC PAGE CONTAINERS & ALIGNED DASHBOARD CARDS */
   .page, .page.active, #dashboardPage, #riwayatPage, #masterDbPage, #userManagementPage {
     padding-top: 10px !important;
-    padding-bottom: 10px !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
+    padding-bottom: 20px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
     width: 100% !important;
     max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     box-sizing: border-box !important;
+  }
+
+  #dashboardPage,
+  #riwayatPage,
+  #masterDbPage {
+    height: calc(100vh - 84px) !important;
+    padding-bottom: 16px !important;
   }
 
   .dashboardTop,
@@ -2420,6 +2539,7 @@ button.btnKembali {
   #detailDashboard {
     padding: 14px 14px !important;
     border-radius: 16px !important;
+    margin-bottom: 18px !important;
   }
 
   #detailDashboard #dashboardRecentTitle {
@@ -2438,46 +2558,108 @@ button.btnKembali {
   #detailDashboard #lastData {
     max-height: none !important;
     flex: 1 !important;
+    min-width: 100% !important;
+  }
+
+  #detailDashboard .lastHeader,
+  .lastHeader {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 10 !important;
+    background: var(--bg-header) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
   }
 
   .lastHeader, .lastItem {
     width: 100% !important;
     min-width: 100% !important;
-    padding: 10px 8px !important;
+    padding: 10px 6px !important;
     font-size: 11.5px !important;
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)) !important;
+    grid-template-columns: minmax(70px, 1fr) minmax(130px, 1.8fr) minmax(140px, 2.2fr) minmax(95px, 1.2fr) !important;
     gap: 6px !important;
     align-items: center !important;
     box-sizing: border-box !important;
+    white-space: normal !important;
+    word-break: break-word !important;
   }
 
   .lastHeader > div, .lastItem > div {
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
     word-break: break-word !important;
+    white-space: normal !important;
+  }
+
+  /* MOBILE HP POPUP DETAIL TABLE: STRETCH FULL WIDTH LEFT-RIGHT WITH 1MM GAP FROM POPUP BOX EDGE */
+  #popupDetail .popupBoxDetail,
+  .popupBoxDetail {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    margin-left: 1mm !important;
+    margin-right: 1mm !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupDetail .popupHeader {
+    padding: 12px 10px !important;
+  }
+
+  #popupDetail .popupContent {
+    padding: 10px 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupDetail .popupTableScroll {
+    width: 100% !important;
+    margin-top: 8px !important;
+    margin-bottom: 8px !important;
+    border-radius: 8px !important;
+  }
+
+  #popupDetail .detailTable2 {
+    width: 100% !important;
+    min-width: 100% !important;
+  }
+
+  #popupDetail .popupDetailActions {
+    padding: 8px 4px !important;
   }
 }
 
-/* STRICT 100% PERFECT CENTERING & BALANCED MARGINS FOR ALL PAGES, MODALS & CARDS */
-.page, .page.active, #dashboardPage, #riwayatPage, #masterDbPage, #userManagementPage {
-  padding-left: 8px !important;
-  padding-right: 8px !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  margin: 0 auto !important;
-  box-sizing: border-box !important;
-}
-
-.dashboardTop,
-#detailDashboard,
-.box,
-.box.box-full {
+/* STRICT 100% FULL LAYAR (0 MARGIN/PADDING KIRI-KANAN) FOR DASHBOARD & ALL CONTAINERS */
+/* STRICT 100% SYMMETRICAL & BALANCED MARGINS (12PX EQUAL LEFT & RIGHT PADDING) FOR ALL PAGES & DASHBOARD */
+.page,
+.page.active,
+#dashboardPage,
+#riwayatPage,
+#masterDbPage,
+#userManagementPage {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
   width: 100% !important;
   max-width: 100% !important;
   margin-left: auto !important;
   margin-right: auto !important;
   box-sizing: border-box !important;
+}
+
+.dashboardTop,
+.stats,
+#detailDashboard,
+.box,
+.box.box-full {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#detailDashboard {
+  padding: 14px 14px !important;
+  border-radius: 14px !important;
 }
 
 .popupBoxDetail,
@@ -2507,8 +2689,10 @@ button.btnKembali {
 .popupHeader button[onclick*="tutup"],
 .popupHeader button[onclick*="close"],
 .popupBox button[onclick*="tutup"],
+.popupBox button[onclick*="close"],
 .popupOverlay button[onclick*="tutup"],
 .popupOverlay button[onclick*="close"],
+.popupNotifCard button[onclick*="tutup"],
 button[onclick="tutupNotificationModal()"],
 button[onclick="tutupScanner()"],
 button[onclick="tutupBantuan()"],
@@ -2516,26 +2700,31 @@ button[onclick="closeDetail()"],
 button[onclick="tutupUserModal()"],
 button[onclick="tutupModalPdfModels()"],
 button[onclick="tutupPdfModal()"],
-button[onclick="tutupImageViewer()"] {
+button[onclick="tutupImageViewer()"],
+button[onclick="tutupAkun()"],
+button[onclick="tutupTTD()"],
+button[onclick="tutupModalTambahToko()"] {
   color: #ef4444 !important;
   font-weight: 900 !important;
-  font-size: 24px !important;
+  font-size: 26px !important;
   line-height: 1 !important;
   opacity: 1 !important;
   background: transparent !important;
   border: none !important;
-  text-shadow: 0 0 4px rgba(239, 68, 68, 0.4) !important;
+  text-shadow: 0 0 6px rgba(239, 68, 68, 0.5) !important;
   cursor: pointer !important;
-  transition: transform 0.2s, color 0.2s !important;
-  font-family: inherit !important;
+  transition: transform 0.2s ease, color 0.2s ease !important;
+  font-family: Arial, sans-serif, inherit !important;
 }
 
 .popupClose:hover,
 .chatClose:hover,
 .closeViewer:hover,
-.popupHeader button:hover {
+.popupHeader button:hover,
+.popupOverlay button[onclick*="tutup"]:hover,
+.popupOverlay button[onclick*="close"]:hover {
   color: #dc2626 !important;
-  transform: scale(1.2) !important;
+  transform: scale(1.25) !important;
 }
 
 /* REQUIREMENT 6: HIGHLIGHT ORANGE ROW FOR TUNGGU DM / TUNGGU SERVICE */

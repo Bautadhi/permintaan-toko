@@ -3433,7 +3433,7 @@ function renderFullPdfPreviewDocument(modelId) {
         <div><b>JENIS:</b> UNIT</div>
       </div>
 
-      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 14px; border: 1px solid #cbd5e1;">
         <thead>
           <tr style="background: ${tableHeaderBg}; color: #ffffff;">
             <th style="padding: 8px 10px; border: 1px solid #cbd5e1; text-align: center;">NO</th>
@@ -3464,21 +3464,39 @@ function renderFullPdfPreviewDocument(modelId) {
         </tbody>
       </table>
 
-      <div style="display: flex; justify-content: space-around; font-size: 11px; text-align: center; margin-top: 24px; font-weight: bold; border-top: 1px dashed #cbd5e1; padding-top: 16px;">
-        <div>
-          <div>PEMOHON (TOKO)</div>
-          <div style="height: 45px; margin: 6px 0; color: #10b981; font-size: 10px; display: flex; align-items: center; justify-content: center; font-style: italic;">[ DIGITAL SIGNED ]</div>
-          <div style="font-weight: normal; text-decoration: underline;">TOKO UTAMA</div>
+      <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0284c7; border-left: 6px solid ${tableHeaderBg}; padding: 12px 16px; border-radius: 8px; box-shadow: 0 3px 10px rgba(2,132,199,0.12); color: #0f172a; opacity: 1 !important;">
+        <div style="font-weight: 800; font-size: 11.5px; color: ${tableHeaderBg === '#0f172a' ? '#0369a1' : tableHeaderBg}; margin-bottom: 4px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+          <span style="font-size: 14px;">📌</span> CATATAN / KETERANGAN PERMINTAAN:
         </div>
-        <div>
-          <div>DIPERIKSA (SERVICE)</div>
-          <div style="height: 45px; margin: 6px 0; color: #0284c7; font-size: 10px; display: flex; align-items: center; justify-content: center; font-style: italic;">[ SERVICE APPROVAL ]</div>
-          <div style="font-weight: normal; text-decoration: underline;">SERVICE BANDUNG</div>
+        <div style="font-weight: 600; color: #0f172a; line-height: 1.5; font-size: 11.5px;">MOHON DIPROSES SECEPATNYA UNTUK KEPERLUAN DISPLAY TOKO UTAMA.</div>
+      </div>
+
+      <div style="display: flex; justify-content: space-around; font-size: 11px; text-align: center; margin-top: 24px;">
+        <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+          <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">PEMOHON</div>
+          <div style="height: 55px; display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 10px; font-style: italic;">[ DIGITAL SIGNED ]</div>
+          <div>
+            <div style="font-weight: 800; color: #0f172a; font-size: 11.5px;">TOKO UTAMA</div>
+            <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">PEMOHON (TOKO)</div>
+          </div>
         </div>
-        <div>
-          <div>DISETUJUI (DM)</div>
-          <div style="height: 45px; margin: 6px 0; color: #7c3aed; font-size: 10px; display: flex; align-items: center; justify-content: center; font-style: italic;">[ DM APPROVAL ]</div>
-          <div style="font-weight: normal; text-decoration: underline;">DISTRICT MANAGER</div>
+
+        <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+          <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DIPERIKSA</div>
+          <div style="height: 55px; display: flex; align-items: center; justify-content: center; color: #0284c7; font-size: 10px; font-style: italic;">[ SERVICE APPROVAL ]</div>
+          <div>
+            <div style="font-weight: 800; color: #0f172a; font-size: 11.5px;">SERVICE BANDUNG</div>
+            <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">HODS BANDUNG</div>
+          </div>
+        </div>
+
+        <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+          <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DISETUJUI</div>
+          <div style="height: 55px; display: flex; align-items: center; justify-content: center; color: #7c3aed; font-size: 10px; font-style: italic;">[ DM APPROVAL ]</div>
+          <div>
+            <div style="font-weight: 800; color: #0f172a; font-size: 11.5px;">FERRY EDIYANTO</div>
+            <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">DISTRICT MANAGER</div>
+          </div>
         </div>
       </div>
     </div>
@@ -3629,13 +3647,13 @@ function bukaPdfModal(noSurat) {
         <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #cbd5e1;">
           <thead>
             <tr style="background: ${tableHeaderBg}; color: #ffffff;">
-              <th style="width: 32px; text-align:center; padding:6px 8px; border:1px solid ${tableHeaderBg};">NO</th>
-              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">TIPE BARANG</th>
-              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">NO. SERI</th>
-              ${req.jenis === 'DUS' ? `<th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">NO. SERI DUS</th>` : ''}
-              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">PERMINTAAN BARANG</th>
-              <th style="padding:6px 8px; border:1px solid ${tableHeaderBg};">ALASAN PERMINTAAN</th>
-              <th style="width: 45px; text-align:center; padding:6px 8px; border:1px solid ${tableHeaderBg};">QTY</th>
+              <th style="width: 32px; text-align:center; padding:6px 8px; border:1px solid #cbd5e1;">NO</th>
+              <th style="padding:6px 8px; border:1px solid #cbd5e1;">TIPE BARANG</th>
+              <th style="padding:6px 8px; border:1px solid #cbd5e1;">NO. SERI</th>
+              ${req.jenis === 'DUS' ? `<th style="padding:6px 8px; border:1px solid #cbd5e1;">NO. SERI DUS</th>` : ''}
+              <th style="padding:6px 8px; border:1px solid #cbd5e1;">PERMINTAAN BARANG</th>
+              <th style="padding:6px 8px; border:1px solid #cbd5e1;">ALASAN PERMINTAAN</th>
+              <th style="width: 45px; text-align:center; padding:6px 8px; border:1px solid #cbd5e1;">QTY</th>
             </tr>
           </thead>
           <tbody>${itemRowsHtml}</tbody>
@@ -3647,8 +3665,11 @@ function bukaPdfModal(noSurat) {
           const cTxt = (req.catatan || '').trim();
           if (cTxt && cTxt !== '-') {
             return `
-              <div style="margin-top: 10px; margin-bottom: 16px; font-size: 11.5px; background: #f8fafc; padding: 10px 14px; border-left: 4px solid ${tableHeaderBg}; border-radius: 0 8px 8px 0;">
-                <strong>CATATAN:</strong> ${cTxt}
+              <div style="margin-top: 12px; margin-bottom: 16px; font-size: 11.5px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0284c7; border-left: 6px solid ${tableHeaderBg}; padding: 12px 16px; border-radius: 8px; box-shadow: 0 3px 10px rgba(2,132,199,0.12); color: #0f172a; opacity: 1 !important;">
+                <div style="font-weight: 800; font-size: 11.5px; color: ${tableHeaderBg === '#0f172a' ? '#0369a1' : tableHeaderBg}; margin-bottom: 4px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 14px;">📌</span> CATATAN / KETERANGAN PERMINTAAN:
+                </div>
+                <div style="font-weight: 600; color: #0f172a; line-height: 1.5; font-size: 11.5px; word-break: break-word;">${cTxt}</div>
               </div>
             `;
           }
@@ -3657,30 +3678,35 @@ function bukaPdfModal(noSurat) {
       </div>
 
       <div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; text-align: center; font-size: 11px;">
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 120px;">
-            <div style="font-weight: bold;">PEMOHON</div>
-            <div style="height: 50px;"></div>
-            <div style="border-top: 1px solid #000; padding-top: 4px;">
-              <div style="font-weight: bold;">${req.toko}</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 28px; text-align: center; font-size: 11px;">
+          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+            <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">PEMOHON</div>
+            <div style="height: 55px; display: flex; align-items: center; justify-content: center; color: #10b981; font-size: 10px; font-style: italic;">[ DIGITAL SIGNED ]</div>
+            <div>
+              <div style="font-weight: 800; color: #0f172a; font-size: 11.5px;">${req.toko}</div>
+              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">PEMOHON (TOKO)</div>
             </div>
           </div>
 
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 120px;">
-            <div style="font-weight: bold;">DIPERIKSA</div>
-            <div style="height: 50px; display: flex; align-items: center; justify-content: center;">${serviceTTD ? `<img src="${serviceTTD}" style="height: 48px; max-width: 100%; object-fit: contain;">` : ''}</div>
-            <div style="border-top: 1px solid #000; padding-top: 4px;">
-              <div style="font-weight: bold;">${serviceName}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px;">${hodsAreaTitle}</div>
+          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+            <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DIPERIKSA</div>
+            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+              ${serviceTTD ? `<img src="${serviceTTD}" style="max-height: 52px; max-width: 100%; object-fit: contain;">` : `<span style="color: #0284c7; font-size: 10px; font-style: italic;">[ SERVICE APPROVAL ]</span>`}
+            </div>
+            <div>
+              <div style="font-weight: 800; color: #0f172a; font-size: 11.5px;">${serviceName}</div>
+              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${hodsAreaTitle}</div>
             </div>
           </div>
 
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 120px;">
-            <div style="font-weight: bold;">DISETUJUI</div>
-            <div style="height: 50px; display: flex; align-items: center; justify-content: center;">${dmTTD ? `<img src="${dmTTD}" style="height: 48px; max-width: 100%; object-fit: contain;">` : ''}</div>
-            <div style="border-top: 1px solid #000; padding-top: 4px;">
-              <div style="font-weight: bold;">FERRY EDIYANTO</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px;">DISTRICT MANAGER</div>
+          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+            <div style="font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DISETUJUI</div>
+            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+              ${dmTTD ? `<img src="${dmTTD}" style="max-height: 52px; max-width: 100%; object-fit: contain;">` : `<span style="color: #7c3aed; font-size: 10px; font-style: italic;">[ DM APPROVAL ]</span>`}
+            </div>
+            <div>
+              <div style="font-weight: 800; color: #0f172a; font-size: 11.5px;">FERRY EDIYANTO</div>
+              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">DISTRICT MANAGER</div>
             </div>
           </div>
         </div>
