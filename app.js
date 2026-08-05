@@ -16,7 +16,7 @@ const DELETED_STORES_KEY = 'STORE_DELETED_TOKO_LIST_V7_CLEAN';
 const NOTIFICATIONS_DB_KEY = 'STORE_SYSTEM_NOTIFICATIONS_V7_CLEAN';
 const KODE_UNIT_MAP_KEY = 'STORE_KODE_UNIT_MAP_V7_CLEAN';
 const FEATURE_PHOTOS_KEY = 'STORE_FEATURE_PHOTOS_V7_CLEAN';
-const DELETED_REQUESTS_KEY = 'STORE_DELETED_REQUESTS_V7_CLEAN';
+const DELETED_REQUESTS_ = 'STORE_DELETED_REQUESTS_V7_CLEAN';
 const DELETED_USERS_KEY = 'STORE_DELETED_USERS_V7_CLEAN';
 const FONTE_TOKEN_KEY = 'STORE_FONTE_TOKEN_KEY_V7_CLEAN';
 const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7_CLEAN';
@@ -813,15 +813,16 @@ function bersihkanCacheAplikasiWeb() {
   }
 }
 
-{
-  "apiKey": "AIzaSyDrn_Wx2FAaVGfoIjiWyRjdAKpUw0M50SU",
-  "authDomain": "sementara-9985d.firebaseapp.com",
-  "projectId": "sementara-9985d",
-  "storageBucket": "sementara-9985d.firebasestorage.app",
-  "messagingSenderId": "837199245948",
-  "appId": "1:837199245948:web:92b4b2483380b393270ff9",
-  "measurementId": "G-5NE511H1S5"
-}
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyDrn_Wx2FAaVGfoIjiWyRjdAKpUw0M50SU",
+  authDomain: "sementara-9985d.firebaseapp.com",
+  projectId: "sementara-9985d",
+  storageBucket: "sementara-9985d.firebasestorage.app",
+  messagingSenderId: "837199245948",
+  appId: "1:837199245948:web:92b4b2483380b393270ff9",
+  measurementId: "G-5NE511H1S5"
+};
 
 let firebaseApp = null;
 let dbFirestore = null;
