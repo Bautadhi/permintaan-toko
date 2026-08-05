@@ -1030,6 +1030,9 @@ input:focus, select:focus, textarea:focus {
   font-weight: 700 !important;
   text-align: center !important;
   color: var(--text-main) !important;
+   white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 /* RECENT DATA LIST ON DASHBOARD - NO VERTICAL GRIDLINES & COMPACT ROW HEIGHT */
