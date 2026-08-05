@@ -203,14 +203,19 @@
       <div id="detailDashboard" class="box box-full">
         <h3 id="dashboardRecentTitle">PERMINTAAN PENDING (KLIK BARIS UNTUK LIHAT DETAIL)</h3>
         <div class="tableWrap">
-          <div id="lastData">
-            <div class="lastHeader">
-              <div>TANGGAL</div>
-              <div>NO SURAT</div>
-              <div>NAMA TOKO</div>
-              <div>STATUS</div>
-            </div>
-          </div>
+          <table class="dashboardTable">
+            <thead>
+              <tr>
+                <th>TANGGAL</th>
+                <th>NO SURAT</th>
+                <th>NAMA TOKO</th>
+                <th style="text-align: center;">STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="lastData">
+              <!-- Dynamic rows injected here -->
+            </tbody>
+          </table>
         </div>
       </div>
     </section>

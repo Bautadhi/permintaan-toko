@@ -1944,21 +1944,12 @@ function loadDashboard() {
 
   const lastDataContainer = document.getElementById('lastData');
   if (!lastDataContainer) return;
-
-  const headerHtml = `
-    <div class="lastHeader">
-      <div>TANGGAL</div>
-      <div>NO SURAT</div>
-      <div>NAMA TOKO</div>
-      <div>STATUS</div>
-    </div>
-  `;
-  lastDataContainer.innerHTML = headerHtml;
+  lastDataContainer.innerHTML = '';
 
   const filteredData = data.filter(r => r.status === dashboardFilterStatus);
 
   if (filteredData.length === 0) {
-    lastDataContainer.innerHTML += `<div style="text-align:center; padding:24px; color:var(--text-muted);">TIDAK ADA DATA PERMINTAAN DENGAN STATUS ${dashboardFilterStatus}.</div>`;
+    lastDataContainer.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:24px; color:var(--text-muted);">TIDAK ADA DATA PERMINTAAN DENGAN STATUS ${dashboardFilterStatus}.</td></tr>`;
     return;
   }
 
@@ -1977,18 +1968,18 @@ function loadDashboard() {
       }
     }
 
-    const div = document.createElement('div');
-    div.className = `lastItem ${isOrangeRow ? 'rowHighlightOrange' : (isWaitingDM ? 'rowWaitingDmBlink' : '')}`;
-    div.style.cursor = 'pointer';
-    div.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
-    div.onclick = () => bukaDetailDariDashboard(r.noSurat);
-    div.innerHTML = `
-      <div class="colTanggal">${formatDateDDMMYYYYString(r.tanggal)}</div>
-      <div class="colNo">${r.noSurat}</div>
-      <div class="colToko">${r.toko} <small style="color:var(--primary);">(${r.area})</small></div>
-      <div class="colStatus">${getBadgeStatus(r)}</div>
+    const tr = document.createElement('tr');
+    tr.className = `${isOrangeRow ? 'rowHighlightOrange' : (isWaitingDM ? 'rowWaitingDmBlink' : '')}`;
+    tr.style.cursor = 'pointer';
+    tr.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
+    tr.onclick = () => bukaDetailDariDashboard(r.noSurat);
+    tr.innerHTML = `
+      <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
+      <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
+      <td>${r.toko} <small style="color:var(--primary);">(${r.area})</small></td>
+      <td style="text-align:center;">${getBadgeStatus(r)}</td>
     `;
-    lastDataContainer.appendChild(div);
+    lastDataContainer.appendChild(tr);
   });
 }
 

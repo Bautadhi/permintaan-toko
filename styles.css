@@ -1048,30 +1048,40 @@ input:focus, select:focus, textarea:focus {
   position: relative !important;
 }
 
-/* UNIFIED DASHBOARD TABLE HEADER & DATA (SCROLL TOGETHER AS 1 SINGLE COMBINED UNIT) */
-.lastHeader {
-  flex-shrink: 0 !important;
-  position: relative !important;
-  top: auto !important;
-  z-index: 1 !important;
-  background: var(--bg-header) !important;
-  color: var(--text-muted) !important;
-  border: none !important;
-  border-bottom: 2px solid var(--border-color) !important;
-  border-radius: 0 !important;
-  text-align: left !important;
-  font-weight: 700 !important;
-  box-shadow: none !important;
+/* STRENGTHENED STYLING FOR DASHBOARD TABLE (HTML TABLE WITH THEAD & TBODY) */
+.dashboardTable {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 12.5px !important;
+  color: var(--text-main) !important;
+  table-layout: auto !important;
+  margin: 0 !important;
 }
 
-#lastData {
-  display: flex !important;
-  flex-direction: column !important;
-  width: 100% !important;
-  min-width: 100% !important;
-  overflow: visible !important;
-  height: auto !important;
-  flex: none !important;
+.dashboardTable th,
+.dashboardTable td {
+  padding: 10px 12px !important;
+  text-align: left !important;
+  border-bottom: 1px solid var(--table-border) !important;
+  vertical-align: middle !important;
+  box-sizing: border-box !important;
+}
+
+.dashboardTable th {
+  background: var(--bg-header) !important;
+  color: var(--text-muted) !important;
+  font-weight: 700 !important;
+  position: relative !important;
+  border-bottom: 2px solid var(--border-color) !important;
+  white-space: nowrap !important;
+}
+
+.dashboardTable td {
+  background: transparent !important;
+}
+
+.dashboardTable tr:hover td {
+  background: rgba(2, 132, 199, 0.06) !important;
 }
 
 /* FULL SCREEN WIDTH AUTO-FIT GRID: 100% STRETCH & PERFECT VERTICAL COLUMN ALIGNMENT */
