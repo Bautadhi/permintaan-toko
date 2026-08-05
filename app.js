@@ -779,13 +779,13 @@ function bersihkanCacheAplikasiWeb() {
 
 // DEFAULT FIREBASE ONLINE CONFIGURATION (PERMINTAAN TOKO - REAL LIVE DATABASE)
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDTQdgmBi39SqLZ1j_aa8tj-mimCIXJTa0",
-  authDomain: "permintaan-toko-e3b5d.firebaseapp.com",
-  projectId: "permintaan-toko-e3b5d",
-  storageBucket: "permintaan-toko-e3b5d.firebasestorage.app",
-  messagingSenderId: "1072410401023",
-  appId: "1:1072410401023:web:465e23030d2259b56454ca",
-  measurementId: "G-KFHDYEP3VD"
+  apiKey: "AIzaSyDrn_Wx2FAaVGfoIjiWyRjdAKpUw0M50SU",
+  authDomain: "sementara-9985d.firebaseapp.com",
+  projectId: "sementara-9985d",
+  storageBucket: "sementara-9985d.firebasestorage.app",
+  messagingSenderId: "837199245948",
+  appId: "1:837199245948:web:92b4b2483380b393270ff9",
+  measurementId: "G-5NE511H1S5"
 };
 
 let firebaseApp = null;
