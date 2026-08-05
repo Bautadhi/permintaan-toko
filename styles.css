@@ -1635,12 +1635,21 @@ input:focus, select:focus, textarea:focus {
   word-break: keep-all !important;
 }
 
+.popupTableScroll {
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  box-sizing: border-box !important;
+  background: var(--bg-box) !important;
+}
+
 .detailTable2 {
   width: 100% !important;
   border-collapse: collapse !important;
   font-size: 12.5px !important;
-  margin-top: 10px !important;
-  border: 1px solid var(--border-color) !important;
+  margin: 0 !important;
+  border: none !important;
 }
 
 .detailTable2 th,
@@ -1649,6 +1658,7 @@ input:focus, select:focus, textarea:focus {
   padding: 8px 14px !important;
   white-space: nowrap !important;
   text-align: center !important;
+  box-sizing: border-box !important;
 }
 
 .detailTable2 th {
@@ -1657,11 +1667,13 @@ input:focus, select:focus, textarea:focus {
   font-weight: 800 !important;
   letter-spacing: 0.5px !important;
   text-transform: uppercase !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 .detailTable2 td {
   background: var(--bg-box) !important;
   color: var(--text-main) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
 #lastData, #detailDashboard, .popupTableScroll {
