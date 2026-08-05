@@ -813,16 +813,15 @@ function bersihkanCacheAplikasiWeb() {
   }
 }
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDrn_Wx2FAaVGfoIjiWyRjdAKpUw0M50SU",
-  authDomain: "sementara-9985d.firebaseapp.com",
-  projectId: "sementara-9985d",
-  storageBucket: "sementara-9985d.firebasestorage.app",
-  messagingSenderId: "837199245948",
-  appId: "1:837199245948:web:92b4b2483380b393270ff9",
-  measurementId: "G-5NE511H1S5"
-};
+{
+  "apiKey": "AIzaSyDrn_Wx2FAaVGfoIjiWyRjdAKpUw0M50SU",
+  "authDomain": "sementara-9985d.firebaseapp.com",
+  "projectId": "sementara-9985d",
+  "storageBucket": "sementara-9985d.firebasestorage.app",
+  "messagingSenderId": "837199245948",
+  "appId": "1:837199245948:web:92b4b2483380b393270ff9",
+  "measurementId": "G-5NE511H1S5"
+}
 
 let firebaseApp = null;
 let dbFirestore = null;
