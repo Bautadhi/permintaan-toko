@@ -16,7 +16,7 @@ const DELETED_STORES_KEY = 'STORE_DELETED_TOKO_LIST_V7_CLEAN';
 const NOTIFICATIONS_DB_KEY = 'STORE_SYSTEM_NOTIFICATIONS_V7_CLEAN';
 const KODE_UNIT_MAP_KEY = 'STORE_KODE_UNIT_MAP_V7_CLEAN';
 const FEATURE_PHOTOS_KEY = 'STORE_FEATURE_PHOTOS_V7_CLEAN';
-const DELETED_REQUESTS_ = 'STORE_DELETED_REQUESTS_V7_CLEAN';
+const DELETED_REQUESTS_KEY = 'STORE_DELETED_REQUESTS_V7_CLEAN';
 const DELETED_USERS_KEY = 'STORE_DELETED_USERS_V7_CLEAN';
 const FONTE_TOKEN_KEY = 'STORE_FONTE_TOKEN_KEY_V7_CLEAN';
 const ADMIN_REMINDER_KEY = 'STORE_ADMIN_REMINDER_KEY_V7_CLEAN';
@@ -132,33 +132,94 @@ function tambahNotifikasiSistem(targetRoles, targetArea, message, noSurat = '') 
 function getAccessibleNotifications() {
   if (!currentUser) return [];
   const notifs = getSystemNotifications();
+  const userCat = String(currentUser.category || '').toUpperCase();
+  const userArea = String(currentUser.area || '').toUpperCase();
+  const isSysAdmin = userCat === 'ADMIN' || (currentUser.username && String(currentUser.username).toUpperCase() === 'ADMIN');
 
   let filtered = notifs.filter(n => {
-    const areaMatch = (n.targetArea === 'ALL' || currentUser.category === 'DM' || n.targetArea === currentUser.area);
+    if (!n) return false;
+    const areaMatch = (
+      n.targetArea === 'ALL' ||
+      n.targetArea === userArea ||
+      userArea === 'ALL' ||
+      userArea === 'TSM' ||
+      isSysAdmin
+    );
     const roleMatch = (
-      n.targetRoles.includes('ALL') ||
-      n.targetRoles.includes(currentUser.category) ||
-      (currentUser.category === 'DM' && (n.targetRoles.includes('DM') || n.targetRoles.includes('ADMIN'))) ||
-      (currentUser.category === 'TOKO' && n.targetRoles.includes('TOKO'))
+      isSysAdmin ||
+      (Array.isArray(n.targetRoles) && (n.targetRoles.includes('ALL') || n.targetRoles.some(r => String(r).toUpperCase() === userCat))) ||
+      (userCat === 'DM' && Array.isArray(n.targetRoles) && (n.targetRoles.includes('DM') || n.targetRoles.includes('ADMIN'))) ||
+      (userCat === 'TOKO' && Array.isArray(n.targetRoles) && n.targetRoles.includes('TOKO'))
     );
     return areaMatch && roleMatch;
   });
 
-  // UNTUK DM: SINTESIS OTOMATIS DARI TRANSAKSI APPROVE SERVICE YANG PENDING APPROVAL DM
-  if (currentUser.category === 'DM') {
-    const requests = getRequestsFromDB();
-    const serviceApprovedReqs = requests.filter(r => r.status === 'PENDING' && r.serviceApprove);
-    
-    serviceApprovedReqs.forEach(r => {
+  const requests = getRequestsFromDB();
+
+  // 1. SINTESIS NOTIFIKASI PENDING APPROVAL SERVICE UNTUK USER SERVICE & ADMIN
+  if (userCat === 'SERVICE' || isSysAdmin) {
+    const servicePendingReqs = requests.filter(r => {
+      const areaMatch = (userArea === 'ALL' || userArea === 'TSM' || r.area === userArea || isSysAdmin);
+      return r.status === 'PENDING' && !r.serviceApprove && areaMatch;
+    });
+
+    servicePendingReqs.forEach(r => {
+      const exists = filtered.some(n => n.noSurat === r.noSurat);
+      if (!exists) {
+        filtered.unshift({
+          id: `NTF-SRV-${r.noSurat}`,
+          targetRoles: ['SERVICE', 'ADMIN'],
+          targetArea: r.area || 'ALL',
+          message: `PERMINTAAN #${r.noSurat} DARI TOKO ${r.toko || '-'} (${r.area || 'TSM'}) MENUNGGU APPROVAL SERVICE.`,
+          noSurat: r.noSurat,
+          time: r.tanggalInput || r.createdAt || getFormattedDateDDMMYYYY(),
+          readBy: []
+        });
+      }
+    });
+  }
+
+  // 2. SINTESIS NOTIFIKASI PENDING APPROVAL DM UNTUK USER DM & ADMIN
+  if (userCat === 'DM' || isSysAdmin) {
+    const dmPendingReqs = requests.filter(r => {
+      const areaMatch = (userArea === 'ALL' || r.area === userArea || isSysAdmin);
+      return r.status === 'PENDING' && r.serviceApprove && !r.dmApprove && areaMatch;
+    });
+
+    dmPendingReqs.forEach(r => {
       const exists = filtered.some(n => n.noSurat === r.noSurat);
       if (!exists) {
         filtered.unshift({
           id: `NTF-DM-${r.noSurat}`,
-          targetRoles: ['DM'],
-          targetArea: 'ALL',
-          message: `PERMINTAAN #${r.noSurat} DARI ${r.toko} (${r.area}) TELAH DISETUJUI SERVICE. MOHON APPROVAL DM.`,
+          targetRoles: ['DM', 'ADMIN'],
+          targetArea: r.area || 'ALL',
+          message: `PERMINTAAN #${r.noSurat} DARI ${r.toko || '-'} (${r.area || 'TSM'}) TELAH DISETUJUI SERVICE. MOHON APPROVAL DM.`,
           noSurat: r.noSurat,
-          time: r.createdAt || getFormattedDateDDMMYYYY(),
+          time: r.tanggalInput || r.createdAt || getFormattedDateDDMMYYYY(),
+          readBy: []
+        });
+      }
+    });
+  }
+
+  // 3. SINTESIS NOTIFIKASI PENDING TRANSAKSI UNTUK USER TOKO / SALES
+  if (userCat === 'TOKO' || userCat === 'SALES') {
+    const tokoPendingReqs = requests.filter(r => {
+      const isMine = (r.createdBy === currentUser.username || r.toko === currentUser.fullName || r.area === userArea);
+      return isMine && r.status === 'PENDING';
+    });
+
+    tokoPendingReqs.forEach(r => {
+      const exists = filtered.some(n => n.noSurat === r.noSurat);
+      if (!exists) {
+        const stageMsg = r.serviceApprove ? 'SEDANG MENUNGGU APPROVAL DM' : 'SEDANG MENUNGGU APPROVAL SERVICE';
+        filtered.unshift({
+          id: `NTF-TK-${r.noSurat}`,
+          targetRoles: ['TOKO', 'SALES'],
+          targetArea: r.area || 'ALL',
+          message: `PERMINTAAN Anda #${r.noSurat} (${stageMsg}).`,
+          noSurat: r.noSurat,
+          time: r.tanggalInput || r.createdAt || getFormattedDateDDMMYYYY(),
           readBy: []
         });
       }
@@ -208,42 +269,14 @@ function updateNotifBellCounter() {
 
   bellBtn.style.display = 'flex';
 
-  const requests = getRequestsFromDB();
   const userNotifs = getAccessibleNotifications();
-  const unreadSystemCount = userNotifs.filter(n => !n.readBy.includes(currentUser.id) && !n.readBy.includes(currentUser.username)).length;
+  const unreadCount = userNotifs.filter(n => {
+    if (!n || !n.readBy) return true;
+    return !n.readBy.includes(currentUser.id) && !n.readBy.includes(currentUser.username);
+  }).length;
 
-  let rolePendingCount = 0;
-  const userCat = (currentUser.category || '').toUpperCase();
-  const userArea = (currentUser.area || '').toUpperCase();
-  const isSysAdmin = userCat === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
-
-  if (isSysAdmin) {
-    // ADMIN: All pending requests in system
-    rolePendingCount = requests.filter(r => r.status === 'PENDING').length;
-  } else if (userCat === 'SERVICE') {
-    // SERVICE: Requests pending Service approval
-    rolePendingCount = requests.filter(r => {
-      const areaMatch = (userArea === 'ALL' || userArea === 'TSM' || r.area === userArea);
-      return r.status === 'PENDING' && !r.serviceApprove && areaMatch;
-    }).length;
-  } else if (userCat === 'DM') {
-    // DM: Requests approved by Service waiting for DM approval
-    rolePendingCount = requests.filter(r => {
-      const areaMatch = (userArea === 'ALL' || r.area === userArea);
-      return r.status === 'PENDING' && r.serviceApprove && !r.dmApprove && areaMatch;
-    }).length;
-  } else if (userCat === 'TOKO' || userCat === 'SALES') {
-    // TOKO & SALES: Pending or active requests
-    rolePendingCount = requests.filter(r => {
-      const isMine = (r.createdBy === currentUser.username || r.toko === currentUser.fullName || r.area === userArea);
-      return isMine && (r.status === 'PENDING');
-    }).length;
-  }
-
-  const totalCount = Math.max(unreadSystemCount, rolePendingCount);
-
-  if (totalCount > 0) {
-    badgeEl.textContent = totalCount > 99 ? '99+' : totalCount;
+  if (unreadCount > 0) {
+    badgeEl.textContent = unreadCount > 99 ? '99+' : unreadCount;
     badgeEl.style.display = 'flex';
   } else {
     badgeEl.style.display = 'none';
@@ -254,19 +287,8 @@ function bukaNotificationModal() {
   const popup = document.getElementById('popupNotifList');
   if (!popup) return;
 
-  if (typeof renderNotifList === 'function') {
-    renderNotifList();
-  } else if (typeof loadNotificationList === 'function') {
+  if (typeof loadNotificationList === 'function') {
     loadNotificationList();
-  }
-
-  const listBody = document.getElementById('notifListBody');
-  if (listBody && listBody.innerHTML.trim() === '') {
-    listBody.innerHTML = `
-      <div style="padding: 20px; text-align: center; color: var(--text-muted); font-size: 12px; font-weight: bold;">
-        TIDAK ADA NOTIFIKASI SAAT INI.
-      </div>
-    `;
   }
 
   popup.style.display = 'flex';
@@ -813,15 +835,15 @@ function bersihkanCacheAplikasiWeb() {
   }
 }
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyDrn_Wx2FAaVGfoIjiWyRjdAKpUw0M50SU",
-  authDomain: "sementara-9985d.firebaseapp.com",
-  projectId: "sementara-9985d",
-  storageBucket: "sementara-9985d.firebasestorage.app",
-  messagingSenderId: "837199245948",
-  appId: "1:837199245948:web:92b4b2483380b393270ff9",
-  measurementId: "G-5NE511H1S5"
+// DEFAULT FIREBASE ONLINE CONFIGURATION (PERMINTAAN TOKO - REAL LIVE DATABASE)
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDTQdgmBi39SqLZ1j_aa8tj-mimCIXJTa0",
+  authDomain: "permintaan-toko-e3b5d.firebaseapp.com",
+  projectId: "permintaan-toko-e3b5d",
+  storageBucket: "permintaan-toko-e3b5d.firebasestorage.app",
+  messagingSenderId: "1072410401023",
+  appId: "1:1072410401023:web:465e23030d2259b56454ca",
+  measurementId: "G-KFHDYEP3VD"
 };
 
 let firebaseApp = null;
@@ -891,6 +913,15 @@ function initFirebaseDB() {
                 if (typeof loadSavedTheme === 'function') loadSavedTheme();
               }
               if (cfg.fonteToken) appStorage.setItem(FONTE_TOKEN_KEY, cfg.fonteToken);
+              if (cfg.firebaseConfig) {
+                const curLocal = appStorage.getItem(FIREBASE_USER_CONFIG_KEY);
+                const newStr = typeof cfg.firebaseConfig === 'string' ? cfg.firebaseConfig : JSON.stringify(cfg.firebaseConfig);
+                if (curLocal !== newStr && newStr !== 'null') {
+                  appStorage.setItem(FIREBASE_USER_CONFIG_KEY, newStr);
+                  if (typeof loadFirebaseConfigInput === 'function') loadFirebaseConfigInput();
+                  initFirebaseDB();
+                }
+              }
 
               if (typeof refreshActiveChatUI === 'function') {
                 refreshActiveChatUI();
@@ -958,6 +989,7 @@ function simpanFirebaseConfigUser() {
   if (!val) {
     appStorage.removeItem(FIREBASE_USER_CONFIG_KEY);
     showNotif('KONFIGURASI FIREBASE DI-RESET KE DEFAULT!', 'info');
+    if (typeof pushCentralCloudDB === 'function') pushCentralCloudDB();
     initFirebaseDB();
     return;
   }
@@ -969,7 +1001,8 @@ function simpanFirebaseConfigUser() {
       return;
     }
     appStorage.setItem(FIREBASE_USER_CONFIG_KEY, JSON.stringify(parsed));
-    showNotif('BERHASIL MENYIMPAN DATA!', 'success');
+    showNotif('BERHASIL MENYIMPAN & MENSINKRONKAN KE SEMUA PERANGKAT!', 'success');
+    if (typeof pushCentralCloudDB === 'function') pushCentralCloudDB();
     initFirebaseDB();
   } catch (e) {
     showNotif('FORMAT JSON KONFIGURASI FIREBASE TIDAK VALID!', 'error');
@@ -1084,6 +1117,10 @@ async function pushCentralCloudDB() {
         const featurePhotos = getFeaturePhotosEnabled();
         const kodeUnitMap = getKodeUnitMap();
 
+        const firebaseCfgStr = appStorage.getItem(FIREBASE_USER_CONFIG_KEY);
+        let parsedFbCfg = null;
+        try { if (firebaseCfgStr) parsedFbCfg = JSON.parse(firebaseCfgStr); } catch(e) {}
+
         await dbFirestore.collection('app_settings').doc('config').set({
           notifications: notifs,
           chatMessages: chatMsgs,
@@ -1094,6 +1131,7 @@ async function pushCentralCloudDB() {
           adminReminderTime: adminReminderTime,
           featurePhotos: featurePhotos,
           kodeUnitMap: kodeUnitMap,
+          firebaseConfig: parsedFbCfg,
           updatedAt: new Date().toISOString()
         }, { merge: true });
 
@@ -1649,15 +1687,22 @@ function showPage(pageId) {
 function aturTampilanLonceng(pageId) {
   const notifBtn = document.getElementById('notifBellBtn');
   const helpBtn = document.getElementById('helpButton');
+  const dotEl = document.getElementById('firebaseOnlineDot');
 
+  const activePage = pageId || (typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage');
   const isLoggedIn = (typeof currentUser !== 'undefined' && currentUser !== null && !document.getElementById('loginPage')?.classList.contains('active'));
+  const isDashboard = isLoggedIn && (activePage === 'dashboardPage');
 
   if (notifBtn) {
-    notifBtn.style.display = isLoggedIn ? 'flex' : 'none';
+    notifBtn.style.display = isDashboard ? 'flex' : 'none';
   }
   
   if (helpBtn) {
-    helpBtn.style.display = isLoggedIn ? 'flex' : 'none';
+    helpBtn.style.display = isDashboard ? 'flex' : 'none';
+  }
+
+  if (dotEl) {
+    dotEl.style.display = isDashboard ? 'block' : 'none';
   }
 
   if (isLoggedIn) {
@@ -1910,8 +1955,21 @@ function loadDashboard() {
 
   filteredData.forEach(r => {
     const isWaitingDM = (r.status === 'PENDING' && r.serviceApprove);
+    const isWaitingService = (r.status === 'PENDING' && !r.serviceApprove);
+
+    let isOrangeRow = false;
+    if (currentUser) {
+      const cat = (currentUser.category || '').toUpperCase();
+      const isAdm = cat === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
+      if ((cat === 'DM' || isAdm) && isWaitingDM) {
+        isOrangeRow = true;
+      } else if ((cat === 'SERVICE' || isAdm) && isWaitingService) {
+        isOrangeRow = true;
+      }
+    }
+
     const div = document.createElement('div');
-    div.className = `lastItem ${isWaitingDM ? 'rowWaitingDmBlink' : ''}`;
+    div.className = `lastItem ${isOrangeRow ? 'rowHighlightOrange' : (isWaitingDM ? 'rowWaitingDmBlink' : '')}`;
     div.style.cursor = 'pointer';
     div.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
     div.onclick = () => bukaDetailDariDashboard(r.noSurat);
@@ -2680,8 +2738,23 @@ function filterRiwayat() {
     }
 
     const isWaitingDM = (r.status === 'PENDING' && r.serviceApprove);
+    const isWaitingService = (r.status === 'PENDING' && !r.serviceApprove);
+
+    let isOrangeRow = false;
+    if (currentUser) {
+      const cat = (currentUser.category || '').toUpperCase();
+      const isAdm = cat === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN');
+      if ((cat === 'DM' || isAdm) && isWaitingDM) {
+        isOrangeRow = true;
+      } else if ((cat === 'SERVICE' || isAdm) && isWaitingService) {
+        isOrangeRow = true;
+      }
+    }
+
     const tr = document.createElement('tr');
-    if (isWaitingDM) {
+    if (isOrangeRow) {
+      tr.className = 'rowHighlightOrange';
+    } else if (isWaitingDM) {
       tr.className = 'rowWaitingDmBlink';
     }
     tr.innerHTML = `
@@ -5255,7 +5328,10 @@ function initAllDraggableButtons() {
     body:has(#loginPage.active) .notif-bell-btn,
     body:has(#loginPage.active) #helpButton,
     body:has(#loginPage.active) .helpButton,
-    body:has(#loginPage.active) #firebaseOnlineDot {
+    body:has(#loginPage.active) #firebaseOnlineDot,
+    body:has(.page.active:not(#dashboardPage)) #notifBellBtn,
+    body:has(.page.active:not(#dashboardPage)) #helpButton,
+    body:has(.page.active:not(#dashboardPage)) #firebaseOnlineDot {
       display: none !important;
     }
   `;
