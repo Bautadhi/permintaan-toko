@@ -1939,7 +1939,7 @@ function loadDashboard() {
 
   const titleEl = document.getElementById('dashboardRecentTitle');
   if (titleEl) {
-    titleEl.textContent = `PERMINTAAN [ ${dashboardFilterStatus} ] (KLIK BARIS UNTUK LIHAT DETAIL)`;
+    titleEl.textContent = `PERMINTAAN  ${dashboardFilterStatus}`;
   }
 
   const lastDataContainer = document.getElementById('lastData');
