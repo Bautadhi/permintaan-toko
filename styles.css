@@ -1048,12 +1048,12 @@ input:focus, select:focus, textarea:focus {
   position: relative !important;
 }
 
-/* FROZEN / STICKY TABLE HEADER FOR DASHBOARD */
+/* UNIFIED DASHBOARD TABLE HEADER & DATA (SCROLL TOGETHER AS 1 SINGLE COMBINED UNIT) */
 .lastHeader {
   flex-shrink: 0 !important;
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 10 !important;
+  position: relative !important;
+  top: auto !important;
+  z-index: 1 !important;
   background: var(--bg-header) !important;
   color: var(--text-muted) !important;
   border: none !important;
@@ -1061,7 +1061,7 @@ input:focus, select:focus, textarea:focus {
   border-radius: 0 !important;
   text-align: left !important;
   font-weight: 700 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+  box-shadow: none !important;
 }
 
 #lastData {
@@ -2458,14 +2458,13 @@ button.btnKembali {
 
 /* DESKTOP / PC VIEW (MIN-WIDTH 769PX): COMPACT ELEGANT SCALE & HEIGHT ADJUSTMENT */
 @media(min-width: 769px) {
-  /* FROZEN / STICKY HEADER FOR DASHBOARD TABLE */
+  /* UNIFIED DASHBOARD TABLE HEADER & DATA (SCROLL TOGETHER AS 1 SINGLE COMBINED UNIT) */
   #detailDashboard .lastHeader,
   .lastHeader {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 10 !important;
-    background: var(--bg-header) !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    position: relative !important;
+    top: auto !important;
+    z-index: 1 !important;
+    box-shadow: none !important;
   }
 
   .stats {
@@ -2575,11 +2574,10 @@ button.btnKembali {
 
   #detailDashboard .lastHeader,
   .lastHeader {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 10 !important;
-    background: var(--bg-header) !important;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    position: relative !important;
+    top: auto !important;
+    z-index: 1 !important;
+    box-shadow: none !important;
   }
 
   .lastHeader, .lastItem {

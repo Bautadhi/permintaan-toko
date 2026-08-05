@@ -1944,12 +1944,21 @@ function loadDashboard() {
 
   const lastDataContainer = document.getElementById('lastData');
   if (!lastDataContainer) return;
-  lastDataContainer.innerHTML = '';
+
+  const headerHtml = `
+    <div class="lastHeader">
+      <div>TANGGAL</div>
+      <div>NO SURAT</div>
+      <div>NAMA TOKO</div>
+      <div>STATUS</div>
+    </div>
+  `;
+  lastDataContainer.innerHTML = headerHtml;
 
   const filteredData = data.filter(r => r.status === dashboardFilterStatus);
 
   if (filteredData.length === 0) {
-    lastDataContainer.innerHTML = `<div style="text-align:center; padding:24px; color:var(--text-muted);">TIDAK ADA DATA PERMINTAAN DENGAN STATUS ${dashboardFilterStatus}.</div>`;
+    lastDataContainer.innerHTML += `<div style="text-align:center; padding:24px; color:var(--text-muted);">TIDAK ADA DATA PERMINTAAN DENGAN STATUS ${dashboardFilterStatus}.</div>`;
     return;
   }
 
