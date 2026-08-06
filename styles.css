@@ -2630,22 +2630,11 @@ button.btnKembali {
     padding-top: 2px !important;
   }
 
-  #dashboardPage,
-  #riwayatPage,
-  #masterDbPage {
-    height: calc(100vh - 84px) !important;
-    padding-bottom: 16px !important;
-    box-sizing: border-box !important;
-  }
-
-  .dashboardTop,
-  #detailDashboard,
-  .box, .box.box-full {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    box-sizing: border-box !important;
+  .stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    margin: 4px 0 6px 0 !important;
   }
 
   #detailDashboard {
@@ -2655,7 +2644,7 @@ button.btnKembali {
     margin-bottom: 85px !important;
     flex: 1 !important;
     min-height: 0 !important;
-    max-height: calc(100vh - 310px) !important;
+    max-height: calc(100vh - 380px) !important;
     overflow: hidden !important;
     display: flex !important;
     flex-direction: column !important;
