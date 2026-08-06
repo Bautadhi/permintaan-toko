@@ -147,34 +147,65 @@ function getAccessibleNotifications() {
   const notifs = getSystemNotifications();
   const userCat = String(currentUser.category || '').toUpperCase();
   const userArea = String(currentUser.area || '').toUpperCase();
-  const isSysAdmin = userCat === 'ADMIN' || (currentUser.username && String(currentUser.username).toUpperCase() === 'ADMIN');
-
-  let filtered = notifs.filter(n => {
-    if (!n) return false;
-    const areaMatch = (
-      n.targetArea === 'ALL' ||
-      n.targetArea === userArea ||
-      userArea === 'ALL' ||
-      userArea === 'TSM' ||
-      isSysAdmin
-    );
-    const roleMatch = (
-      isSysAdmin ||
-      (Array.isArray(n.targetRoles) && (n.targetRoles.includes('ALL') || n.targetRoles.some(r => String(r).toUpperCase() === userCat))) ||
-      (userCat === 'DM' && Array.isArray(n.targetRoles) && (n.targetRoles.includes('DM') || n.targetRoles.includes('ADMIN'))) ||
-      (userCat === 'TOKO' && Array.isArray(n.targetRoles) && n.targetRoles.includes('TOKO'))
-    );
-    return areaMatch && roleMatch;
-  });
+  const userUname = String(currentUser.username || '').toUpperCase();
+  const userFullName = String(currentUser.fullName || '').toUpperCase();
+  const isSysAdmin = userCat === 'ADMIN' || userUname === 'ADMIN';
 
   const requests = getRequestsFromDB();
 
-  // NOTIFIKASI REMINDER SERVIS & DM DIHAPUS DARI LONCENG NOTIFIKASI SISTEM (DIKIRIM EKSKLUSIF VIA WA FONNTE API)
-  
+  let filtered = notifs.filter(n => {
+    if (!n) return false;
+
+    if (isSysAdmin) return true;
+
+    // 1. FILTER AREA PER LOGGED-IN ACCOUNT
+    const targetArea = String(n.targetArea || 'ALL').toUpperCase();
+    const areaMatch = (targetArea === 'ALL' || targetArea === userArea || userArea === 'ALL');
+    if (!areaMatch) return false;
+
+    // 2. FILTER ROLE / PER LOGIN CATEGORY
+    const targetRoles = Array.isArray(n.targetRoles) ? n.targetRoles.map(r => String(r).toUpperCase()) : [];
+    const roleMatch = (targetRoles.includes('ALL') || targetRoles.includes(userCat));
+    if (!roleMatch) return false;
+
+    // 3. STRICT TOKO / SALES FILTER: Only show notification if request belongs to this logged-in TOKO/SALES user
+    if (userCat === 'TOKO' || userCat === 'SALES') {
+      if (n.noSurat) {
+        const req = requests.find(r => r.noSurat === n.noSurat);
+        if (req) {
+          const isMyRequest = (
+            req.userId === currentUser.id ||
+            String(req.createdBy || '').toUpperCase() === userUname ||
+            String(req.createdBy || '').toUpperCase() === userFullName ||
+            String(req.toko || '').toUpperCase() === userFullName
+          );
+          if (!isMyRequest) return false;
+        }
+      }
+    }
+
+    // 4. STRICT SERVICE AREA FILTER: Only show notifications for requests in currentUser's area
+    if (userCat === 'SERVICE') {
+      if (n.noSurat) {
+        const req = requests.find(r => r.noSurat === n.noSurat);
+        if (req && req.area && req.area.toUpperCase() !== userArea && userArea !== 'ALL') {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  });
+
   // SINTESIS STATUS TRANSAKSI PENDING UNTUK USER TOKO / SALES ONLY
   if (userCat === 'TOKO' || userCat === 'SALES') {
     const tokoPendingReqs = requests.filter(r => {
-      const isMine = (r.createdBy === currentUser.username || r.toko === currentUser.fullName || r.area === userArea);
+      const isMine = (
+        r.userId === currentUser.id ||
+        String(r.createdBy || '').toUpperCase() === userUname ||
+        String(r.createdBy || '').toUpperCase() === userFullName ||
+        String(r.toko || '').toUpperCase() === userFullName
+      );
       return isMine && r.status === 'PENDING';
     });
 
@@ -185,7 +216,7 @@ function getAccessibleNotifications() {
         filtered.unshift({
           id: `NTF-TK-${r.noSurat}`,
           targetRoles: ['TOKO', 'SALES'],
-          targetArea: r.area || 'ALL',
+          targetArea: r.area || userArea,
           message: `PERMINTAAN Anda #${r.noSurat} (${stageMsg}).`,
           noSurat: r.noSurat,
           time: r.tanggalInput || r.createdAt || getFormattedDateDDMMYYYY(),
@@ -4096,9 +4127,10 @@ window.addEventListener('storage', (e) => {
 function isServiceTSMUser() {
   if (!currentUser) return false;
   const cat = String(currentUser.category || '').trim().toUpperCase();
+  const area = String(currentUser.area || '').trim().toUpperCase();
   const uname = String(currentUser.username || '').trim().toUpperCase();
 
-  return cat === 'SERVICE' || cat === 'ADMIN' || uname === 'ADMIN';
+  return (cat === 'SERVICE' && (area === 'TSM' || area === 'ALL')) || cat === 'ADMIN' || uname === 'ADMIN';
 }
 
 async function bukaBantuan() {
