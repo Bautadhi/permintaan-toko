@@ -808,16 +808,33 @@ function bersihkanCacheAplikasiWeb() {
   }
 }
 
-// DEFAULT FIREBASE ONLINE CONFIGURATION (PERMINTAAN TOKO - REAL LIVE DATABASE)
+// DEFAULT FIREBASE ONLINE CONFIGURATION (PERMINTAAN TOKO - CHAT & NOTIF REALTIME)
 const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyDrn_Wx2FAaVGfoIjiWyRjdAKpUw0M50SU",
-  authDomain: "sementara-9985d.firebaseapp.com",
-  projectId: "sementara-9985d",
-  storageBucket: "sementara-9985d.firebasestorage.app",
-  messagingSenderId: "837199245948",
-  appId: "1:837199245948:web:92b4b2483380b393270ff9",
-  measurementId: "G-5NE511H1S5"
+  apiKey: "AIzaSyDTQdgmBi39SqLZ1j_aa8tj-mimCIXJTa0",
+  authDomain: "permintaan-toko-e3b5d.firebaseapp.com",
+  projectId: "permintaan-toko-e3b5d",
+  storageBucket: "permintaan-toko-e3b5d.firebasestorage.app",
+  messagingSenderId: "1072410401023",
+  appId: "1:1072410401023:web:465e23030d2259b56454ca",
+  measurementId: "G-KFHDYEP3VD"
 };
+
+// SUPABASE CLIENT & ANTI-SLEEP KEEP-ALIVE ENGINE (ONLINE DATABASE UTAMA & STORAGE FOTO)
+const SUPABASE_URL = 'https://ducrykojvabaoioigbgc.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_H2w50rrXQWKqZM2fKZJXBw_sRsEpwNf';
+const supabase = (typeof window !== 'undefined' && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY) : null;
+
+function pingSupabaseKeepAlive() {
+  if (supabase) {
+    supabase.from('permintaan_toko').select('id', { count: 'exact', head: true }).limit(1).then(() => {
+      console.log('⚡ Supabase Auto-Keep-Alive Ping Success (Database 24/7 Active)');
+    }).catch(() => {});
+  }
+}
+try {
+  pingSupabaseKeepAlive();
+  setInterval(pingSupabaseKeepAlive, 12 * 60 * 60 * 1000);
+} catch (e) {}
 
 let firebaseApp = null;
 let dbFirestore = null;
@@ -1577,13 +1594,36 @@ function fillLogin(u, p) {
 
 function logout() {
   showConfirm('YAKIN INGIN KELUAR DARI APLIKASI?', () => {
+    const rememberMeChecked = document.getElementById('rememberMe')?.checked;
+    const rememberedCreds = rememberMeChecked ? appStorage.getItem(STORE_REMEMBER_LOGIN_CREDS_KEY) : null;
+
     currentUser = null;
-    appStorage.removeItem(SESSION_KEY);
-    
-    // TIDAK MENGHAPUS CREDS JIKA USER MEMANG PERNAH MENYIMPAN INGAT SANDI, ATAU SESUAIKAN DENGAN FORM
-    const remEl = document.getElementById('rememberMe');
-    if (!remEl || !remEl.checked) {
-      appStorage.removeItem(STORE_REMEMBER_LOGIN_CREDS_KEY);
+
+    // HAPUS SEMUA CACHE & PENYIMPANAN LOKAL PADA SAAT LOGOUT
+    try {
+      if (typeof appStorage !== 'undefined' && appStorage.clear) {
+        appStorage.clear();
+      }
+      try { localStorage.clear(); } catch (e) {}
+      try { sessionStorage.clear(); } catch (e) {}
+
+      // MEMBERSIHKAN BROWSER CACHE STORAGE API
+      if ('caches' in window) {
+        caches.keys().then(keys => {
+          keys.forEach(k => caches.delete(k));
+        }).catch(e => console.warn(e));
+      }
+    } catch (err) {
+      console.warn('[CLEAR CACHE LOGOUT NOTICE]:', err);
+    }
+
+    // KEMBALIKAN INGAT SAYA JIKA USER CENTANG REMEMBER ME
+    if (rememberedCreds) {
+      try {
+        appStorage.setItem(STORE_REMEMBER_LOGIN_CREDS_KEY, rememberedCreds);
+        localStorage.setItem(STORE_REMEMBER_LOGIN_CREDS_KEY, rememberedCreds);
+      } catch (e) {}
+    } else {
       const uEl = document.getElementById('username');
       const pEl = document.getElementById('password');
       if (uEl) uEl.value = '';
@@ -1602,7 +1642,7 @@ function logout() {
     pindahHalaman('loginPage');
     if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
     
-    showNotif('BERHASIL LOGOUT', 'success');
+    showNotif('BERHASIL LOGOUT & MEMBERSIHKAN CACHE!', 'success');
   });
 }
 
@@ -1615,20 +1655,15 @@ function bukaMainApp() {
   
   if (typeof initAllDraggableButtons === 'function') initAllDraggableButtons();
 
-  const isAdmin = (
-    currentUser.category === 'ADMIN' ||
-    (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN')
-  );
-  
-  const btnUserNav = document.getElementById('btnUserNav');
-  const btnMasterDbNav = document.getElementById('btnMasterDbNav');
+  updateAdminNavVisibility();
+  const isAdmin = checkIsAdminUser();
 
-  if (btnUserNav) btnUserNav.style.display = isAdmin ? 'flex' : 'none';
-  if (btnMasterDbNav) btnMasterDbNav.style.display = isAdmin ? 'flex' : 'none';
-
-  isAdminChat = typeof isServiceTSMUser === 'function' ? isServiceTSMUser() : (isAdmin || currentUser.category === 'SERVICE');
+  isAdminChat = typeof isServiceTSMUser === 'function' ? isServiceTSMUser() : (isAdmin || (currentUser && currentUser.category === 'SERVICE'));
 
   pindahHalaman('dashboardPage');
+  if (typeof setupBottomMenuAutoHide === 'function') {
+    setupBottomMenuAutoHide();
+  }
 
   setTimeout(() => {
     if (typeof aturTampilanLonceng === 'function') {
@@ -1802,7 +1837,42 @@ function getCurrentActivePageId() {
   return activeEl ? activeEl.id : 'dashboardPage';
 }
 
+function checkIsAdminUser() {
+  if (!currentUser) return false;
+  const category = (currentUser.category || currentUser.kategori || currentUser.role || '').toString().trim().toUpperCase();
+  const username = (currentUser.username || '').toString().trim().toUpperCase();
+  return category === 'ADMIN' || username === 'ADMIN';
+}
+
+function updateAdminNavVisibility() {
+  const isAdmin = checkIsAdminUser();
+
+  const btnUserNav = document.getElementById('btnUserNav');
+  const btnMasterDbNav = document.getElementById('btnMasterDbNav');
+
+  if (btnUserNav) {
+    if (isAdmin) {
+      btnUserNav.style.setProperty('display', 'flex', 'important');
+      btnUserNav.classList.remove('hidden-admin-btn');
+    } else {
+      btnUserNav.style.setProperty('display', 'none', 'important');
+      btnUserNav.classList.add('hidden-admin-btn');
+    }
+  }
+
+  if (btnMasterDbNav) {
+    if (isAdmin) {
+      btnMasterDbNav.style.setProperty('display', 'flex', 'important');
+      btnMasterDbNav.classList.remove('hidden-admin-btn');
+    } else {
+      btnMasterDbNav.style.setProperty('display', 'none', 'important');
+      btnMasterDbNav.classList.add('hidden-admin-btn');
+    }
+  }
+}
+
 function updateBottomMenuHighlight(pageId) {
+  updateAdminNavVisibility();
   const bottomNav = document.getElementById('bottomMenu');
   if (!bottomNav) return;
 
@@ -1826,17 +1896,59 @@ function updateBottomMenuHighlight(pageId) {
   });
 }
 
+let lastScrollTopPosition = 0;
+
+function setupBottomMenuAutoHide() {
+  const bottomMenu = document.getElementById('bottomMenu');
+  if (!bottomMenu) return;
+  const isLoginPage = (document.getElementById('loginPage') && document.getElementById('loginPage').classList.contains('active')) || (typeof currentUser === 'undefined' || !currentUser);
+  if (isLoginPage) {
+    bottomMenu.classList.add('login-hidden');
+    bottomMenu.classList.add('hide-bottom-menu');
+    bottomMenu.style.setProperty('display', 'none', 'important');
+    return;
+  }
+  bottomMenu.classList.remove('login-hidden');
+  bottomMenu.classList.remove('hide-bottom-menu');
+  bottomMenu.style.display = 'flex';
+}
+
 function pindahHalaman(pageId, pushHistory = true) {
+  updateAdminNavVisibility();
+
+  if ((pageId === 'masterDbPage' || pageId === 'userManagementPage') && !checkIsAdminUser()) {
+    pindahHalaman('dashboardPage', false);
+    return;
+  }
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById(pageId);
   if (target) target.classList.add('active');
 
   updateBottomMenuHighlight(pageId);
+  setupBottomMenuAutoHide();
 
   if (pushHistory && pageId !== 'loginPage') {
     try {
       history.pushState({ page: pageId }, '', location.href);
     } catch(e) {}
+  }
+
+  if (pageId === 'loginPage' || (typeof currentUser === 'undefined' || !currentUser)) {
+    if (typeof closeAllPopups === 'function') closeAllPopups();
+    const bottomMenu = document.getElementById('bottomMenu');
+    if (bottomMenu) {
+      bottomMenu.classList.add('login-hidden');
+      bottomMenu.style.setProperty('display', 'none', 'important');
+    }
+    const notifBtn = document.getElementById('notifBellBtn');
+    if (notifBtn) notifBtn.style.setProperty('display', 'none', 'important');
+    const helpBtn = document.getElementById('helpButton');
+    if (helpBtn) helpBtn.style.setProperty('display', 'none', 'important');
+    const dotEl = document.getElementById('firebaseOnlineDot');
+    if (dotEl) dotEl.style.setProperty('display', 'none', 'important');
+    const topHeader = document.getElementById('topHeaderActions');
+    if (topHeader) topHeader.style.setProperty('display', 'none', 'important');
   }
 
   if (pageId === 'dashboardPage') {
@@ -1954,18 +2066,17 @@ function loadDashboard() {
     }
 
     const tr = document.createElement('tr');
-    tr.className = `${isOrangeRow ? 'rowHighlightOrange' : (isWaitingDM ? 'rowWaitingDmBlink' : '')}`;
-    if (isBoldRow) {
-      tr.style.fontWeight = '800';
+    if (shouldRowBlinkRed(r)) {
+      tr.className = 'blink-row-red';
     }
     tr.style.cursor = 'pointer';
     tr.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
     tr.onclick = () => bukaDetailDariDashboard(r.noSurat);
     tr.innerHTML = `
-      <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
-      <td style="font-weight:700; color:var(--primary);">${r.noSurat}</td>
-      <td>${r.toko} <small style="color:var(--primary);">(${r.area})</small></td>
-      <td style="text-align:center;">${getBadgeStatus(r)}</td>
+      <td style="width: 18%; text-align: left; white-space: nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
+      <td style="width: 32%; text-align: left;">${r.noSurat}</td>
+      <td style="width: 30%; text-align: left;">${r.toko} <small>(${r.area})</small></td>
+      <td style="width: 20%; text-align: center;">${getBadgeStatus(r)}</td>
     `;
     lastDataContainer.appendChild(tr);
   });
@@ -1975,35 +2086,80 @@ function bukaDetailDariDashboard(noSurat) {
   lihatDetail(noSurat, true);
 }
 
+function shouldRowBlinkRed(r) {
+  if (!r || !currentUser) return false;
+  const cat = String(currentUser.category || currentUser.kategori || currentUser.role || '').trim().toUpperCase();
+  const username = String(currentUser.username || '').trim().toUpperCase();
+  const isAdm = cat === 'ADMIN' || username === 'ADMIN';
+
+  const isWaitingService = (r.status === 'PENDING' && !r.serviceApprove);
+  const isWaitingDM = (r.status === 'PENDING' && r.serviceApprove);
+
+  if ((cat === 'SERVICE' || isAdm) && isWaitingService) return true;
+  if ((cat === 'DM' || isAdm) && isWaitingDM) return true;
+
+  return false;
+}
+
 function getBadgeStatus(r) {
   if (typeof r === 'string') {
-    if (r === 'DONE') return '<span>SUDAH DIPENUHI</span>';
-    return `<span>${r}</span>`;
+    if (r === 'DONE') return 'SUDAH DIPENUHI';
+    if (r === 'APPROVE') return 'DISETUJUI';
+    if (r === 'REJECT') return 'DITOLAK';
+    if (r === 'PENDING') return 'PENDING';
+    return r;
   }
 
-  if (!r) return '<span>-</span>';
+  if (!r) return '-';
 
-  const role = currentUser ? String(currentUser.category || '').toUpperCase() : '';
-  const isAdm = role === 'ADMIN' || (currentUser && currentUser.username && String(currentUser.username).toUpperCase() === 'ADMIN');
   const st = r.status;
   const serviceAppv = r.serviceApprove;
 
-  if (st === 'DONE') return '<span>SUDAH DIPENUHI</span>';
-  if (st === 'REJECT') return '<span>DITOLAK</span>';
-  if (st === 'APPROVE') return '<span>DISETUJUI</span>';
+  if (st === 'DONE') return 'SUDAH DIPENUHI';
+  if (st === 'REJECT') return 'DITOLAK';
+  if (st === 'APPROVE') return 'DISETUJUI';
 
   if (st === 'PENDING') {
     if (!serviceAppv) {
-      const isServiceBold = (role === 'SERVICE' || isAdm) ? 'font-weight:900 !important; font-size:13.5px !important; letter-spacing:0.5px;' : '';
-      return `<span style="${isServiceBold}">TUNGGU SERVICE</span>`;
+      return 'TUNGGU SERVICE';
     } else {
-      const isDmBold = (role === 'DM' || isAdm) ? 'font-weight:900 !important; font-size:13.5px !important; letter-spacing:0.5px;' : '';
-      return `<span style="${isDmBold}">TUNGGU DM</span>`;
+      return 'TUNGGU DM';
     }
   }
 
-  return `<span>${st}</span>`;
+  return st || '-';
 }
+
+function updateStoreDropdownOptions(selectedStoreName = '') {
+  const tokoSelect = document.getElementById('toko');
+  if (!tokoSelect || !currentUser) return;
+
+  const currentVal = selectedStoreName || tokoSelect.value;
+  tokoSelect.innerHTML = '';
+
+  if (currentUser.category === 'TOKO') {
+    tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
+  } else {
+    const allStores = getStoresFromDB();
+    const areaStores = (currentUser.category === 'DM' || currentUser.area === 'ALL') 
+      ? allStores 
+      : allStores.filter(s => s && s.area === currentUser.area);
+
+    if (areaStores.length > 0) {
+      areaStores.forEach(s => {
+        const isSelected = (currentVal && String(s.fullName).toUpperCase() === String(currentVal).toUpperCase()) ? 'selected' : '';
+        tokoSelect.innerHTML += `<option value="${s.fullName}" ${isSelected}>${s.fullName} (${s.area || currentUser.area})</option>`;
+      });
+    } else {
+      tokoSelect.innerHTML = `<option value="INPUT TOKO.....">INPUT TOKO..... (${currentUser.area})</option>`;
+    }
+  }
+
+  if (currentVal && Array.from(tokoSelect.options).some(o => o.value.toUpperCase() === currentVal.toUpperCase())) {
+    tokoSelect.value = currentVal;
+  }
+}
+window.updateStoreDropdownOptions = updateStoreDropdownOptions;
 
 function loadForm() {
   const tglEl = document.getElementById('tanggal');
@@ -2011,22 +2167,7 @@ function loadForm() {
     tglEl.value = getFormattedDateDDMMYYYY();
   }
 
-  const tokoSelect = document.getElementById('toko');
-  if (tokoSelect && tokoSelect.options.length === 0) {
-    if (currentUser.category === 'TOKO') {
-      tokoSelect.innerHTML = `<option value="${currentUser.fullName}">${currentUser.fullName} (${currentUser.area})</option>`;
-    } else {
-      const users = getUsersFromDB();
-      const stores = users.filter(u => u.category === 'TOKO' && u.area === currentUser.area);
-      if (stores.length > 0) {
-        stores.forEach(s => {
-          tokoSelect.innerHTML += `<option value="${s.fullName}">${s.fullName} (${s.area})</option>`;
-        });
-      } else {
-        tokoSelect.innerHTML = `<option value="TOKO SINAR ABADI">TOKO SINAR ABADI (${currentUser.area})</option>`;
-      }
-    }
-  }
+  updateStoreDropdownOptions();
 
   const containerTambahToko = document.getElementById('containerTambahToko');
   if (containerTambahToko) {
@@ -2740,19 +2881,17 @@ function filterRiwayat() {
     }
 
     const tr = document.createElement('tr');
-    if (isOrangeRow) {
-      tr.className = 'rowHighlightOrange';
-    } else if (isWaitingDM) {
-      tr.className = 'rowWaitingDmBlink';
+    if (shouldRowBlinkRed(r)) {
+      tr.className = 'blink-row-red';
     }
     tr.innerHTML = `
       <td><div style="display:flex; gap:4px; align-items:center;">${aksi}</div></td>
       <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
-      <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
-      <td>${r.toko} <div style="font-size:11px; color:var(--text-muted);">${r.area}</div></td>
-      <td style="white-space:nowrap; font-size:13px; font-family:inherit; color:var(--text-main); font-weight:normal;">${r.jenis || 'DEFAULT'}</td>
+      <td>${r.noSurat}</td>
+      <td>${r.toko} <div style="font-size:11px; opacity:0.8;">${r.area}</div></td>
+      <td style="white-space:nowrap;">${r.jenis || 'DEFAULT'}</td>
       <td>${getBadgeStatus(r)}</td>
-      <td style="word-break:break-word; white-space:normal; color:var(--text-main);">${r.catatan || '-'}</td>
+      <td style="word-break:break-word; white-space:normal;">${r.catatan || '-'}</td>
     `;
     tbody.appendChild(tr);
   });
@@ -3254,37 +3393,97 @@ function hapusData(noSurat) {
 }
 window.hapusData = hapusData;
 
+function tutupDetailBarangV2() {
+  const detailModal = document.getElementById('popupDetailBarangV2');
+  if (detailModal) {
+    detailModal.style.display = 'none';
+    detailModal.classList.remove('show');
+  }
+
+  setTimeout(() => {
+    const notifBtn = document.getElementById('notifBellBtn');
+    const helpBtn = document.getElementById('helpButton');
+    const dashboardPage = document.getElementById('dashboardPage');
+    
+    if (dashboardPage && dashboardPage.classList.contains('active')) {
+      if (notifBtn) notifBtn.style.setProperty('display', 'flex', 'important');
+      if (helpBtn) helpBtn.style.setProperty('display', 'flex', 'important');
+    }
+  }, 100);
+}
+window.tutupDetailBarangV2 = tutupDetailBarangV2;
+window.closeDetail = tutupDetailBarangV2;
+
 function lihatDetail(noSurat, fromDashboard = false) {
   const requests = getRequestsFromDB();
   const req = requests.find(r => r.noSurat === noSurat);
   if (!req) return;
 
-  const popupTitle = document.getElementById('popupTitle');
-  if (popupTitle) popupTitle.textContent = 'DETAIL PERMINTAAN';
-  const msgBox = document.getElementById('popupMessage');
-  if (!msgBox) return;
+  const isDus = String(req.jenis || '').toUpperCase() === 'DUS';
+  const popupTitleV2 = document.getElementById('popupTitleV2');
+  if (popupTitleV2) popupTitleV2.textContent = isDus ? 'DETAIL PERMINTAAN DUS' : 'DETAIL PERMINTAAN';
+  const bodyBox = document.getElementById('popupBodyV2');
+  if (!bodyBox) return;
 
   let headerInfoHtml = `
-    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom:10px; margin-bottom:14px; font-size:13px; color:var(--text-main); flex-wrap:wrap; gap:8px;">
-      <div style="text-align:left;">NO SURAT : <span style="color:var(--primary); font-weight:bold;">${req.noSurat}</span></div>
-      <span style="user-select:none;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
-      <div style="text-align:right;">TOKO : <span style="font-weight:bold;">${req.toko}</span></div>
+    <div class="detailHeaderInfoV2" style="display: flex !important; flex-direction: row !important; flex-wrap: nowrap !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; padding: 6px 14px !important; margin: 0 !important; background: transparent !important; border: none !important; box-shadow: none !important; font-size: 13px !important; color: var(--text-main) !important; box-sizing: border-box !important;">
+      <div class="noSuratWrapV2" style="text-align: left !important; white-space: nowrap !important; flex-shrink: 0 !important;">
+        <span style="opacity: 0.85; font-weight: 500;">NO SURAT : </span>
+        <span class="noSuratValV2" style="color: var(--primary) !important; font-weight: 700 !important;">${req.noSurat || '-'}</span>
+      </div>
+      <div class="tokoWrapV2" style="text-align: right !important; white-space: nowrap !important; flex-shrink: 0 !important; margin-left: auto !important;">
+        <span style="opacity: 0.85; font-weight: 500;">TOKO : </span>
+        <span class="tokoValV2" style="font-weight: 700 !important; color: var(--text-main) !important;">${req.toko || '-'}</span>
+      </div>
     </div>
   `;
 
-  const isDus = (req.jenis === 'DUS');
+  let rawItems = req.items;
+  let itemsList = [];
+  if (Array.isArray(rawItems)) {
+    itemsList = rawItems;
+  } else if (typeof rawItems === 'string') {
+    try { itemsList = JSON.parse(rawItems || '[]'); } catch (e) { itemsList = []; }
+  }
 
-  let itemsHtml = req.items.map((i, idx) => `
-    <tr>
-      <td style="text-align:center;">${idx + 1}</td>
-      <td>${i.type || '-'}</td>
-      <td>${i.seri || '-'}</td>
-      <td>${i.barang || '-'}</td>
-      ${isDus ? `<td style="color:#d97706;">${i.dus || '-'}</td>` : ''}
-      <td>${i.alasan || '-'}</td>
-      <td style="text-align:center;">${i.qty || 1}</td>
-    </tr>
-  `).join('');
+  const thStyleCenter = "width: 55px !important; text-align: center !important; background: var(--primary) !important; color: #ffffff !important; padding: 7px 10px !important; border: 1px solid rgba(255,255,255,0.3) !important; position: sticky !important; top: 0 !important; z-index: 50 !important;";
+  const thStyleQty = "width: 60px !important; text-align: center !important; background: var(--primary) !important; color: #ffffff !important; padding: 7px 10px !important; border: 1px solid rgba(255,255,255,0.3) !important; position: sticky !important; top: 0 !important; z-index: 50 !important;";
+  const thStyleLeft = (widthPct) => `width: ${widthPct} !important; text-align: center !important; background: var(--primary) !important; color: #ffffff !important; padding: 7px 10px !important; border: 1px solid rgba(255,255,255,0.3) !important; position: sticky !important; top: 0 !important; z-index: 50 !important;`;
+
+  const tdStyle = "padding: 7px 10px !important; border: 1px solid var(--border-color) !important; background: var(--bg-box) !important; color: var(--text-main) !important; font-size: 12px !important; vertical-align: middle !important; word-break: break-word !important; white-space: normal !important; text-align: left !important;";
+
+  let itemsHtml = itemsList.map((i, idx) => {
+    const typeVal = i.type || i.tipe || i.jenis || '-';
+    const seriVal = i.seri || i.sn || i.serial || '-';
+    const barangVal = i.barang || i.permintaan || i.namaBarang || '-';
+    const dusVal = i.dus || i.snDus || i.seriDus || i.seri || '-';
+    const alasanVal = i.alasan || i.keterangan || '-';
+    const qtyVal = i.qty || i.jumlah || 1;
+
+    if (isDus) {
+      return `
+        <tr>
+          <td style="${tdStyle} text-align: center !important;">${idx + 1}</td>
+          <td style="${tdStyle} text-align: left !important;">${typeVal}</td>
+          <td style="${tdStyle} text-align: left !important;">${barangVal}</td>
+          <td style="${tdStyle} text-align: left !important; color: #d97706 !important; font-weight: 600 !important;">${dusVal}</td>
+          <td style="${tdStyle} text-align: left !important;">${alasanVal}</td>
+          <td style="${tdStyle} text-align: center !important;">${qtyVal}</td>
+        </tr>
+      `;
+    } else {
+      return `
+        <tr>
+          <td style="${tdStyle} text-align: center !important;">${idx + 1}</td>
+          <td style="${tdStyle} text-align: left !important;">${typeVal}</td>
+          <td style="${tdStyle} text-align: left !important;">${seriVal}</td>
+          <td style="${tdStyle} text-align: left !important;">${barangVal}</td>
+          <td style="${tdStyle} text-align: left !important;">${alasanVal}</td>
+          <td style="${tdStyle} text-align: center !important;">${qtyVal}</td>
+        </tr>
+      `;
+    }
+  }).join('');
 
   let bottomActionsHtml = '';
   let actionButtons = [];
@@ -3295,23 +3494,23 @@ function lihatDetail(noSurat, fromDashboard = false) {
     if (role === 'SERVICE' || isAdminUser) {
       if (!req.serviceApprove) {
         actionButtons.push(`
-          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveService('${req.noSurat}');">
+          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="tutupDetailBarangV2(); approveService('${req.noSurat}');">
             <span class="material-symbols-rounded">check_circle</span>
           </button>
         `);
         actionButtons.push(`
-          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'SERVICE');">
+          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="tutupDetailBarangV2(); tolakServiceModal('${req.noSurat}', 'SERVICE');">
             <span class="material-symbols-rounded">cancel</span>
           </button>
         `);
       } else if (isAdminUser) {
         actionButtons.push(`
-          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveDM('${req.noSurat}');">
+          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="tutupDetailBarangV2(); approveDM('${req.noSurat}');">
             <span class="material-symbols-rounded">check_circle</span>
           </button>
         `);
         actionButtons.push(`
-          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
+          <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="tutupDetailBarangV2(); tolakServiceModal('${req.noSurat}', 'DM');">
             <span class="material-symbols-rounded">cancel</span>
           </button>
         `);
@@ -3320,12 +3519,12 @@ function lihatDetail(noSurat, fromDashboard = false) {
     
     if (role === 'DM' && req.serviceApprove) {
       actionButtons.push(`
-        <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="closeDetail(); approveDM('${req.noSurat}');">
+        <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="tutupDetailBarangV2(); approveDM('${req.noSurat}');">
           <span class="material-symbols-rounded">check_circle</span>
         </button>
       `);
       actionButtons.push(`
-        <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="closeDetail(); tolakServiceModal('${req.noSurat}', 'DM');">
+        <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="tutupDetailBarangV2(); tolakServiceModal('${req.noSurat}', 'DM');">
           <span class="material-symbols-rounded">cancel</span>
         </button>
       `);
@@ -3335,7 +3534,7 @@ function lihatDetail(noSurat, fromDashboard = false) {
   const isPdfVisible = (req.status === 'APPROVE' || req.status === 'DONE' || (isAdminUser && req.status !== 'REJECT'));
   if (isPdfVisible) {
     actionButtons.push(`
-      <button type="button" class="btnIcon btnPdf btnIconOnly" title="CETAK PDF" onclick="closeDetail(); bukaPdfModal('${req.noSurat}');">
+      <button type="button" class="btnIcon btnPdf btnIconOnly" title="CETAK PDF" onclick="tutupDetailBarangV2(); bukaPdfModal('${req.noSurat}');">
         <span class="material-symbols-rounded">picture_as_pdf</span>
       </button>
     `);
@@ -3343,7 +3542,7 @@ function lihatDetail(noSurat, fromDashboard = false) {
 
   if (req.status === 'APPROVE' && (role === 'SERVICE' || isAdminUser)) {
     actionButtons.push(`
-      <button type="button" class="btnIcon btnDone btnIconOnly" title="SET DONE" onclick="closeDetail(); doneService('${req.noSurat}');">
+      <button type="button" class="btnIcon btnDone btnIconOnly" title="SET DONE" onclick="tutupDetailBarangV2(); doneService('${req.noSurat}');">
         <span class="material-symbols-rounded">task_alt</span>
       </button>
     `);
@@ -3356,12 +3555,12 @@ function lihatDetail(noSurat, fromDashboard = false) {
 
   if (canCreatorEditDelete || canServiceEditDelete || canAdminEditDelete) {
     actionButtons.push(`
-      <button type="button" class="btnIcon btnEdit btnIconOnly" title="EDIT" onclick="closeDetail(); editPermintaan('${req.noSurat}');">
+      <button type="button" class="btnIcon btnEdit btnIconOnly" title="EDIT" onclick="tutupDetailBarangV2(); editPermintaan('${req.noSurat}');">
         <span class="material-symbols-rounded">edit</span>
       </button>
     `);
     actionButtons.push(`
-      <button type="button" class="btnIcon btnDelete btnIconOnly" title="HAPUS" onclick="closeDetail(); hapusData('${req.noSurat}');">
+      <button type="button" class="btnIcon btnDelete btnIconOnly" title="HAPUS" onclick="tutupDetailBarangV2(); hapusData('${req.noSurat}');">
         <span class="material-symbols-rounded">delete</span>
       </button>
     `);
@@ -3369,37 +3568,55 @@ function lihatDetail(noSurat, fromDashboard = false) {
 
   if (actionButtons.length > 0) {
     bottomActionsHtml = `
-      <div class="popupDetailActions" style="justify-content: flex-start !important; text-align: left !important; flex-wrap: wrap !important;">
+      <div class="popupDetailActionsV2" style="margin: 0 !important; padding: 2px 14px !important;">
         ${actionButtons.join('')}
       </div>
     `;
   }
 
-  msgBox.innerHTML = `
-    ${headerInfoHtml}
-    <div class="popupTableScroll">
-      <table class="detailTable2">
-        <thead>
-          <tr>
-            <th style="width:45px; text-align:center;">NO</th>
-            <th>TYPE</th>
-            <th>SERI</th>
-            <th>PERMINTAAN</th>
-            ${isDus ? '<th>NO SN DUS</th>' : ''}
-            <th>ALASAN</th>
-            <th style="width:55px; text-align:center;">QTY</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${itemsHtml}
-        </tbody>
-      </table>
-    </div>
-    ${bottomActionsHtml}
+  const tableHeaderHtml = isDus ? `
+    <thead>
+      <tr style="background: var(--primary) !important; color: #ffffff !important;">
+        <th style="${thStyleCenter}">NO</th>
+        <th style="${thStyleLeft('18%')}">TYPE</th>
+        <th style="${thStyleLeft('28%')}">PERMINTAAN</th>
+        <th style="${thStyleLeft('18%')}">SERI DUS</th>
+        <th style="${thStyleLeft('26%')}">ALASAN</th>
+        <th style="${thStyleQty}">QTY</th>
+      </tr>
+    </thead>
+  ` : `
+    <thead>
+      <tr style="background: var(--primary) !important; color: #ffffff !important;">
+        <th style="${thStyleCenter}">NO</th>
+        <th style="${thStyleLeft('18%')}">TYPE</th>
+        <th style="${thStyleLeft('18%')}">SERI</th>
+        <th style="${thStyleLeft('28%')}">PERMINTAAN</th>
+        <th style="${thStyleLeft('26%')}">ALASAN</th>
+        <th style="${thStyleQty}">QTY</th>
+      </tr>
+    </thead>
   `;
 
-  const popupDetail = document.getElementById('popupDetail');
-  if (popupDetail) popupDetail.style.display = 'flex';
+  bodyBox.innerHTML = `
+    <div class="popupCardBodyContainerV2" style="padding: 8px 0px 12px 0px !important; display: flex !important; flex-direction: column !important; gap: 6px !important; box-sizing: border-box !important; background: var(--bg-box) !important; border-radius: 0 0 18px 18px !important;">
+      ${headerInfoHtml}
+      
+      <div class="tableCardV2" style="border-top: 1px solid var(--border-color) !important; border-bottom: 1px solid var(--border-color) !important; border-left: none !important; border-right: none !important; border-radius: 0 !important; overflow-y: auto !important; overflow-x: hidden !important; max-height: 55vh !important; background: var(--bg-box) !important; width: 100% !important; margin: 0 !important;">
+        <table class="detailTableV2" style="width: 100% !important; min-width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; margin: 0 !important; padding: 0 !important;">
+          ${tableHeaderHtml}
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+      </div>
+
+      ${bottomActionsHtml}
+    </div>
+  `;
+
+  const popupDetailV2 = document.getElementById('popupDetailBarangV2');
+  if (popupDetailV2) popupDetailV2.style.display = 'flex';
 
   const notifBtn = document.getElementById('notifBellBtn');
   const helpBtn = document.getElementById('helpButton');
@@ -4700,7 +4917,7 @@ function hapusMultiUser() {
   const usernamesStr = selectedUsers.map(u => u.username).join(', ');
 
   showConfirm(`YAKIN INGIN MENGHAPUS ${selectedUsers.length} USER TERPILIH? (${usernamesStr})`, () => {
-    showLoading('MENGHAPUS USER & TOKO TERPILIH DARI DATABASE...');
+    showLoading('MENGHAPUS USER & TOKO TERPILIH...');
     setTimeout(async () => {
       try {
         const delUsers = JSON.parse(appStorage.getItem(DELETED_USERS_KEY) || '[]');
@@ -4748,14 +4965,14 @@ function hapusMultiUser() {
         }
 
         hideLoading();
-        showNotif(`BERHASIL MENGHAPUS ${selectedUsers.length} USER & TOKO TERPILIH DARI DATABASE!`, 'success');
+        showNotif(`BERHASIL MENGHAPUS ${selectedUsers.length} USER & TOKO TERPILIH!`, 'success');
         if (typeof loadUsersManagement === 'function') loadUsersManagement();
         if (typeof loadForm === 'function') loadForm();
         if (typeof loadDaftarTokoModal === 'function') loadDaftarTokoModal();
       } catch (err) {
         hideLoading();
         console.error('[HAPUS MULTI USER ERROR]:', err);
-        showNotif('TERJADI KESALAHAN SAAT MENGHAPUS USER DARI DATABASE!', 'error');
+        showNotif('TERJADI KESALAHAN SAAT MENGHAPUS USER!', 'error');
       }
     }, 400);
   });
@@ -4922,7 +5139,7 @@ function simpanUserData() {
     pushCentralCloudDB();
   }
 
-  showNotif(`USER ${fullName} (${username}) BERHASIL DISIMPAN & DISINKRONKAN KE FIREBASE!`, 'success');
+  showNotif(`USER ${fullName} (${username}) BERHASIL DISIMPAN!`, 'success');
 
   tutupUserModal();
   loadUsersManagement();
@@ -4994,6 +5211,9 @@ function loadMasterDbTable() {
     }).join('');
 
     const tr = document.createElement('tr');
+    if (shouldRowBlinkRed(r)) {
+      tr.className = 'blink-row-red';
+    }
     tr.innerHTML = `
       <td style="text-align:center;"><input type="checkbox" class="masterDbCheckbox" value="${r.noSurat}" onchange="updateMultiMasterDbBtnState()" style="cursor:pointer; width:16px; height:16px;"></td>
       <td style="font-weight:600; color:var(--primary);">${r.noSurat}</td>
@@ -5282,10 +5502,16 @@ function prosesBukaAkun() {
   }
 
   const isToko = (currentUser.category === 'TOKO');
+  const isAdmin = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
   
   const menuKelolaTokoAkun = document.getElementById('menuKelolaTokoAkun');
   if (menuKelolaTokoAkun) {
     menuKelolaTokoAkun.style.display = isToko ? 'none' : 'block';
+  }
+
+  const adminWrap = document.getElementById('adminHapusNotifWrap');
+  if (adminWrap) {
+    adminWrap.style.display = 'none';
   }
 
   const modal = document.getElementById('popupAkun');
@@ -5418,7 +5644,7 @@ function simpanTokoBaru() {
     return;
   }
 
-  showLoading('MENYIMPAN TOKO BARU KE DATABASE CLOUD...');
+  showLoading('MENYIMPAN TOKO BARU...');
   setTimeout(async () => {
     try {
       const storeKey = `${namaToko}_${currentUser.area}`;
@@ -5485,15 +5711,15 @@ function simpanTokoBaru() {
       }
 
       hideLoading();
-      showNotif(`TOKO '${namaToko}' BERHASIL DITAMBAHKAN & DISINKRONKAN KE DATABASE CLOUD!`, 'success');
+      showNotif(`TOKO '${namaToko}' BERHASIL DITAMBAHKAN!`, 'success');
       if (inputEl) inputEl.value = '';
       if (typeof loadDaftarTokoModal === 'function') loadDaftarTokoModal();
-      if (typeof loadForm === 'function') loadForm();
+      if (typeof updateStoreDropdownOptions === 'function') updateStoreDropdownOptions(namaToko);
       if (typeof loadUsersManagement === 'function') loadUsersManagement();
     } catch (err) {
       hideLoading();
       console.error('[SIMPAN TOKO ERROR]:', err);
-      showNotif('GAGAL MENYIMPAN TOKO KE DATABASE CLOUD!', 'error');
+      showNotif('GAGAL MENYIMPAN TOKO!', 'error');
     }
   }, 300);
 }
@@ -5505,7 +5731,7 @@ function hapusTokoCustom(id) {
   const storeArea = store ? store.area : currentUser.area;
 
   showConfirm(`HAPUS TOKO '${name}' DARI DAFTAR & DATABASE ADMIN?`, () => {
-    showLoading('MENGHAPUS TOKO DARI DATABASE CLOUD...');
+    showLoading('MENGHAPUS TOKO...');
     setTimeout(async () => {
       try {
         const localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
@@ -5543,14 +5769,14 @@ function hapusTokoCustom(id) {
         }
 
         hideLoading();
-        showNotif(`TOKO '${name}' BERHASIL DIHAPUS DARI CLOUD DATABASE!`, 'info');
+        showNotif(`TOKO '${name}' BERHASIL DIHAPUS!`, 'info');
         if (typeof loadDaftarTokoModal === 'function') loadDaftarTokoModal();
-        if (typeof loadForm === 'function') loadForm();
+        if (typeof updateStoreDropdownOptions === 'function') updateStoreDropdownOptions();
         if (typeof loadUsersManagement === 'function') loadUsersManagement();
       } catch (err) {
         hideLoading();
         console.error('[HAPUS TOKO ERROR]:', err);
-        showNotif('GAGAL MENGHAPUS TOKO DARI CLOUD DATABASE!', 'error');
+        showNotif('GAGAL MENGHAPUS TOKO!', 'error');
       }
     }, 300);
   });
@@ -5911,3 +6137,259 @@ function hapusSemuaDataLokal() {
     }, 800);
   });
 }
+
+// =============================================================================
+// GLOBAL KEYBOARD NAVIGATION:
+// 1. DASHBOARD & RIWAYAT / DETAIL DATA -> ARROW UP/DOWN & PAGE UP/DOWN SCROLLS TABLE
+// 2. INPUT DATA FORM -> ARROW KEYS NAVIGATE ALL COLUMNS & ROWS, ENTER MOVES TO NEXT FIELD
+// =============================================================================
+function setupGlobalKeyboardNavigation() {
+  document.addEventListener('keydown', (e) => {
+    const activeEl = document.activeElement;
+    const isInput = activeEl && (
+      activeEl.tagName === 'INPUT' ||
+      activeEl.tagName === 'SELECT' ||
+      activeEl.tagName === 'TEXTAREA'
+    );
+
+    // -------------------------------------------------------------------------
+    // CASE A: INSIDE INPUT FORM -> ARROW KEYS NAVIGATE COLUMNS/ROWS & ENTER MOVES TO NEXT FIELD
+    // -------------------------------------------------------------------------
+    if (isInput) {
+      // 1. ENTER KEY: MOVE TO NEXT INPUT FIELD (OR AUTOMATICALLY ADD NEW ROW IF AT END OF FORM)
+      if (e.key === 'Enter') {
+        // Skip textareas if user wants new line
+        if (activeEl.tagName === 'TEXTAREA' && !e.ctrlKey && !e.shiftKey) {
+          return;
+        }
+
+        e.preventDefault();
+
+        // Login form submit handling
+        if (activeEl.id === 'username' || activeEl.id === 'password') {
+          if (typeof window.prosesLogin === 'function') window.prosesLogin();
+          return;
+        }
+
+        const formContainer = activeEl.closest('#detailContainer') || activeEl.closest('form') || activeEl.closest('.formWrap') || activeEl.closest('#popupDetail') || document;
+        const allInputs = Array.from(formContainer.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'));
+        const currIndex = allInputs.indexOf(activeEl);
+
+        if (currIndex !== -1 && currIndex < allInputs.length - 1) {
+          const nextEl = allInputs[currIndex + 1];
+          nextEl.focus();
+          if (typeof nextEl.select === 'function' && nextEl.tagName === 'INPUT') nextEl.select();
+        } else if (activeEl.closest('.detailRow')) {
+          // If at the last input of the last row in Input Data, automatically add new row!
+          if (typeof tambahRow === 'function') {
+            tambahRow();
+            setTimeout(() => {
+              const rows = document.querySelectorAll('#detailContainer .detailRow');
+              if (rows.length > 0) {
+                const lastRow = rows[rows.length - 1];
+                const firstInput = lastRow.querySelector('input');
+                if (firstInput) {
+                  firstInput.focus();
+                  if (typeof firstInput.select === 'function') firstInput.select();
+                }
+              }
+            }, 60);
+          }
+        }
+        return;
+      }
+
+      // 2. ARROW KEYS NAVIGATION IN INPUT ROWS & COLUMNS
+      const row = activeEl.closest('.detailRow');
+      if (row) {
+        const container = row.parentElement;
+        const allRows = Array.from(container.querySelectorAll('.detailRow'));
+        const rowIndex = allRows.indexOf(row);
+        const rowInputs = Array.from(row.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'));
+        const colIndex = rowInputs.indexOf(activeEl);
+
+        if (e.key === 'ArrowDown') {
+          e.preventDefault();
+          if (rowIndex < allRows.length - 1) {
+            const nextRow = allRows[rowIndex + 1];
+            const nextRowInputs = Array.from(nextRow.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'));
+            const targetInput = nextRowInputs[colIndex] !== undefined ? nextRowInputs[colIndex] : nextRowInputs[nextRowInputs.length - 1];
+            if (targetInput) {
+              targetInput.focus();
+              if (typeof targetInput.select === 'function' && targetInput.tagName === 'INPUT') targetInput.select();
+            }
+          }
+          return;
+        }
+
+        if (e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (rowIndex > 0) {
+            const prevRow = allRows[rowIndex - 1];
+            const prevRowInputs = Array.from(prevRow.querySelectorAll('input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'));
+            const targetInput = prevRowInputs[colIndex] !== undefined ? prevRowInputs[colIndex] : prevRowInputs[prevRowInputs.length - 1];
+            if (targetInput) {
+              targetInput.focus();
+              if (typeof targetInput.select === 'function' && targetInput.tagName === 'INPUT') targetInput.select();
+            }
+          }
+          return;
+        }
+
+        if (e.key === 'ArrowRight') {
+          const isText = activeEl.type === 'text' || activeEl.type === 'search';
+          const isAtEnd = !isText || activeEl.selectionEnd === activeEl.value.length;
+          if (isAtEnd) {
+            if (colIndex < rowInputs.length - 1) {
+              e.preventDefault();
+              const nextInput = rowInputs[colIndex + 1];
+              nextInput.focus();
+              if (typeof nextInput.select === 'function' && nextInput.tagName === 'INPUT') nextInput.select();
+            } else if (rowIndex < allRows.length - 1) {
+              e.preventDefault();
+              const nextRow = allRows[rowIndex + 1];
+              const firstInput = nextRow.querySelector('input');
+              if (firstInput) {
+                firstInput.focus();
+                if (typeof firstInput.select === 'function') firstInput.select();
+              }
+            }
+          }
+          return;
+        }
+
+        if (e.key === 'ArrowLeft') {
+          const isText = activeEl.type === 'text' || activeEl.type === 'search';
+          const isAtStart = !isText || activeEl.selectionStart === 0;
+          if (isAtStart) {
+            if (colIndex > 0) {
+              e.preventDefault();
+              const prevInput = rowInputs[colIndex - 1];
+              prevInput.focus();
+              if (typeof prevInput.select === 'function' && prevInput.tagName === 'INPUT') prevInput.select();
+            } else if (rowIndex > 0) {
+              e.preventDefault();
+              const prevRow = allRows[rowIndex - 1];
+              const prevRowInputs = Array.from(prevRow.querySelectorAll('input'));
+              const lastInput = prevRowInputs[prevRowInputs.length - 1];
+              if (lastInput) {
+                lastInput.focus();
+                if (typeof lastInput.select === 'function') lastInput.select();
+              }
+            }
+          }
+          return;
+        }
+      }
+
+      return;
+    }
+
+    // -------------------------------------------------------------------------
+    // CASE B: OUTSIDE INPUT FORM (DASHBOARD, RIWAYAT/DETAIL DATA, MASTER DB)
+    // ARROW UP / ARROW DOWN & PAGE UP / PAGE DOWN SCROLL THE ACTIVE TABLE!
+    // -------------------------------------------------------------------------
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp' || e.key === 'PageDown' || e.key === 'PageUp') {
+      let scrollTarget = null;
+      
+      const popupDetail = document.getElementById('popupDetail');
+      if (popupDetail && popupDetail.style.display !== 'none' && popupDetail.offsetWidth > 0) {
+        scrollTarget = popupDetail.querySelector('.popupTableScroll') || popupDetail.querySelector('.popupContent') || popupDetail.querySelector('#popupMessage');
+      }
+
+      if (!scrollTarget) {
+        const activePage = document.querySelector('.pageSection.active') || document.querySelector('.page.active');
+        if (activePage) {
+          scrollTarget = activePage.querySelector('.tableWrap') || activePage.querySelector('.popupTableScroll');
+        }
+      }
+
+      if (!scrollTarget) {
+        scrollTarget = document.querySelector('.tableWrap');
+      }
+
+      if (scrollTarget) {
+        e.preventDefault();
+        const step = (e.key === 'PageDown' || e.key === 'PageUp') ? 260 : 60;
+        const direction = (e.key === 'ArrowDown' || e.key === 'PageDown') ? 1 : -1;
+        scrollTarget.scrollTop += (step * direction);
+      }
+    }
+  });
+}
+
+// INITIALIZE GLOBAL KEYBOARD NAVIGATION
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupGlobalKeyboardNavigation);
+} else {
+  setupGlobalKeyboardNavigation();
+}
+
+async function hapusSemuaNotifFirebaseDanLokal() {
+  const isUserAdmin = currentUser && (currentUser.category === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+  if (!isUserAdmin) {
+    showNotif('FITUR HANYA DAPAT DIAKSES OLEH ADMIN!', 'error');
+    return;
+  }
+
+  showConfirm('YAKIN INGIN MENGHAPUS SEMUA NOTIFIKASI & CHAT DI DATABASE FIREBASE DAN SEMUA PERANGKAT?\n\n(Semua notifikasi dan pesan chat di cloud Firebase & lokal semua perangkat akan dibersihkan total!)', async () => {
+    showLoading('MENGHAPUS SEMUA NOTIFIKASI & CHAT DATABASE...');
+
+    try {
+      appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify([]));
+      appStorage.setItem(CHAT_DB_KEY, JSON.stringify([]));
+      appStorage.setItem(CHAT_MESSAGES_KEY, JSON.stringify([]));
+      appStorage.setItem(CHAT_ROOM_DB_KEY, JSON.stringify([]));
+
+      if (dbFirestore) {
+        try {
+          await dbFirestore.collection('app_settings').doc('config').set({
+            notifications: [],
+            chatMessages: [],
+            chatRooms: [],
+            clearNotifsSignal: Date.now(),
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+        } catch (e) {
+          console.warn('Firestore Clear Notifs Error:', e);
+        }
+      }
+
+      if (dbRealtime) {
+        try {
+          await dbRealtime.ref('notifications').set([]);
+          await dbRealtime.ref('chat_messages').set([]);
+          await dbRealtime.ref('chat_rooms').set([]);
+          await dbRealtime.ref('settings/clear_notifs_signal').set(Date.now());
+        } catch (e) {
+          console.warn('Realtime DB Clear Notifs Error:', e);
+        }
+      }
+
+      if (supabase) {
+        try {
+          await supabase.from('notifications').delete().neq('id', '0');
+          await supabase.from('chat_messages').delete().neq('id', '0');
+          await supabase.from('chat_rooms').delete().neq('id', '0');
+        } catch (e) {
+          console.warn('Supabase Clear Notifs Error:', e);
+        }
+      }
+
+      if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+      if (typeof loadNotificationList === 'function') loadNotificationList();
+      
+      const chatBody = document.getElementById('chatMessagesBody');
+      if (chatBody) chatBody.innerHTML = '<div style="text-align:center; padding:20px; color:#94a3b8; font-size:12px;">BELUM ADA PESAN CHAT</div>';
+
+      hideLoading();
+      showNotif('SEMUA NOTIFIKASI & CHAT DI DATABASE FIREBASE SERTA SEMUA PERANGKAT BERHASIL DIHAPUS!', 'success');
+    } catch (err) {
+      hideLoading();
+      console.error('Gagal menghapus notifikasi cloud:', err);
+      showNotif('GAGAL MENGHAPUS NOTIFIKASI DATABASE: ' + err.message, 'error');
+    }
+  });
+}
+
+window.hapusSemuaNotifFirebaseDanLokal = hapusSemuaNotifFirebaseDanLokal;

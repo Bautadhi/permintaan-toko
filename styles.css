@@ -242,11 +242,24 @@ body {
 
 .page.active {
   display: block;
-  height: calc(100vh - 65px) !important;
+  height: calc(100vh - 56px) !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   box-sizing: border-box !important;
-  padding-bottom: 75px !important;
+  padding-bottom: 56px !important;
+}
+
+section#riwayatPage.page.active,
+section#masterDbPage.page.active,
+#riwayatPage.active,
+#masterDbPage.active {
+  display: flex !important;
+  flex-direction: column !important;
+  height: calc(100vh - 65px) !important;
+  max-height: calc(100vh - 65px) !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  padding-bottom: 0 !important;
 }
 
 #riwayatPage {
@@ -414,23 +427,36 @@ body {
 }
 
 /* CHAT WIDGET POPUP - PENDEKKAN TINGGI POPUP BANTUAN SAJA (380PX) */
-.popupBantuan {
+.popupBantuan,
+#helpModal,
+.chatBox,
+#chatWindow {
   position: fixed;
   bottom: 90px;
   right: 20px;
-  z-index: 99999;
+  z-index: 9999999 !important;
   display: none;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
 }
 
-.popupBantuan.show {
-  display: block;
-  animation: fade .25s ease-out;
+.popupBantuan.show,
+#helpModal.show,
+#chatWindow.show {
+  display: block !important;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
-.chatBox {
-  width: 350px;
-  max-width: 92vw;
-  height: 380px !important;
+.chatBox,
+#helpModal .chatBox,
+.popupBantuan .chatBox {
+  width: 440px !important;
+  max-width: calc(100vw - 24px) !important;
+  height: 390px !important;
   background: var(--bg-box);
   border-radius: 18px;
   box-shadow: 0 15px 40px rgba(0,0,0,0.3);
@@ -438,6 +464,9 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  animation: none !important;
+  transition: none !important;
+  transform: none !important;
 }
 
 .chatHeader {
@@ -853,33 +882,42 @@ input:focus, select:focus, textarea:focus {
 
 .dashboardTop .header,
 .header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  display: flex !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  text-align: left !important;
   margin-bottom: 2px !important;
   margin-top: 0 !important;
 }
 
-.header h3 { font-size: 22px; color: var(--text-main); }
-.header small { color: var(--text-muted); font-size: 13px; }
-
-/* BOLD & BESAR UNTUK NAMA USER DASHBOARD */
-#namaUser {
+.header h3, #namaUser {
   font-size: 24px !important;
   font-weight: 800 !important;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.5px !important;
+  text-align: left !important;
+  color: var(--text-main);
+  margin: 0 !important;
 }
 
-/* MODERN ULTRA-PREMIUM 3D DASHBOARD METRIC CARDS (4 COLUMNS) */
+.header small, #areaUser {
+  font-size: 13px !important;
+  color: var(--text-muted);
+  text-align: left !important;
+  display: block !important;
+  margin-top: 2px !important;
+}
+
+/* MODERN ULTRA-PREMIUM 3D DASHBOARD METRIC CARDS (FLEX WRAP AUTO-FLOW) */
 .stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr) !important;
-  gap: 14px !important;
-  margin: 6px 0 2px 0 !important;
-  perspective: 1000px;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  margin: 6px 0 4px 0 !important;
 }
 
 .cardStat {
+  flex: 1 1 calc((100% - 30px) / 4) !important;
+  min-width: 170px !important;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -1008,15 +1046,16 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 18px 36px -4px rgba(2, 132, 199, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(0, 0, 0, 0.2) !important;
 }
 
-/* ALL MENU CARDS WIDENED & MODERNIZED */
+/* ALL MENU CARDS WIDENED & EVENLY ALIGNED LEFT-RIGHT */
 .box, .box.box-full {
   background: var(--bg-box);
   border-radius: 18px !important;
-  padding: 22px 18px !important;
+  padding: 18px 14px !important;
   margin-bottom: 22px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   width: 100% !important;
   max-width: 100% !important;
+  box-sizing: border-box !important;
   border: 1px solid var(--border-color);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -1031,82 +1070,120 @@ input:focus, select:focus, textarea:focus {
 }
 
 #detailDashboard {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  overflow: hidden !important;
-  margin-bottom: 0 !important;
-  padding: 14px 14px !important;
-  min-height: 0 !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  flex: 0 0 auto !important;
+  display: block !important;
+  overflow: visible !important;
+  margin-bottom: 22px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
 }
 
 #detailDashboard #dashboardRecentTitle {
-  flex-shrink: 0 !important;
-  margin-bottom: 10px !important;
+  margin-bottom: 12px !important;
   font-size: 14px !important;
   font-weight: 700 !important;
   text-align: center !important;
   color: var(--text-main) !important;
 }
 
-/* RECENT DATA LIST ON DASHBOARD - NO VERTICAL GRIDLINES & COMPACT ROW HEIGHT */
+/* RECENT DATA LIST ON DASHBOARD - FIXED FULL HEIGHT DOWNWARDS WITH STICKY HEADER & SCROLL */
 #detailDashboard .tableWrap {
-  flex: 1 !important;
-  display: flex !important;
-  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  height: calc(100vh - 235px) !important;
+  min-height: calc(100vh - 235px) !important;
+  max-height: calc(100vh - 235px) !important;
   width: 100% !important;
+  display: block !important;
   overflow-x: auto !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
   border: none !important;
-  border-radius: 0 !important;
+  border-radius: 8px !important;
   background: transparent !important;
   box-shadow: none !important;
-  min-height: 0 !important;
+  margin: 0 0 1mm 0 !important;
+  padding: 0 !important;
   position: relative !important;
+  box-sizing: border-box !important;
 }
 
-/* STRENGTHENED STYLING FOR DASHBOARD TABLE (HTML TABLE WITH THEAD & TBODY) */
+/* STRENGTHENED STYLING FOR DASHBOARD TABLE (HTML TABLE WITH THEAD & TBODY) WITH FIXED STICKY HEADER */
 .dashboardTable {
   width: 100% !important;
-  border-collapse: collapse !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   font-size: 12.5px !important;
-  color: var(--text-main) !important;
+  color: #0f172a !important;
+  background: #ffffff !important;
   table-layout: auto !important;
   margin: 0 !important;
+}
+
+.dashboardTable thead,
+.dashboardTable thead tr {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
 }
 
 .dashboardTable th,
 .dashboardTable td {
   padding: 10px 12px !important;
-  text-align: left !important;
-  border-bottom: 1px solid var(--table-border) !important;
   vertical-align: middle !important;
   box-sizing: border-box !important;
   white-space: nowrap !important;
-  word-break: keep-all !important;
 }
 
-.dashboardTable th {
-  background: var(--bg-header) !important;
-  color: var(--text-muted) !important;
+.dashboardTable th,
+.dashboardTable thead th {
+  background: var(--primary) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  position: relative !important;
-  border-bottom: 2px solid var(--border-color) !important;
-  white-space: nowrap !important;
+  font-size: 12px !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2) !important;
+  border-right: none !important;
+  border-left: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.15) !important;
+  text-shadow: none !important;
+}
+
+.dashboardTable tbody tr {
+  background: #ffffff !important;
 }
 
 .dashboardTable td {
-  background: transparent !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-right: none !important;
+  border-left: none !important;
   white-space: nowrap !important;
 }
 
-.dashboardTable td * {
-  white-space: nowrap !important;
+.dashboardTable td:last-child {
+  border-right: none !important;
 }
 
 .dashboardTable tr:hover td {
-  background: rgba(2, 132, 199, 0.06) !important;
+  background: #f1f5f9 !important;
+}
+
+.dashboardTable tr:last-child td {
+  border-bottom: none !important;
 }
 
 /* FULL SCREEN WIDTH AUTO-FIT GRID: 100% STRETCH & PERFECT VERTICAL COLUMN ALIGNMENT */
@@ -1223,42 +1300,109 @@ input:focus, select:focus, textarea:focus {
   text-align: left !important;
 }
 
-/* DETAIL DATA / RIWAYAT TABLE STYLING - EXACT MATCH WITH DASHBOARD TABLE BORDERS */
-.historyTable, .detailTable2, #tableMasterDb, #tableUserMgmt {
+/* DETAIL DATA / RIWAYAT TABLE STYLING - WHITE BACKGROUND WITH THIN BORDER LINES */
+.historyTable, #tableMasterDb, #tableUserMgmt {
   width: 100% !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 10px !important;
-  overflow: hidden !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  overflow: visible !important;
 }
 
 .historyTable th, #tableMasterDb th, #tableUserMgmt th {
-  background: var(--bg-header) !important;
-  color: var(--text-muted) !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--primary) !important;
+  color: #ffffff !important;
   font-weight: 700 !important;
-  text-align: center !important;
+  text-align: left !important;
   border-right: none !important;
-  border-left: none !important;
-  border-bottom: 2px solid var(--table-border) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2) !important;
   padding: 10px 14px !important;
   white-space: nowrap !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
 }
 
-.historyTable td, #tableMasterDb td, #tableUserMgmt td {
+.historyTable th:last-child, #tableMasterDb th:last-child, #tableUserMgmt th:last-child {
+  border-right: none !important;
+}
+
+.historyTable tbody tr, #tableMasterDb tbody tr, #tableUserMgmt tbody tr {
+  background: #ffffff !important;
+}
+
+/* NORMAL (NON-BOLD) FONT FOR ALL TABLE DATA CELLS & NO VERTICAL BORDER LINES */
+.historyTable td,
+#tableMasterDb td,
+#tableUserMgmt td,
+.dashboardTable td,
+.detailTable2 td {
+  font-weight: 400 !important;
   padding: 10px 14px !important;
   border-right: none !important;
   border-left: none !important;
-  border-bottom: 1px solid var(--border-color) !important;
-  color: var(--text-main) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  background: #ffffff !important;
 }
 
-.historyTable tr:last-child td, #tableMasterDb tr:last-child td, #tableUserMgmt tr:last-child td {
+/* ACTION BUTTONS & ICONS STAY NORMAL WEIGHT (NOT BOLD) */
+.btnIcon,
+.btnIcon span,
+.btnIcon .material-symbols-rounded,
+tr.blink-row-red .btnIcon,
+tr.blink-row-red .btnIcon span,
+tr.blink-row-red .btnIcon .material-symbols-rounded {
+  font-weight: 400 !important;
+  font-variation-settings: 'wght' 400 !important;
+}
+
+/* FULL 1 BARIS (TR) BOLD & KEDIP-KEDIP MERAH UNTUK AKSI STATUS TUNGGU DM / TUNGGU SERVICE */
+@keyframes blinkRowRed {
+  0% {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+  }
+  50% {
+    background-color: #fef2f2 !important;
+    color: #991b1b !important;
+    opacity: 0.9 !important;
+  }
+  100% {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+  }
+}
+
+tr.blink-row-red,
+tr.blink-row-red td,
+tr.blink-row-red td div,
+tr.blink-row-red td span,
+tr.blink-row-red td small,
+tr.blink-row-red td strong,
+.blink-row-red,
+.blink-row-red td {
+  animation: blinkRowRed 0.6s ease-in-out infinite !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.3px !important;
+}
+
+.historyTable td:last-child, #tableMasterDb td:last-child, #tableUserMgmt td:last-child {
+  border-right: none !important;
+}
+
+.historyTable tr:last-child td, #tableMasterDb tr:last-child td, #tableUserMgmt tr:last-child td, .dashboardTable tr:last-child td, .detailTable2 tr:last-child td {
   border-bottom: none !important;
+  padding-bottom: 6mm !important;
 }
 
-.historyTable tbody tr:hover, #tableMasterDb tbody tr:hover, #tableUserMgmt tbody tr:hover {
-  background: var(--table-hover) !important;
+.historyTable tbody tr:hover td, #tableMasterDb tbody tr:hover td, #tableUserMgmt tbody tr:hover td {
+  background: #f1f5f9 !important;
 }
 
 /* DYNAMIC FORM GRID ROWS */
@@ -1341,33 +1485,50 @@ input:focus, select:focus, textarea:focus {
 
 /* FROZEN TOP SECTION FOR DETAIL DATA / RIWAYAT PAGE & MASTER DB PAGE (DOWNLOAD EXCEL & SEARCH FIXED AT TOP) */
 #riwayatPage,
-#masterDbPage {
+#masterDbPage,
+#riwayatPage.active,
+#masterDbPage.active,
+section#riwayatPage.page.active,
+section#masterDbPage.page.active {
   display: none;
   flex-direction: column !important;
   height: calc(100vh - 65px) !important;
+  max-height: calc(100vh - 65px) !important;
   overflow: hidden !important;
-  padding-bottom: 8px !important;
+  overflow-y: hidden !important;
+  padding-bottom: 0 !important;
   box-sizing: border-box !important;
 }
 
 #riwayatPage.active,
-#masterDbPage.active {
+#masterDbPage.active,
+section#riwayatPage.page.active,
+section#masterDbPage.page.active {
   display: flex !important;
+  overflow: hidden !important;
+  overflow-y: hidden !important;
 }
 
 #riwayatPage .box,
-#masterDbPage .box {
+#masterDbPage .box,
+#riwayatPage .riwayatContent {
   flex: 1 !important;
   display: flex !important;
   flex-direction: column !important;
   overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100% !important;
   min-height: 0 !important;
   margin-bottom: 0 !important;
-  padding: 16px 14px !important;
+  padding: 4px 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 #riwayatPage .box > h3,
 #masterDbPage .box > h3,
+#riwayatPage h3,
 #riwayatPage .searchToolbar,
 #masterDbPage .searchToolbar,
 #masterDbPage .box > div:first-child {
@@ -1377,22 +1538,61 @@ input:focus, select:focus, textarea:focus {
 #riwayatPage .tableWrap,
 #masterDbPage .tableWrap {
   flex: 1 !important;
-  min-height: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: calc(100vh - 120px) !important;
+  min-height: calc(100vh - 120px) !important;
+  max-height: calc(100vh - 120px) !important;
   overflow-y: auto !important;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  border: 1px solid var(--border-color) !important;
+  touch-action: pan-x pan-y !important;
+  border: 1px solid #cbd5e1 !important;
   border-radius: 10px !important;
+  position: relative !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  margin-bottom: 1mm !important;
+  padding-bottom: 0 !important;
 }
 
-#riwayatPage .historyTable th,
-#masterDbPage .historyTable th {
+.tableWrap::after,
+#riwayatPage .tableWrap::after,
+#masterDbPage .tableWrap::after,
+#detailDashboard .tableWrap::after {
+  content: "";
+  display: none !important;
+  height: 0 !important;
+}
+
+.tableWrap table thead,
+.tableWrap table thead tr,
+.historyTable thead,
+.historyTable thead tr,
+#riwayatPage .historyTable thead,
+#riwayatPage .historyTable thead tr,
+#masterDbPage .historyTable thead,
+#masterDbPage .historyTable thead tr {
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;
-  background: var(--bg-header) !important;
-  color: var(--text-muted) !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+}
+
+.tableWrap table th,
+.tableWrap table thead th,
+#riwayatPage .historyTable th,
+#riwayatPage .historyTable thead th,
+#masterDbPage .historyTable th,
+#masterDbPage .historyTable thead th,
+.historyTable th,
+.historyTable thead th {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25) !important;
+  outline: 1px solid var(--primary) !important;
 }
 
 /* SEARCH & HISTORY TABLE */
@@ -1410,41 +1610,70 @@ input:focus, select:focus, textarea:focus {
   padding: 10px 14px;
 }
 
+#riwayatPage h3 {
+  margin: 4px 0 14px 0 !important;
+  font-size: 18px !important;
+  font-weight: 900 !important;
+  color: var(--text-main) !important;
+  text-align: center !important;
+  letter-spacing: 0.5px !important;
+}
+
 .tableWrap {
-  width: 100%;
-  overflow-x: auto;
-  border-radius: 12px;
+  width: 100% !important;
+  display: block !important;
+  position: relative !important;
+  height: calc(100vh - 220px) !important;
+  max-height: calc(100vh - 220px) !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  touch-action: pan-x pan-y !important;
+  border-radius: 12px !important;
+  box-sizing: border-box !important;
 }
 
 .historyTable {
-  width: 100%;
+  width: 100% !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
-  background: var(--bg-box);
-  font-size: 13px;
-  color: var(--text-main);
-  table-layout: auto;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  font-size: 13px !important;
+  color: var(--text-main) !important;
+  table-layout: auto !important;
+  margin-bottom: 0 !important;
 }
 
 .historyTable thead {
   position: sticky !important;
   top: 0 !important;
-  z-index: 30 !important;
+  z-index: 999 !important;
 }
 
 .historyTable th,
-.historyTable thead th {
+.historyTable thead th,
+#riwayatPage .historyTable th,
+#riwayatPage .historyTable thead th {
   position: sticky !important;
   top: 0 !important;
-  z-index: 30 !important;
+  z-index: 999 !important;
   background: var(--primary) !important;
   color: #ffffff !important;
-  padding: 12px 10px;
-  text-align: left;
-  white-space: nowrap;
-  font-size: 12px;
-  border-bottom: 2px solid var(--border-color) !important;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2) !important;
+  font-weight: 700 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  padding: 11px 12px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* NORMAL AUTO-FIT AKSI COLUMN (UNLOCKED HORIZONTALLY) */
@@ -1475,39 +1704,90 @@ input:focus, select:focus, textarea:focus {
   background: none !important;
 }
 
-/* BOTTOM NAVIGATION BAR */
+/* DYNAMIC THEME-MATCHED COMPACT FULL-WIDTH BOTTOM NAVIGATION BAR */
 #bottomMenu {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 68px;
-  background: var(--bg-box);
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 52px !important;
+  background: var(--bg-box) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
   display: flex;
-  justify-content: space-around;
-  align-items: center;
-  box-shadow: 0 -5px 20px rgba(0,0,0,.15);
-  border-top: 1px solid var(--border-color);
-  z-index: 999;
+  justify-content: space-around !important;
+  align-items: center !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+  border-top: 1px solid var(--border-color) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  z-index: 9999 !important;
+  padding: 0 4px !important;
+  box-sizing: border-box !important;
+  transform: translateY(0) !important;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, background 0.3s ease, border-color 0.3s ease !important;
+  opacity: 1 !important;
+}
+
+#bottomMenu.hide-bottom-menu {
+  transform: translateY(0) !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 #bottomMenu button {
-  background: none;
-  border: none;
-  cursor: pointer;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-muted);
-  font-size: 11px;
-  width: 20%;
-  height: 100%;
-  transition: .25s;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: var(--text-muted) !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  flex: 1 !important;
+  height: 100% !important;
+  padding: 4px 0 !important;
+  border-radius: 12px !important;
+  transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease !important;
 }
 
-#bottomMenu button:hover { color: var(--primary); }
-#bottomMenu button .material-symbols-rounded { font-size: 24px; margin-bottom: 2px; }
+#bottomMenu button[style*="display: none"],
+#bottomMenu button[style*="display:none"],
+#btnMasterDbNav.hidden-admin-btn,
+#btnUserNav.hidden-admin-btn {
+  display: none !important;
+}
+
+#bottomMenu button:hover,
+#bottomMenu button.active {
+  color: var(--primary) !important;
+}
+
+#bottomMenu button.active {
+  background: var(--bg-header) !important;
+  font-weight: 700 !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+#bottomMenu button .material-symbols-rounded {
+  font-size: 20px !important;
+  margin-bottom: 1px !important;
+  transition: transform 0.2s ease !important;
+}
+
+#bottomMenu button.active .material-symbols-rounded {
+  transform: scale(1.15) !important;
+  color: var(--primary) !important;
+}
+
+
 
 /* SLIGHTLY SMALLER POPUP BOXES */
 .popupOverlay, .popupAkun, .popupTTD {
@@ -1678,17 +1958,20 @@ input:focus, select:focus, textarea:focus {
 }
 
 .popupTableScroll {
-  border: 1px solid var(--border-color) !important;
+  border: 1px solid #cbd5e1 !important;
   border-radius: 8px !important;
   overflow-x: auto !important;
+  overflow-y: auto !important;
+  max-height: 58vh !important;
   -webkit-overflow-scrolling: touch !important;
   box-sizing: border-box !important;
-  background: var(--bg-box) !important;
+  background: #ffffff !important;
 }
 
 .detailTable2 {
   width: 100% !important;
-  border-collapse: collapse !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
   font-size: 12.5px !important;
   margin: 0 !important;
   border: none !important;
@@ -1786,17 +2069,22 @@ input:focus, select:focus, textarea:focus {
 .btnBatal { background: #64748b; color: #fff; }
 .btnHapus { background: #dc2626; color: #fff; }
 
-/* COMPACT 2-COLUMN POPUP AKUN BOX */
+/* COMPACT & PROPORTIONAL POPUP AKUN BOX */
 .akunBox {
-  width: 520px !important;
-  max-width: 92vw !important;
+  width: 500px !important;
+  max-width: 94vw !important;
+  height: auto !important;
+  max-height: 92vh !important;
+  overflow: visible !important;
   padding: 18px 20px !important;
   border-radius: 18px !important;
+  box-sizing: border-box !important;
+  margin: auto !important;
 }
 
 .akunBox h2 {
   font-size: 16px !important;
-  margin-bottom: 12px !important;
+  margin-bottom: 10px !important;
   color: var(--primary) !important;
   text-align: center !important;
 }
@@ -1804,32 +2092,33 @@ input:focus, select:focus, textarea:focus {
 .akunGrid {
   display: grid !important;
   grid-template-columns: 1fr 1fr !important;
-  gap: 10px 14px !important;
+  gap: 8px 12px !important;
 }
 
 .akunGrid label {
-  margin-top: 2px !important;
+  margin-top: 1px !important;
   margin-bottom: 3px !important;
   font-size: 10.5px !important;
 }
 
 .akunGrid input {
-  padding: 8px 10px !important;
+  padding: 7px 10px !important;
   font-size: 12px !important;
+  height: 36px !important;
 }
 
 /* EQUAL BUTTONS IN POPUP AKUN */
 .akunButton {
   display: flex !important;
-  gap: 10px !important;
-  margin-top: 16px !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
   width: 100% !important;
 }
 
 .akunButton button {
   flex: 1 !important;
-  height: 40px !important;
-  padding: 8px 14px !important;
+  height: 38px !important;
+  padding: 6px 12px !important;
   font-size: 12.5px !important;
   border-radius: 10px !important;
   border: none !important;
@@ -1926,6 +2215,17 @@ input:focus, select:focus, textarea:focus {
   padding: 16px;
   max-height: 78vh;
   overflow-y: auto;
+}
+
+#popupDetail .popupContent,
+#popupDetail #popupMessage {
+  padding: 0 !important;
+  max-height: none !important;
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
 }
 
 .popupTableScroll {
@@ -2273,18 +2573,43 @@ input:focus, select:focus, textarea:focus {
     border-radius: 10px;
   }
 
-  .historyTable th, .historyTable td {
-    padding: 8px 10px;
-    font-size: 11.5px;
-    white-space: nowrap;
+  .historyTable thead,
+  .historyTable thead tr {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
   }
 
-  .popupBox, .popupBoxDetail, .confirmBox, .popupNotif, .rejectBoxPopup, .akunBox, .ttdBox {
+  .historyTable th,
+  .historyTable thead th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    background: var(--primary) !important;
+    color: #ffffff !important;
+    padding: 8px 10px !important;
+    font-size: 11.5px !important;
+    white-space: nowrap !important;
+  }
+
+  .historyTable td {
+    padding: 8px 10px !important;
+    font-size: 11.5px !important;
+    white-space: nowrap !important;
+  }
+
+  .popupBox, .confirmBox, .popupNotif, .rejectBoxPopup, .akunBox, .ttdBox {
     width: 94vw !important;
     max-width: 94vw !important;
     max-height: 90vh !important;
     padding: 14px !important;
     box-sizing: border-box;
+  }
+
+  #popupDetail .popupBoxDetail,
+  .popupBoxDetail {
+    padding: 0 0 1mm 0 !important;
+    box-sizing: border-box !important;
   }
 
   #bottomMenu {
@@ -2487,21 +2812,12 @@ input:focus, select:focus, textarea:focus {
     flex-direction: column !important;
 }
 
-/* HARDWARE ACCELERATION FIX TO PREVENT MOBILE SCREEN FLICKERING ON SCROLL */
+/* HARDWARE ACCELERATION FIX TO PREVENT MOBILE SCREEN FLICKERING ON SCROLL (EXCLUDING STICKY CONTAINERS) */
 #app,
-.page,
-.page.active,
-#dashboardPage,
-#detailDashboard,
-.tableWrap,
-#lastData,
 .lastItem,
-.lastHeader,
 .box {
-  -webkit-backface-visibility: hidden !important;
-  backface-visibility: hidden !important;
-  -webkit-transform: translate3d(0,0,0) !important;
-  transform: translate3d(0,0,0) !important;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 .lastItem {
@@ -2554,21 +2870,29 @@ button.btnKembali {
 
 /* DESKTOP / PC VIEW (MIN-WIDTH 769PX): COMPACT ELEGANT SCALE & HEIGHT ADJUSTMENT */
 @media(min-width: 769px) {
-  /* UNIFIED DASHBOARD TABLE HEADER & DATA (SCROLL TOGETHER AS 1 SINGLE COMBINED UNIT) */
+  /* STICKY DASHBOARD TABLE HEADER */
   #detailDashboard .lastHeader,
-  .lastHeader {
-    position: relative !important;
-    top: auto !important;
-    z-index: 1 !important;
-    box-shadow: none !important;
+  .lastHeader,
+  .dashboardTable thead,
+  .dashboardTable thead th,
+  .dashboardTable th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    background: var(--primary) !important;
+    color: #ffffff !important;
   }
 
   .stats {
-    gap: 12px !important;
+    gap: 10px !important;
     margin: 8px 0 12px 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .cardStat {
+    flex: 1 1 calc((100% - 10px) / 2) !important;
+    min-width: 140px !important;
     padding: 12px 14px !important;
     min-height: 78px !important;
     height: 82px !important;
@@ -2614,9 +2938,9 @@ button.btnKembali {
     opacity: 0.12 !important;
   }
 
-  .page, .page.active, #dashboardPage, #riwayatPage, #masterDbPage, #userManagementPage {
+  .page, .page.active, #dashboardPage, #userManagementPage {
     padding-top: 10px !important;
-    padding-bottom: 20px !important;
+    padding-bottom: 56px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
     width: 100% !important;
@@ -2626,35 +2950,65 @@ button.btnKembali {
     box-sizing: border-box !important;
   }
 
-  #dashboardPage {
-    padding-top: 2px !important;
+  #riwayatPage, #masterDbPage, section#riwayatPage.page.active, section#masterDbPage.page.active {
+    padding-top: 10px !important;
+    padding-bottom: 0 !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    height: calc(100vh - 65px) !important;
+    max-height: calc(100vh - 65px) !important;
+    box-sizing: border-box !important;
   }
 
-  .stats {
-    display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
-    margin: 4px 0 6px 0 !important;
+  #dashboardPage {
+    padding-top: 2px !important;
+    padding-bottom: 56px !important;
+  }
+
+  @media (max-width: 1150px) {
+    .stats {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+      margin: 4px 0 6px 0 !important;
+    }
+
+    .cardStat {
+      flex: 1 1 calc(50% - 6px) !important;
+      min-width: 140px !important;
+    }
+
+    #detailDashboard {
+      height: auto !important;
+      min-height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
   }
 
   #detailDashboard {
     padding: 0 !important;
-    border-radius: 14px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
     margin-top: 0 !important;
-    margin-bottom: 85px !important;
-    flex: 1 !important;
-    min-height: 0 !important;
-    max-height: calc(100vh - 380px) !important;
-    overflow: hidden !important;
-    display: flex !important;
-    flex-direction: column !important;
+    margin-bottom: 22px !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    box-sizing: border-box !important;
   }
 
   #dashboardRecentTitle {
-    padding: 0 2px !important;
-    margin-top: -2px !important;
-    margin-bottom: 4px !important;
-    font-size: 17px !important;
+    margin: 6px 0 8px 2px !important;
+    font-size: 18px !important;
     font-weight: 900 !important;
     color: var(--text-main) !important;
     display: flex !important;
@@ -2665,17 +3019,36 @@ button.btnKembali {
 
   #detailDashboard .tableWrap {
     width: 100% !important;
+    display: block !important;
     margin: 0 !important;
     border: none !important;
-    border-radius: 0 !important;
+    border-radius: 8px !important;
     background: transparent !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
-    flex: 1 !important;
-    min-height: 0 !important;
-    max-height: 100% !important;
+    flex: 0 0 auto !important;
+    height: calc(100vh - 260px) !important;
+    min-height: calc(100vh - 260px) !important;
+    max-height: calc(100vh - 260px) !important;
     overflow-y: auto !important;
     overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x pan-y !important;
+  }
+
+  .dashboardTable {
+    width: 100% !important;
+    min-width: 580px !important;
+    table-layout: auto !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+  }
+
+  .dashboardTable thead,
+  .dashboardTable thead tr {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
   }
 
   .dashboardTable th,
@@ -2695,11 +3068,14 @@ button.btnKembali {
   }
 
   #detailDashboard .lastHeader,
-  .lastHeader {
-    position: relative !important;
-    top: auto !important;
-    z-index: 1 !important;
-    box-shadow: none !important;
+  .lastHeader,
+  .dashboardTable thead th,
+  .dashboardTable th {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 999 !important;
+    background: var(--primary) !important;
+    color: #ffffff !important;
   }
 
   .lastHeader, .lastItem {
@@ -2724,12 +3100,10 @@ button.btnKembali {
   }
 
   /* MOBILE HP POPUP DETAIL TABLE: DIRECT STRETCH ON MAIN POPUP CARD WITHOUT INNER CARD WRAPPER */
-  #popupDetail .popupBoxDetail,
-  .popupBoxDetail {
-    width: calc(100vw - 2mm) !important;
-    max-width: calc(100vw - 2mm) !important;
-    margin-left: 1mm !important;
-    margin-right: 1mm !important;
+  #popupDetail .popupBoxDetail {
+    width: calc(100vw - 10px) !important;
+    max-width: calc(100vw - 10px) !important;
+    margin: 0 auto !important;
     padding: 0 !important;
     box-sizing: border-box !important;
     overflow: hidden !important;
@@ -2740,31 +3114,25 @@ button.btnKembali {
     padding: 12px 12px !important;
   }
 
-  #popupDetail .popupContent {
-    padding: 8px 8px !important;
+  #popupDetail .popupContent,
+  #popupDetail #popupMessage {
+    padding: 0 !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
   }
 
   #popupDetail .popupTableScroll {
     width: 100% !important;
-    margin-top: 6px !important;
-    margin-bottom: 6px !important;
+    max-height: 55vh !important;
+    margin: 0 !important;
     border: none !important;
     border-radius: 0 !important;
     background: transparent !important;
     box-shadow: none !important;
     padding: 0 !important;
     overflow-x: auto !important;
-  }
-
-  #popupDetail .detailTable2 {
-    width: 100% !important;
-    min-width: 100% !important;
-    border-collapse: collapse !important;
-  }
-
-  #popupDetail .popupDetailActions {
-    padding: 8px 4px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   /* MOBILE HP PDF VIEW RESPONSIVE SIZING & FIT */
@@ -2813,11 +3181,24 @@ button.btnKembali {
 .page,
 .page.active,
 #dashboardPage,
-#riwayatPage,
-#masterDbPage,
 #userManagementPage {
   padding-left: 12px !important;
   padding-right: 12px !important;
+  padding-bottom: 160px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+#riwayatPage,
+#masterDbPage,
+#riwayatPage.active,
+#masterDbPage.active {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  padding-bottom: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
   margin-left: auto !important;
@@ -2953,4 +3334,576 @@ div.rowHighlightOrange {
 
 #viewerImage:active {
   cursor: grabbing;
+}
+
+/* ==========================================================================
+   POPUP DETAIL ITEM STYLING (ZERO INNER CARD - DIRECT EMBEDDED TABLE)
+   ========================================================================== */
+/* ==========================================================================
+   POPUP DETAIL PERMINTAAN (#popupDetail) - COMPLETE & EXACT RE-ARCHITECTED CSS
+   ========================================================================== */
+#popupDetail {
+  z-index: 9000 !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px 1mm !important;
+}
+
+#popupDetail .popupBoxDetail,
+.popupOverlay #popupDetail .popupBoxDetail,
+.popupBoxDetail {
+  width: 840px !important;
+  max-width: calc(100vw - 2mm) !important;
+  height: auto !important;
+  max-height: 85vh !important;
+  margin: auto !important;
+  padding: 0 !important;
+  border-radius: 14px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.3) !important;
+  background: #ffffff !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+#popupDetail .popupHeader {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  padding: 12px 18px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+#popupDetail .popupHeader span,
+#popupDetail #popupTitle {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#popupDetail .popupClose {
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#popupDetail .popupContent,
+#popupDetail #popupMessage {
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  background: #ffffff !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  flex: 0 1 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(84vh - 120px) !important;
+}
+
+.detailHeaderInfo {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 5cm !important;
+  padding: 10px 18px !important;
+  margin-top: 2mm !important;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  font-size: 13px !important;
+  color: #0f172a !important;
+  flex-shrink: 0 !important;
+  background: #ffffff !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+.detailHeaderInfo .noSuratWrap {
+  text-align: left !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.detailHeaderInfo .tokoWrap {
+  text-align: right !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  margin-left: 0 !important;
+}
+
+.detailHeaderInfo .noSuratVal {
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+}
+
+.detailHeaderInfo .tokoVal {
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+/* FLAT NON-3D TABLE & THIN BORDER GRIDLINES FOR #popupMessage */
+#popupMessage table,
+#popupMessage .detailTable2,
+#popupDetail table.detailTable2,
+.detailTable2 {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: auto !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  flex: 0 0 auto !important;
+}
+
+#popupMessage table thead,
+#popupMessage .detailTable2 thead,
+#popupDetail table.detailTable2 thead,
+.detailTable2 thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#popupMessage table th,
+#popupMessage .detailTable2 th,
+#popupDetail table.detailTable2 th,
+.detailTable2 th {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  padding: 6px 14px !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  white-space: nowrap !important;
+  width: auto !important;
+}
+
+#popupMessage table tr,
+#popupMessage .detailTable2 tr,
+#popupDetail table.detailTable2 tr,
+.detailTable2 tr {
+  height: auto !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#popupMessage table td,
+#popupMessage .detailTable2 td,
+#popupDetail table.detailTable2 td,
+.detailTable2 td {
+  padding: 6px 14px !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  width: auto !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#popupDetail table.detailTable2 th:first-child,
+#popupDetail table.detailTable2 td:first-child,
+.detailTable2 th:first-child,
+.detailTable2 td:first-child {
+  padding-left: 18px !important;
+  padding-right: 14px !important;
+  text-align: center !important;
+  width: 1% !important;
+  white-space: nowrap !important;
+}
+
+#popupDetail table.detailTable2 th:last-child,
+#popupDetail table.detailTable2 td:last-child,
+.detailTable2 th:last-child,
+.detailTable2 td:last-child {
+  padding-left: 14px !important;
+  padding-right: 18px !important;
+  text-align: center !important;
+  width: 1% !important;
+  white-space: nowrap !important;
+}
+
+#popupDetail table.detailTable2 tr:last-child td {
+  border-bottom: none !important;
+  padding-bottom: 4px !important;
+}
+
+#popupDetail .popupDetailActions,
+.popupDetailActions {
+  padding: 8px 16px 18px 16px !important;
+  margin: 0 0 18px 0 !important;
+  border-top: 1px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  border-radius: 0 0 14px 14px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 768px) {
+  #popupDetail .popupBoxDetail {
+    width: calc(100vw - 12px) !important;
+    max-width: calc(100vw - 12px) !important;
+    max-height: 88vh !important;
+    border-radius: 14px !important;
+  }
+
+  .detailHeaderInfo {
+    padding: 10px 14px !important;
+    font-size: 11.5px !important;
+  }
+
+  #popupDetail table.detailTable2 th {
+    padding: 9px 8px !important;
+    font-size: 11px !important;
+  }
+
+  #popupDetail table.detailTable2 td {
+    padding: 9px 8px !important;
+    font-size: 11.5px !important;
+  }
+
+  #popupDetail .popupDetailActions {
+    padding: 10px 14px 12px 14px !important;
+    gap: 8px !important;
+  }
+}
+
+/* HIGHEST OVERLAY Z-INDEX FOR HELP MODAL, NOTIFICATIONS, & CONFIRMATION BOXES */
+#helpModal,
+.popupNotif,
+.confirmBox,
+.rejectBoxPopup,
+.akunBox,
+#notifContainer,
+#confirmModal,
+#loadingOverlay {
+  z-index: 9999999 !important;
+}
+
+/* STRICT HIDE FOR ALL DASHBOARD ACTION ICONS, POPUPS, NAV & WIDGETS ON LOGIN PAGE */
+#loginPage.active ~ #bottomMenu,
+#loginPage.active ~ #topHeaderActions,
+#app:has(#loginPage.active) #bottomMenu,
+#app:has(#loginPage.active) #topHeaderActions,
+body:has(#loginPage.active) #bottomMenu,
+body:has(#loginPage.active) #topHeaderActions,
+body:has(#loginPage.active) .top-header-actions,
+body:has(#loginPage.active) #notifBellBtn,
+body:has(#loginPage.active) .notif-bell-btn,
+body:has(#loginPage.active) #helpButton,
+body:has(#loginPage.active) .helpButton,
+body:has(#loginPage.active) #firebaseOnlineDot,
+body:has(#loginPage.active) #popupDetail,
+body:has(#loginPage.active) #popupDetailBarangV2,
+body:has(#loginPage.active) .popupBantuan,
+body:has(#loginPage.active) #popupNotifList,
+#bottomMenu.login-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(200%) !important;
+}
+
+/* ==========================================================================
+   NEW EXCLUSIVE POPUP DETAIL BARANG V2 STYLING
+   ========================================================================== */
+#popupDetailBarangV2 {
+  z-index: 999999 !important;
+  display: none;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 10px 1mm !important;
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+}
+
+#popupDetailBarangV2 .popupBoxDetailV2 {
+  width: calc(100vw - 2mm) !important;
+  max-width: calc(100vw - 2mm) !important;
+  height: auto !important;
+  max-height: 85vh !important;
+  margin: auto 1mm !important;
+  padding: 0 !important;
+  border-radius: 18px !important;
+  overflow: hidden !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4) !important;
+  background: var(--bg-box) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+#popupDetailBarangV2 .popupHeaderV2 {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 16px !important;
+  padding: 14px 18px !important;
+  margin: 0 !important;
+  border-radius: 18px 18px 0 0 !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+#popupDetailBarangV2 #popupTitleV2 {
+  font-weight: 800 !important;
+  text-align: center !important;
+  font-size: 16px !important;
+  letter-spacing: 0.5px !important;
+  text-transform: uppercase !important;
+  margin: 0 auto !important;
+  color: #ffffff !important;
+}
+
+#popupDetailBarangV2 .popupCloseV2 {
+  position: absolute !important;
+  right: 14px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #ef4444 !important;
+  font-weight: 900 !important;
+  font-size: 28px !important;
+  border: none !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  line-height: 1 !important;
+  padding: 0 4px !important;
+  transition: transform 0.2s ease, opacity 0.2s ease !important;
+}
+
+#popupDetailBarangV2 .popupCloseV2:hover {
+  transform: translateY(-50%) scale(1.15) !important;
+  color: #dc2626 !important;
+}
+
+#popupDetailBarangV2 #popupBodyV2 {
+  padding: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+  background: var(--bg-box) !important;
+  border: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  overflow-x: auto !important;
+  flex: 0 1 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: calc(85vh - 55px) !important;
+}
+
+.detailHeaderInfoV2 {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 10px 18px !important;
+  margin-top: 2mm !important;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid var(--border-color, #e2e8f0) !important;
+  font-size: 13px !important;
+  color: var(--text-color, #0f172a) !important;
+  flex-shrink: 0 !important;
+  background: var(--card-bg, #ffffff) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+.detailHeaderInfoV2 .noSuratWrapV2 {
+  text-align: left !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.detailHeaderInfoV2 .tokoWrapV2 {
+  text-align: right !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+}
+
+.detailHeaderInfoV2 .noSuratValV2 {
+  color: var(--primary) !important;
+  font-weight: 700 !important;
+}
+
+.detailHeaderInfoV2 .tokoValV2 {
+  font-weight: 700 !important;
+  color: var(--text-color, #0f172a) !important;
+}
+
+/* THIN BORDER GRIDLINES FOR TABLE V2 - FULL SCREEN & BALANCED COLUMNS */
+.detailTableV2 {
+  width: 100% !important;
+  min-width: 100% !important;
+  height: auto !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid var(--border-color, #e2e8f0) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  flex: 0 0 auto !important;
+}
+
+.detailTableV2 thead {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+.detailTableV2 th {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  letter-spacing: 0.3px !important;
+  padding: 6px 14px !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+  outline: none !important;
+  border-radius: 0 !important;
+  text-transform: uppercase !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  white-space: nowrap !important;
+  width: auto !important;
+}
+
+.detailTableV2 tr {
+  height: auto !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+.detailTableV2 td {
+  padding: 6px 14px !important;
+  height: auto !important;
+  line-height: 1.2 !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  border: 1px solid var(--border-color) !important;
+  background: var(--bg-box) !important;
+  color: var(--text-main) !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  width: auto !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+.popupDetailActionsV2 {
+  padding: 2px 14px !important;
+  margin: 0 !important;
+  border-top: none !important;
+  background: transparent !important;
+  border-radius: 0 0 18px 18px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  box-sizing: border-box !important;
+  flex-wrap: wrap !important;
 }

@@ -18,7 +18,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260803_new">
+  <link rel="stylesheet" href="styles.css?v=20260807_v22">
+  <script src="app.js?v=20260807_v531"></script>
 
   <!-- Firebase App, Firestore & Realtime Database Web SDK (Compat Mode) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -51,10 +52,9 @@
         <button type="button" onclick="tutupNotificationModal()" style="background: none; border: none; color: #ef4444 !important; font-size: 24px; font-weight: 900; cursor: pointer; line-height: 1;" title="TUTUP">&times;</button>
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
-        <div style="font-size: 12px; font-weight: 800; color: var(--primary); text-transform: uppercase;"></div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; gap: 8px;">
         <button type="button" style="background: none; border: none; color: var(--primary); font-size: 11.5px; font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="markAllNotifAsRead()">
-          TANDAI SEMUA SUDAH DIBACA
+          TANDAI SEMUA DIBACA
         </button>
       </div>
 
@@ -140,10 +140,10 @@
          ========================================================================== -->
     <section id="dashboardPage" class="page">
       <div class="dashboardTop">
-        <div class="header">
-          <div>
-            <h3 id="namaUser">ADMINISTRATOR PUSAT</h3>
-            <small id="areaUser">ADMIN - ALL AREA</small>
+        <div class="header" style="text-align: left !important; justify-content: flex-start !important;">
+          <div style="text-align: left !important;">
+            <h3 id="namaUser" style="text-align: left !important;">ADMINISTRATOR PUSAT</h3>
+            <small id="areaUser" style="text-align: left !important; display: block !important;">ADMIN - ALL AREA</small>
           </div>
         </div>
 
@@ -199,22 +199,22 @@
         </div>
       </div>
 
-      <!-- TITLE DATA DASHBOARD DI LUAR KOTAK (LEBIH BESAR & MENARIK DENGAN IKON) -->
-      <h3 id="dashboardRecentTitle" style="margin: -2px 0 4px 2px !important; font-size: 18px !important; font-weight: 900 !important; color: var(--text-main); text-align: left !important; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;">
+      <!-- TITLE DATA DASHBOARD DI LUAR KOTAK (DI ATAS TABEL) -->
+      <h3 id="dashboardRecentTitle" style="margin: 6px 0 8px 2px !important; font-size: 18px !important; font-weight: 900 !important; color: var(--text-main); text-align: left !important; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;">
         <span class="material-symbols-rounded" style="color: var(--primary); font-size: 22px;">format_list_bulleted</span>
         PERMINTAAN PENDING
       </h3>
 
-      <!-- 1 CARD BOX KHUSUS TABEL DASHBOARD FULL SCREEN FIT -->
-      <div id="detailDashboard" class="box box-full" style="padding: 0 !important; overflow: hidden !important; border-radius: 14px !important;">
-        <div class="tableWrap" style="margin: 0 !important; padding: 0 !important; width: 100% !important; min-width: 100% !important; height: 100% !important;">
-          <table class="dashboardTable" style="width: 100% !important; min-width: 100% !important;">
+      <!-- TABEL DASHBOARD TANPA CARD (LANGSUNG TERHUBUNG KE HALAMAN) -->
+      <div id="detailDashboard" style="background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 0 22px 0 !important;">
+        <div class="tableWrap">
+          <table class="dashboardTable">
             <thead>
               <tr>
-                <th>TANGGAL</th>
-                <th>NO SURAT</th>
-                <th>NAMA TOKO</th>
-                <th style="text-align: center;">STATUS</th>
+                <th style="width: 18%; text-align: left;">TANGGAL</th>
+                <th style="width: 32%; text-align: left;">NO SURAT</th>
+                <th style="width: 30%; text-align: left;">NAMA TOKO</th>
+                <th style="width: 20%; text-align: center;">STATUS</th>
               </tr>
             </thead>
             <tbody id="lastData">
@@ -286,8 +286,8 @@
     <!-- ==========================================================================
          4. DETAIL DATA / RIWAYAT PAGE (FULL SCREEN LAYOUT WITH MARGIN)
          ========================================================================== -->
-    <section id="riwayatPage" class="page" style="padding-left: 8px; padding-right: 8px;">
-      <div class="box box-full">
+    <section id="riwayatPage" class="page">
+      <div class="riwayatContent">
         <h3>DETAIL DATA PERMINTAAN</h3>
 
         <div class="searchToolbar">
@@ -464,6 +464,23 @@
         </div>
       </div>
 
+      <!-- ADMIN CONTROL: HAPUS SEMUA NOTIFIKASI DI FIREBASE & LOKAL -->
+      <div class="box" style="border-left: 4px solid #dc2626; margin-bottom: 20px; background: rgba(220, 38, 38, 0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="color: #dc2626; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="material-symbols-rounded">notifications_off</span> HAPUS SEMUA NOTIFIKASI DI FIREBASE & LOKAL
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+              BERSIHKAN SELURUH RIWAYAT NOTIFIKASI PERMINTAAN SECARA PERMANEN DARI DATABASE CLOUD FIREBASE & PENYIMPANAN PERANGKAT.
+            </p>
+          </div>
+          <button type="button" class="btnDownload" style="background: #dc2626; height: 42px; padding: 0 20px; font-weight: 800;" onclick="hapusSemuaNotifFirebaseDanLokal()">
+            <span class="material-symbols-rounded">delete_sweep</span> HAPUS SEMUA NOTIF CLOUD
+          </button>
+        </div>
+      </div>
+
       <!-- UPLOAD MASTER LOOKUP KODE UNIT (FILE EXCEL .XLSX: A=KODE, B=TYPE) -->
       <div class="box" style="border-left: 4px solid #0284c7; margin-bottom: 20px;">
         <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px;">
@@ -600,12 +617,12 @@
       <button type="button" class="popupClose" onclick="tutupAkun()" style="position: absolute; top: 12px; right: 12px;" title="TUTUP">&times;</button>
       <h2>PROFIL AKUN</h2>
       <div class="akunGrid">
-        <div style="grid-column: span 2;">
+        <div style="min-width: 0;">
           <label>NAMA LENGKAP</label>
           <input type="text" id="akunNama">
         </div>
 
-        <div style="grid-column: span 2;">
+        <div style="min-width: 0;">
           <label>NO. HP / WA</label>
           <input type="text" id="akunHP">
         </div>
@@ -638,6 +655,8 @@
           <span class="material-symbols-rounded">draw</span> KELOLA TANDA TANGAN DIGITAL (TTD)
         </button>
       </div>
+
+
 
       <!-- 2 EQUAL BUTTONS: REFRESH WEB & GANTI TEMA -->
       <div style="margin-top: 10px; margin-bottom: 12px; display: flex; gap: 8px; width: 100%;">
@@ -766,15 +785,15 @@
     </div>
   </div>
 
-  <!-- 6. POPUP DETAIL ITEM MODAL -->
-  <div id="popupDetail" class="popupOverlay">
-    <div class="popupBoxDetail">
-      <div class="popupHeader">
-        <span id="popupTitle">DETAIL PERMINTAAN</span>
-        <button type="button" class="popupClose" onclick="closeDetail()" style="color: #ef4444 !important; font-weight: 900 !important; font-size: 26px !important; text-shadow: 0 0 6px rgba(239, 68, 68, 0.5);">&times;</button>
+  <!-- 6. POPUP DETAIL BARANG V2 (NEW EXCLUSIVE MODAL) -->
+  <div id="popupDetailBarangV2" class="popupOverlay" onclick="if(event.target === this) tutupDetailBarangV2();" style="display:none;">
+    <div class="popupBoxDetailV2">
+      <div class="popupHeaderV2" style="background: var(--primary) !important; color: #ffffff !important; padding: 14px 18px !important; border-bottom: 1px solid rgba(255,255,255,0.2) !important; position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 18px 18px 0 0 !important;">
+        <span id="popupTitleV2" style="font-weight: 800 !important; text-align: center !important; font-size: 16px !important; letter-spacing: 0.5px !important; text-transform: uppercase !important; color: #ffffff !important; margin: 0 auto !important;">DETAIL PERMINTAAN</span>
+        <button type="button" class="popupCloseV2" onclick="tutupDetailBarangV2()" title="TUTUP" style="position: absolute !important; right: 14px !important; top: 50% !important; transform: translateY(-50%) !important; font-size: 28px !important; font-weight: 900 !important; color: #ef4444 !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important;">&times;</button>
       </div>
-      <div class="popupContent" id="popupMessage">
-        <!-- Content Injected Dynamically -->
+      <div id="popupBodyV2">
+        <!-- Injected Dynamically by JS -->
       </div>
     </div>
   </div>
