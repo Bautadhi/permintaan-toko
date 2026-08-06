@@ -851,11 +851,13 @@ input:focus, select:focus, textarea:focus {
   flex-shrink: 0 !important;
 }
 
+.dashboardTop .header,
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 2px !important;
+  margin-top: 0 !important;
 }
 
 .header h3 { font-size: 22px; color: var(--text-main); }
@@ -868,12 +870,12 @@ input:focus, select:focus, textarea:focus {
   letter-spacing: 0.5px;
 }
 
-/* MODERN ULTRA-PREMIUM 3D DASHBOARD METRIC CARDS */
+/* MODERN ULTRA-PREMIUM 3D DASHBOARD METRIC CARDS (4 COLUMNS) */
 .stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, 1fr) !important;
   gap: 14px !important;
-  margin: 8px 0 14px 0 !important;
+  margin: 6px 0 2px 0 !important;
   perspective: 1000px;
 }
 
@@ -1056,9 +1058,10 @@ input:focus, select:focus, textarea:focus {
   overflow-x: auto !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 10px !important;
-  background: var(--bg-box) !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   min-height: 0 !important;
   position: relative !important;
 }
@@ -2623,6 +2626,10 @@ button.btnKembali {
     box-sizing: border-box !important;
   }
 
+  #dashboardPage {
+    padding-top: 2px !important;
+  }
+
   #dashboardPage,
   #riwayatPage,
   #masterDbPage {
@@ -2642,8 +2649,9 @@ button.btnKembali {
   }
 
   #detailDashboard {
-    padding: 10px 12px !important;
+    padding: 0 !important;
     border-radius: 14px !important;
+    margin-top: 0 !important;
     margin-bottom: 85px !important;
     flex: 1 !important;
     min-height: 0 !important;
@@ -2653,16 +2661,26 @@ button.btnKembali {
     flex-direction: column !important;
   }
 
-  #detailDashboard #dashboardRecentTitle {
-    padding: 0 !important;
-    margin-bottom: 8px !important;
+  #dashboardRecentTitle {
+    padding: 0 2px !important;
+    margin-top: -2px !important;
+    margin-bottom: 4px !important;
+    font-size: 17px !important;
+    font-weight: 900 !important;
+    color: var(--text-main) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    letter-spacing: 0.5px !important;
   }
 
   #detailDashboard .tableWrap {
     width: 100% !important;
     margin: 0 !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 10px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
     box-sizing: border-box !important;
     flex: 1 !important;
     min-height: 0 !important;

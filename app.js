@@ -1920,7 +1920,8 @@ function loadDashboard() {
 
   const titleEl = document.getElementById('dashboardRecentTitle');
   if (titleEl) {
-    titleEl.textContent = `PERMINTAAN ${dashboardFilterStatus}`;
+    const iconName = dashboardFilterStatus === 'PENDING' ? 'hourglass_top' : (dashboardFilterStatus === 'APPROVE' ? 'verified' : (dashboardFilterStatus === 'REJECT' ? 'cancel' : 'task_alt'));
+    titleEl.innerHTML = `<span class="material-symbols-rounded" style="color: var(--primary); font-size: 22px;">${iconName}</span> PERMINTAAN ${dashboardFilterStatus}`;
   }
 
   const lastDataContainer = document.getElementById('lastData');
@@ -4699,30 +4700,63 @@ function hapusMultiUser() {
   const usernamesStr = selectedUsers.map(u => u.username).join(', ');
 
   showConfirm(`YAKIN INGIN MENGHAPUS ${selectedUsers.length} USER TERPILIH? (${usernamesStr})`, () => {
-    showLoading('MENGHAPUS USER TERPILIH...');
-    setTimeout(() => {
-      const delUsers = JSON.parse(appStorage.getItem(DELETED_USERS_KEY) || '[]');
-      
-      selectedUsers.forEach(u => {
-        if (!delUsers.includes(u.id)) delUsers.push(u.id);
+    showLoading('MENGHAPUS USER & TOKO TERPILIH DARI DATABASE...');
+    setTimeout(async () => {
+      try {
+        const delUsers = JSON.parse(appStorage.getItem(DELETED_USERS_KEY) || '[]');
+        const delStores = JSON.parse(appStorage.getItem(DELETED_STORES_KEY) || '[]');
+        let localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
 
-        const docId = String(u.username).toUpperCase();
-        if (typeof dbFirestore !== 'undefined' && dbFirestore) {
-          dbFirestore.collection('users').doc(docId).delete().catch(e => console.warn(e));
+        for (const u of selectedUsers) {
+          if (!delUsers.includes(u.id)) delUsers.push(u.id);
+
+          const docId = String(u.username).toUpperCase();
+          if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+            await dbFirestore.collection('users').doc(docId).delete().catch(e => console.warn(e));
+          }
+          if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+            await dbRealtime.ref(`users/${docId}`).remove().catch(e => console.warn(e));
+          }
+
+          if (u.category === 'TOKO' || u.fullName) {
+            const storeKey = `${u.fullName.toUpperCase()}_${u.area}`;
+            if (!delStores.includes(storeKey)) delStores.push(storeKey);
+            localStores = localStores.filter(s => s.id !== u.id && s.fullName.toUpperCase() !== u.fullName.toUpperCase());
+
+            if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+              await dbFirestore.collection('stores').doc(u.id).delete().catch(e => console.warn(e));
+            }
+            if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+              await dbRealtime.ref(`stores/${u.id}`).remove().catch(e => console.warn(e));
+            }
+          }
         }
-        if (typeof dbRealtime !== 'undefined' && dbRealtime) {
-          dbRealtime.ref(`users/${docId}`).remove().catch(e => console.warn(e));
+
+        appStorage.setItem(DELETED_USERS_KEY, JSON.stringify(delUsers));
+        appStorage.setItem(DELETED_STORES_KEY, JSON.stringify(delStores));
+        appStorage.setItem(STORES_DB_KEY, JSON.stringify(localStores));
+
+        const remainingUsers = users.filter(u => !userIds.includes(u.id) || String(u.username).trim().toUpperCase() === 'ADMIN');
+        saveUsersToDB(remainingUsers);
+
+        if (typeof pushCentralCloudDB === 'function') {
+          await pushCentralCloudDB();
         }
-      });
 
-      appStorage.setItem(DELETED_USERS_KEY, JSON.stringify(delUsers));
+        if (typeof syncAllDataToCache === 'function') {
+          await syncAllDataToCache().catch(() => {});
+        }
 
-      const remainingUsers = users.filter(u => !userIds.includes(u.id) || String(u.username).trim().toUpperCase() === 'ADMIN');
-      saveUsersToDB(remainingUsers);
-
-      hideLoading();
-      showNotif(`BERHASIL MENGHAPUS ${selectedUsers.length} USER TERPILIH!`, 'success');
-      loadUsersManagement();
+        hideLoading();
+        showNotif(`BERHASIL MENGHAPUS ${selectedUsers.length} USER & TOKO TERPILIH DARI DATABASE!`, 'success');
+        if (typeof loadUsersManagement === 'function') loadUsersManagement();
+        if (typeof loadForm === 'function') loadForm();
+        if (typeof loadDaftarTokoModal === 'function') loadDaftarTokoModal();
+      } catch (err) {
+        hideLoading();
+        console.error('[HAPUS MULTI USER ERROR]:', err);
+        showNotif('TERJADI KESALAHAN SAAT MENGHAPUS USER DARI DATABASE!', 'error');
+      }
     }, 400);
   });
 }
@@ -5384,70 +5418,84 @@ function simpanTokoBaru() {
     return;
   }
 
-  const storeKey = `${namaToko}_${currentUser.area}`;
-  let deletedStoreKeys = JSON.parse(appStorage.getItem(DELETED_STORES_KEY) || '[]');
-  if (deletedStoreKeys.includes(storeKey)) {
-    deletedStoreKeys = deletedStoreKeys.filter(k => k !== storeKey);
-    appStorage.setItem(DELETED_STORES_KEY, JSON.stringify(deletedStoreKeys));
-  }
+  showLoading('MENYIMPAN TOKO BARU KE DATABASE CLOUD...');
+  setTimeout(async () => {
+    try {
+      const storeKey = `${namaToko}_${currentUser.area}`;
+      let deletedStoreKeys = JSON.parse(appStorage.getItem(DELETED_STORES_KEY) || '[]');
+      if (deletedStoreKeys.includes(storeKey)) {
+        deletedStoreKeys = deletedStoreKeys.filter(k => k !== storeKey);
+        appStorage.setItem(DELETED_STORES_KEY, JSON.stringify(deletedStoreKeys));
+      }
 
-  const generatedCode = generateStoreCode(namaToko);
-  const newId = `STK-${Date.now()}`;
+      const generatedCode = generateStoreCode(namaToko);
+      const newId = `STK-${Date.now()}`;
 
-  const localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
-  const newStore = {
-    id: newId,
-    fullName: namaToko,
-    area: currentUser.area,
-    storeCode: generatedCode,
-    createdBy: currentUser.fullName
-  };
-  localStores.push(newStore);
-  appStorage.setItem(STORES_DB_KEY, JSON.stringify(localStores));
+      const localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
+      const newStore = {
+        id: newId,
+        fullName: namaToko,
+        area: currentUser.area,
+        storeCode: generatedCode,
+        createdBy: currentUser.fullName
+      };
+      localStores.push(newStore);
+      appStorage.setItem(STORES_DB_KEY, JSON.stringify(localStores));
 
-  const users = getUsersFromDB();
-  const safeUsername = namaToko.replace(/[^A-Z0-9]/gi, '_').toUpperCase();
-  let newUserAcc = null;
-  if (!users.some(u => u.username.toUpperCase() === safeUsername)) {
-    newUserAcc = {
-      id: newId,
-      username: safeUsername,
-      password: '123',
-      fullName: namaToko,
-      storeCode: generatedCode,
-      phone: '-',
-      category: 'TOKO',
-      area: currentUser.area,
-      createdAt: getFormattedDateDDMMYYYY()
-    };
-    users.push(newUserAcc);
-    saveUsersToDB(users);
-  }
+      const users = getUsersFromDB();
+      const safeUsername = namaToko.replace(/[^A-Z0-9]/gi, '_').toUpperCase();
+      let newUserAcc = null;
+      if (!users.some(u => u.username.toUpperCase() === safeUsername)) {
+        newUserAcc = {
+          id: newId,
+          username: safeUsername,
+          password: '123',
+          fullName: namaToko,
+          storeCode: generatedCode,
+          phone: '-',
+          category: 'TOKO',
+          area: currentUser.area,
+          createdAt: getFormattedDateDDMMYYYY()
+        };
+        users.push(newUserAcc);
+        saveUsersToDB(users);
+      }
 
-  // SINKRONKAN LANGSUNG KE FIREBASE FIRESTORE & REALTIME DB
-  if (typeof dbFirestore !== 'undefined' && dbFirestore) {
-    dbFirestore.collection('stores').doc(newId).set(newStore).catch(e => console.warn(e));
-    if (newUserAcc) {
-      dbFirestore.collection('users').doc(safeUsername).set(newUserAcc).catch(e => console.warn(e));
+      // SINKRONKAN LANGSUNG KE FIREBASE FIRESTORE & REALTIME DB
+      if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+        await dbFirestore.collection('stores').doc(newId).set(newStore).catch(e => console.warn(e));
+        if (newUserAcc) {
+          await dbFirestore.collection('users').doc(safeUsername).set(newUserAcc).catch(e => console.warn(e));
+        }
+      }
+      if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+        await dbRealtime.ref(`stores/${newId}`).set(newStore).catch(e => console.warn(e));
+        if (newUserAcc) {
+          await dbRealtime.ref(`users/${safeUsername}`).set(newUserAcc).catch(e => console.warn(e));
+        }
+      }
+
+      if (typeof pushCentralCloudDB === 'function') {
+        await pushCentralCloudDB();
+      }
+
+      // AMBIL DATA TERBARU DARI CLOUD SEHINGGA DATA LANGSUNG MASUK KE DATABASE & MENU USER ADMIN
+      if (typeof syncAllDataToCache === 'function') {
+        await syncAllDataToCache().catch(() => {});
+      }
+
+      hideLoading();
+      showNotif(`TOKO '${namaToko}' BERHASIL DITAMBAHKAN & DISINKRONKAN KE DATABASE CLOUD!`, 'success');
+      if (inputEl) inputEl.value = '';
+      if (typeof loadDaftarTokoModal === 'function') loadDaftarTokoModal();
+      if (typeof loadForm === 'function') loadForm();
+      if (typeof loadUsersManagement === 'function') loadUsersManagement();
+    } catch (err) {
+      hideLoading();
+      console.error('[SIMPAN TOKO ERROR]:', err);
+      showNotif('GAGAL MENYIMPAN TOKO KE DATABASE CLOUD!', 'error');
     }
-  }
-  if (typeof dbRealtime !== 'undefined' && dbRealtime) {
-    dbRealtime.ref(`stores/${newId}`).set(newStore).catch(e => console.warn(e));
-    if (newUserAcc) {
-      dbRealtime.ref(`users/${safeUsername}`).set(newUserAcc).catch(e => console.warn(e));
-    }
-  }
-  if (typeof pushCentralCloudDB === 'function') {
-    pushCentralCloudDB();
-  }
-
-  showNotif(`TOKO '${namaToko}' BERHASIL DITAMBAHKAN & DISINKRONKAN KE FIREBASE!`, 'info');
-  if (inputEl) inputEl.value = '';
-  loadDaftarTokoModal();
-  loadForm();
-  if (document.getElementById('userTableBody')) {
-    loadUsersManagement();
-  }
+  }, 300);
 }
 
 function hapusTokoCustom(id) {
@@ -5457,41 +5505,54 @@ function hapusTokoCustom(id) {
   const storeArea = store ? store.area : currentUser.area;
 
   showConfirm(`HAPUS TOKO '${name}' DARI DAFTAR & DATABASE ADMIN?`, () => {
-    const localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
-    const updatedLocal = localStores.filter(s => s.id !== id && s.fullName.toUpperCase() !== name.toUpperCase());
-    appStorage.setItem(STORES_DB_KEY, JSON.stringify(updatedLocal));
+    showLoading('MENGHAPUS TOKO DARI DATABASE CLOUD...');
+    setTimeout(async () => {
+      try {
+        const localStores = JSON.parse(appStorage.getItem(STORES_DB_KEY) || '[]');
+        const updatedLocal = localStores.filter(s => s.id !== id && s.fullName.toUpperCase() !== name.toUpperCase());
+        appStorage.setItem(STORES_DB_KEY, JSON.stringify(updatedLocal));
 
-    const deletedStoreKeys = JSON.parse(appStorage.getItem(DELETED_STORES_KEY) || '[]');
-    const storeKey = `${name.toUpperCase()}_${storeArea}`;
-    if (!deletedStoreKeys.includes(storeKey)) {
-      deletedStoreKeys.push(storeKey);
-      appStorage.setItem(DELETED_STORES_KEY, JSON.stringify(deletedStoreKeys));
-    }
+        const deletedStoreKeys = JSON.parse(appStorage.getItem(DELETED_STORES_KEY) || '[]');
+        const storeKey = `${name.toUpperCase()}_${storeArea}`;
+        if (!deletedStoreKeys.includes(storeKey)) {
+          deletedStoreKeys.push(storeKey);
+          appStorage.setItem(DELETED_STORES_KEY, JSON.stringify(deletedStoreKeys));
+        }
 
-    const users = getUsersFromDB();
-    const updatedUsers = users.filter(u => u.id !== id && !(u.category === 'TOKO' && u.fullName.toUpperCase() === name.toUpperCase()));
-    saveUsersToDB(updatedUsers);
+        const users = getUsersFromDB();
+        const updatedUsers = users.filter(u => u.id !== id && !(u.category === 'TOKO' && u.fullName.toUpperCase() === name.toUpperCase()));
+        saveUsersToDB(updatedUsers);
 
-    // HAPUS DOKUMEN LANGSUNG DARI FIREBASE ONLINE
-    const safeUsername = name.replace(/[^A-Z0-9]/gi, '_').toUpperCase();
-    if (typeof dbFirestore !== 'undefined' && dbFirestore) {
-      dbFirestore.collection('stores').doc(id).delete().catch(e => console.warn(e));
-      dbFirestore.collection('users').doc(safeUsername).delete().catch(e => console.warn(e));
-    }
-    if (typeof dbRealtime !== 'undefined' && dbRealtime) {
-      dbRealtime.ref(`stores/${id}`).remove().catch(e => console.warn(e));
-      dbRealtime.ref(`users/${safeUsername}`).remove().catch(e => console.warn(e));
-    }
-    if (typeof pushCentralCloudDB === 'function') {
-      pushCentralCloudDB();
-    }
+        // HAPUS DOKUMEN LANGSUNG DARI FIREBASE ONLINE
+        const safeUsername = name.replace(/[^A-Z0-9]/gi, '_').toUpperCase();
+        if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+          await dbFirestore.collection('stores').doc(id).delete().catch(e => console.warn(e));
+          await dbFirestore.collection('users').doc(safeUsername).delete().catch(e => console.warn(e));
+        }
+        if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+          await dbRealtime.ref(`stores/${id}`).remove().catch(e => console.warn(e));
+          await dbRealtime.ref(`users/${safeUsername}`).remove().catch(e => console.warn(e));
+        }
 
-    showNotif(`TOKO '${name}' BERHASIL DIHAPUS DARI CACHE & FIREBASE!`, 'info');
-    loadDaftarTokoModal();
-    loadForm();
-    if (document.getElementById('userTableBody')) {
-      loadUsersManagement();
-    }
+        if (typeof pushCentralCloudDB === 'function') {
+          await pushCentralCloudDB();
+        }
+
+        if (typeof syncAllDataToCache === 'function') {
+          await syncAllDataToCache().catch(() => {});
+        }
+
+        hideLoading();
+        showNotif(`TOKO '${name}' BERHASIL DIHAPUS DARI CLOUD DATABASE!`, 'info');
+        if (typeof loadDaftarTokoModal === 'function') loadDaftarTokoModal();
+        if (typeof loadForm === 'function') loadForm();
+        if (typeof loadUsersManagement === 'function') loadUsersManagement();
+      } catch (err) {
+        hideLoading();
+        console.error('[HAPUS TOKO ERROR]:', err);
+        showNotif('GAGAL MENGHAPUS TOKO DARI CLOUD DATABASE!', 'error');
+      }
+    }, 300);
   });
 }
 

@@ -147,7 +147,7 @@
           </div>
         </div>
 
-        <!-- 4 Vibrant Glassmorphism Metric Cards (Click to Filter Dashboard List) -->
+        <!-- 4 Vibrant Glassmorphism Metric Cards (PENDING, APPROVE, REJECT, DONE) -->
         <div class="stats">
           <div class="cardStat pending" onclick="filterDashboardRecent('PENDING')" title="TAMPILKAN DATA PENDING DI DASHBOARD">
             <div class="cardTop">
@@ -199,11 +199,16 @@
         </div>
       </div>
 
-      <!-- Recent Transactions List Filtered by Status (Default: PENDING) -->
-      <div id="detailDashboard" class="box box-full">
-        <h3 id="dashboardRecentTitle">PERMINTAAN PENDING</h3>
-        <div class="tableWrap">
-          <table class="dashboardTable">
+      <!-- TITLE DATA DASHBOARD DI LUAR KOTAK (LEBIH BESAR & MENARIK DENGAN IKON) -->
+      <h3 id="dashboardRecentTitle" style="margin: -2px 0 4px 2px !important; font-size: 18px !important; font-weight: 900 !important; color: var(--text-main); text-align: left !important; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;">
+        <span class="material-symbols-rounded" style="color: var(--primary); font-size: 22px;">format_list_bulleted</span>
+        PERMINTAAN PENDING
+      </h3>
+
+      <!-- 1 CARD BOX KHUSUS TABEL DASHBOARD FULL SCREEN FIT -->
+      <div id="detailDashboard" class="box box-full" style="padding: 0 !important; overflow: hidden !important; border-radius: 14px !important;">
+        <div class="tableWrap" style="margin: 0 !important; padding: 0 !important; width: 100% !important; min-width: 100% !important; height: 100% !important;">
+          <table class="dashboardTable" style="width: 100% !important; min-width: 100% !important;">
             <thead>
               <tr>
                 <th>TANGGAL</th>
