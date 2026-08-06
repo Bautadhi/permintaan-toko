@@ -2723,7 +2723,7 @@ button.btnKembali {
     white-space: normal !important;
   }
 
-  /* MOBILE HP POPUP DETAIL TABLE: STRETCH FULL WIDTH LEFT-RIGHT WITH 1MM GAP FROM POPUP BOX EDGE */
+  /* MOBILE HP POPUP DETAIL TABLE: DIRECT STRETCH ON MAIN POPUP CARD WITHOUT INNER CARD WRAPPER */
   #popupDetail .popupBoxDetail,
   .popupBoxDetail {
     width: calc(100vw - 2mm) !important;
@@ -2732,27 +2732,35 @@ button.btnKembali {
     margin-right: 1mm !important;
     padding: 0 !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
+    border-radius: 14px !important;
   }
 
   #popupDetail .popupHeader {
-    padding: 12px 10px !important;
+    padding: 12px 12px !important;
   }
 
   #popupDetail .popupContent {
-    padding: 10px 4px !important;
+    padding: 8px 8px !important;
     box-sizing: border-box !important;
   }
 
   #popupDetail .popupTableScroll {
     width: 100% !important;
-    margin-top: 8px !important;
-    margin-bottom: 8px !important;
-    border-radius: 8px !important;
+    margin-top: 6px !important;
+    margin-bottom: 6px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    overflow-x: auto !important;
   }
 
   #popupDetail .detailTable2 {
     width: 100% !important;
     min-width: 100% !important;
+    border-collapse: collapse !important;
   }
 
   #popupDetail .popupDetailActions {
