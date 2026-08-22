@@ -230,6 +230,13 @@ button .material-symbols-rounded,
   border-radius: 5px 5px 0 0 !important;
 }
 
+#mobileClockSquareBox,
+.mobile-clock-box,
+#verticalClockBox,
+.vertical-clock-box {
+  display: none;
+}
+
 #popupTambahToko table {
   width: 100% !important;
   border-collapse: separate !important;
@@ -517,23 +524,55 @@ section#masterDbPage.page.active,
 /* FLEX TOP-RIGHT HEADER ACTIONS CONTAINER - ALIGNED FLUSH TO RIGHTMOST CARD BORDER EDGE */
 .top-header-actions {
   position: fixed !important;
-  top: 8px !important;
-  right: 8px !important;
+  top: 6px !important;
+  right: 0 !important;
   z-index: 99999 !important;
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   justify-content: flex-end !important;
-  gap: 8px !important;
+  gap: 6px !important;
   pointer-events: none !important;
   transform: translateY(-2px) !important;
+  padding-right: 0 !important;
+  margin-right: 0 !important;
 }
 
 #firebaseOnlineDot {
   align-self: flex-start !important;
-  margin-top: 2px !important;
+  margin-top: 5px !important;
   transform: none !important;
   pointer-events: auto !important;
+}
+
+#liveClockSquareBox,
+.live-clock-square-box {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
+  padding: 0 14px !important;
+  border-radius: 5px !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+  white-space: nowrap !important;
+  margin-left: 2px !important;
+  pointer-events: auto !important;
+}
+
+.dashboardTop .header,
+.header {
+  margin-bottom: 2mm !important;
 }
 
 #togglePasswordBtn {
@@ -564,51 +603,56 @@ section#masterDbPage.page.active,
   pointer-events: auto !important;
   flex-shrink: 0 !important;
   margin: 0 !important;
-  width: 40px !important;
-  height: 40px !important;
+  width: 46px !important;
+  height: 46px !important;
   border-radius: 5px !important;
 }
 
-.theme-toggle-btn {
-  border: 1px solid var(--border-color);
+.theme-toggle-btn,
+.notif-bell-btn,
+.helpButton {
+  border: 1px solid rgba(255, 255, 255, 0.45) !important;
   border-radius: 5px !important;
-  background: var(--bg-box);
-  color: var(--primary);
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  transition: transform 0.2s, background 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s !important;
+}
+
+.theme-toggle-btn {
+  color: #38bdf8 !important;
   display: flex;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s, background 0.2s, color 0.2s;
 }
 
 .theme-toggle-btn:hover {
-  transform: scale(1.08);
-  background: var(--primary);
-  color: #ffffff;
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #475569 0%, #334155 100%) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
 }
 
 .theme-toggle-btn .material-symbols-rounded {
-  font-size: 22px;
+  font-size: 24px !important;
 }
 
 .notif-bell-btn {
-  border: 1px solid var(--border-color);
-  border-radius: 5px !important;
-  background: var(--bg-box);
-  color: var(--primary);
+  color: #38bdf8 !important;
   display: none;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s, background 0.2s, color 0.2s;
 }
 
 .notif-bell-btn:hover {
-  transform: scale(1.08);
-  background: var(--primary);
-  color: #ffffff;
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45) !important;
 }
 
 .notif-bell-badge {
@@ -632,26 +676,24 @@ section#masterDbPage.page.active,
 
 /* FLOATING HELP / CHAT BUTTON & UNREAD BADGE */
 .helpButton {
-  border: 1px solid var(--border-color);
-  border-radius: 5px !important;
-  background: var(--bg-box);
-  color: #16a34a;
+  color: #10b981 !important;
   display: none;
   justify-content: center;
   align-items: center;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(22, 163, 74, 0.2);
-  transition: transform 0.2s, background 0.2s, color 0.2s;
 }
 
 .helpButton:hover {
-  transform: scale(1.08);
-  background: #16a34a;
-  color: #ffffff;
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #059669 0%, #047857 100%) !important;
+  border-color: #ffffff !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.45) !important;
 }
 
-.helpButton .material-symbols-rounded {
-  font-size: 22px;
+.helpButton .material-symbols-rounded,
+.notif-bell-btn .material-symbols-rounded {
+  font-size: 24px !important;
 }
 
 .unreadBadge {
@@ -945,7 +987,7 @@ section#masterDbPage.page.active,
   margin: 35px auto;
   background: var(--bg-box);
   border-radius: 5px !important;
-  padding: 26px 22px;
+  padding: 2mm !important;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   border: 1px solid var(--border-color);
   backdrop-filter: blur(16px);
@@ -1300,7 +1342,7 @@ input:focus, select:focus, textarea:focus {
 /* MODERN ULTRA-PREMIUM 3D DASHBOARD METRIC CARDS (2 COLUMNS x 2 ROWS FIXED FOR COMPACT / F12 / MOBILE SCREENS) */
 .stats {
   display: grid !important;
-  grid-template-columns: repeat(2, 1fr) !important;
+  grid-template-columns: repeat(5, 1fr) !important;
   gap: 8px !important;
   margin: 5px 0 0.5mm 0 !important;
   width: 100% !important;
@@ -1309,35 +1351,89 @@ input:focus, select:focus, textarea:focus {
 
 @media (min-width: 1024px) {
   .stats {
-    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-columns: repeat(5, 1fr) !important;
     gap: 10px !important;
+    margin-bottom: 5mm !important;
   }
+}
+
+.stats {
+  margin-bottom: 5mm !important;
 }
 
 .cardStat {
   width: 100% !important;
   min-width: 0 !important;
   max-width: 100% !important;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
   padding: 10px 12px !important;
   border-radius: 5px !important;
   color: #ffffff !important;
-  cursor: pointer;
-  overflow: hidden;
-  min-height: 72px !important;
-  height: 76px !important;
-  max-height: 82px !important;
-  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  transform: translateZ(0);
+  cursor: pointer !important;
+  overflow: hidden !important;
+  min-height: 85px !important;
+  height: 85px !important;
+  max-height: 85px !important;
+  transition: background 0.25s, border-color 0.25s, box-shadow 0.25s !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  transform: none !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
   box-sizing: border-box !important;
 }
 
-.cardStat:hover {
-  transform: translateY(-4px) scale(1.02) rotateX(2deg) !important;
+.cardStat:hover,
+.cardStat:active,
+.cardStat.active {
+  transform: none !important;
+}
+
+/* INNER BLACK & WHITE CONTRAST BORDER FRAME INSIDE THE STAT BOX */
+.cardStat::before {
+  content: "" !important;
+  position: absolute !important;
+  top: 3px !important;
+  left: 3px !important;
+  right: 3px !important;
+  bottom: 3px !important;
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75) !important;
+  border-radius: 3px !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+}
+
+/* HORIZONTAL INDICATOR BAR (-) AT BOTTOM OF CARD WHEN ACTIVE (PURE WHITE COLOR) */
+.cardStat::after {
+  content: "" !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 25% !important;
+  right: 25% !important;
+  height: 4px !important;
+  border-radius: 4px 4px 0 0 !important;
+  background: #ffffff !important;
+  box-shadow: 0 0 12px #ffffff, 0 0 4px #ffffff !important;
+  transition: all 0.25s ease-in-out !important;
+  opacity: 0 !important;
+  z-index: 10 !important;
+}
+
+.cardStat.active::after {
+  opacity: 1 !important;
+  left: 10% !important;
+  right: 10% !important;
+}
+
+.cardStat.pending.active::after,
+.cardStat.approve.active::after,
+.cardStat.reject.active::after,
+.cardStat.done.active::after,
+.cardStat.batal.active::after {
+  background: #ffffff !important;
+  box-shadow: 0 0 12px #ffffff, 0 0 4px #ffffff !important;
 }
 
 .cardStat .cardTop {
@@ -1376,7 +1472,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .cardStat .judul {
-  font-size: 11.5px !important;
+  font-size: 13.5px !important;
   font-weight: 800 !important;
   letter-spacing: 0.6px;
   text-transform: uppercase;
@@ -1387,7 +1483,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .cardStat .angka {
-  font-size: 27px !important;
+  font-size: 32px !important;
   font-weight: 900 !important;
   line-height: 1.1 !important;
   color: #ffffff !important;
@@ -1406,45 +1502,60 @@ input:focus, select:focus, textarea:focus {
   text-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
-/* 4 RICH 3D VIVID GRADIENT METRIC CARDS WITH 3D BEVEL & SHADOW */
+/* 5 SOLID ELEGANT LUXURY METRIC CARDS (NON-TRANSLUCENT) */
 .cardStat.pending {
-  background: linear-gradient(145deg, #fb923c 0%, #f97316 45%, #ea580c 100%) !important;
-  box-shadow: 0 14px 28px -4px rgba(249, 115, 22, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 6px rgba(0, 0, 0, 0.25) !important;
-  border-bottom: 4px solid #c2410c !important;
+  background: linear-gradient(135deg, #7c2d12 0%, #b45309 60%, #d97706 100%) !important;
+  border: 1px solid #f59e0b !important;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.25) !important;
 }
-
-.cardStat.pending:hover {
-  box-shadow: 0 18px 36px -4px rgba(249, 115, 22, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(0, 0, 0, 0.2) !important;
+.cardStat.pending:hover, .cardStat.pending.active {
+  background: linear-gradient(135deg, #9a3412 0%, #d97706 60%, #f59e0b 100%) !important;
+  border-color: #fbbf24 !important;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4) !important;
 }
 
 .cardStat.approve {
-  background: linear-gradient(145deg, #34d399 0%, #10b981 45%, #059669 100%) !important;
-  box-shadow: 0 14px 28px -4px rgba(16, 185, 129, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 6px rgba(0, 0, 0, 0.25) !important;
-  border-bottom: 4px solid #047857 !important;
+  background: linear-gradient(135deg, #064e3b 0%, #047857 60%, #10b981 100%) !important;
+  border: 1px solid #10b981 !important;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.25) !important;
 }
-
-.cardStat.approve:hover {
-  box-shadow: 0 18px 36px -4px rgba(16, 185, 129, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(0, 0, 0, 0.2) !important;
+.cardStat.approve:hover, .cardStat.approve.active {
+  background: linear-gradient(135deg, #065f46 0%, #059669 60%, #34d399 100%) !important;
+  border-color: #6ee7b7 !important;
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4) !important;
 }
 
 .cardStat.reject {
-  background: linear-gradient(145deg, #f87171 0%, #ef4444 45%, #dc2626 100%) !important;
-  box-shadow: 0 14px 28px -4px rgba(239, 68, 68, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 6px rgba(0, 0, 0, 0.25) !important;
-  border-bottom: 4px solid #b91c1c !important;
+  background: linear-gradient(135deg, #7f1d1d 0%, #b91c1c 60%, #ef4444 100%) !important;
+  border: 1px solid #ef4444 !important;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.25) !important;
 }
-
-.cardStat.reject:hover {
-  box-shadow: 0 18px 36px -4px rgba(239, 68, 68, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(0, 0, 0, 0.2) !important;
+.cardStat.reject:hover, .cardStat.reject.active {
+  background: linear-gradient(135deg, #991b1b 0%, #dc2626 60%, #f87171 100%) !important;
+  border-color: #fca5a5 !important;
+  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4) !important;
 }
 
 .cardStat.done {
-  background: linear-gradient(145deg, #38bdf8 0%, #0284c7 45%, #0369a1 100%) !important;
-  box-shadow: 0 14px 28px -4px rgba(2, 132, 199, 0.45), inset 0 2px 3px rgba(255, 255, 255, 0.45), inset 0 -3px 6px rgba(0, 0, 0, 0.25) !important;
-  border-bottom: 4px solid #075985 !important;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #3b82f6 100%) !important;
+  border: 1px solid #3b82f6 !important;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25) !important;
+}
+.cardStat.done:hover, .cardStat.done.active {
+  background: linear-gradient(135deg, #1e40af 0%, #2563eb 60%, #60a5fa 100%) !important;
+  border-color: #93c5fd !important;
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4) !important;
 }
 
-.cardStat.done:hover {
-  box-shadow: 0 18px 36px -4px rgba(2, 132, 199, 0.6), inset 0 2px 4px rgba(255, 255, 255, 0.55), inset 0 -3px 6px rgba(0, 0, 0, 0.2) !important;
+.cardStat.batal {
+  background: linear-gradient(135deg, #581c87 0%, #7e22ce 60%, #a855f7 100%) !important;
+  border: 1px solid #a855f7 !important;
+  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.25) !important;
+}
+.cardStat.batal:hover, .cardStat.batal.active {
+  background: linear-gradient(135deg, #6b21a8 0%, #9333ea 60%, #c084fc 100%) !important;
+  border-color: #e9d5ff !important;
+  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.4) !important;
 }
 
 /* ALL MENU CARDS WIDENED & EVENLY ALIGNED LEFT-RIGHT */
@@ -1485,8 +1596,10 @@ input:focus, select:focus, textarea:focus {
   -webkit-clip-path: inset(0 round 5px) !important;
   clip-path: inset(0 round 5px) !important;
   background: var(--bg-box) !important;
-  border: 1px solid var(--border-color) !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75), 0 8px 30px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
   box-sizing: border-box !important;
   width: 100% !important;
   max-width: 100% !important;
@@ -1517,7 +1630,7 @@ input:focus, select:focus, textarea:focus {
   border-radius: 5px !important;
   -webkit-clip-path: inset(0 round 5px) !important;
   clip-path: inset(0 round 5px) !important;
-  background: transparent !important;
+  background: var(--bg-box) !important;
   box-shadow: none !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -1535,11 +1648,9 @@ input:focus, select:focus, textarea:focus {
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-x pan-y !important;
   overscroll-behavior: contain !important;
-  border: 1px solid var(--border-color) !important;
   border-radius: 5px !important;
   -webkit-clip-path: inset(0 round 5px) !important;
   clip-path: inset(0 round 5px) !important;
-  background: var(--bg-box) !important;
 }
 
 .dashboardTable {
@@ -1564,8 +1675,8 @@ input:focus, select:focus, textarea:focus {
 
 .dashboardTable th,
 .dashboardTable td {
-  padding: 10px 12px !important;
-  font-size: 13px !important;
+  padding: 11px 14px !important;
+  font-size: 12.5px !important;
   vertical-align: middle !important;
 }
 
@@ -1578,9 +1689,9 @@ input:focus, select:focus, textarea:focus {
 .dashboardTable thead th {
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 800 !important;
   font-size: 12px !important;
-  letter-spacing: 0.5px !important;
+  letter-spacing: 0.8px !important;
   text-transform: uppercase !important;
   position: sticky !important;
   top: 0 !important;
@@ -1588,16 +1699,17 @@ input:focus, select:focus, textarea:focus {
   border-top: none !important;
   border-left: none !important;
   border-right: none !important;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.15) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.2) !important;
   border-radius: 0 !important;
-  box-shadow: none !important;
-  text-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
   white-space: nowrap !important;
   box-sizing: border-box !important;
 }
 
 .dashboardTable tbody tr {
   background: var(--bg-box) !important;
+  transition: background 0.2s ease, box-shadow 0.2s ease !important;
 }
 
 .dashboardTable td {
@@ -1607,6 +1719,7 @@ input:focus, select:focus, textarea:focus {
   border-right: none !important;
   border-left: none !important;
   white-space: nowrap !important;
+  transition: background 0.2s ease !important;
 }
 
 .dashboardTable td:last-child {
@@ -1614,7 +1727,36 @@ input:focus, select:focus, textarea:focus {
 }
 
 .dashboardTable tr:hover td {
-  background: var(--table-hover) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.dashboardTable tbody tr:hover td:first-child {
+  box-shadow: inset 3.5px 0 0 var(--primary) !important;
+}
+
+/* CLEAN & UNIFORM PLAIN TEXT STATUS COLUMN (MATCHES OTHER COLUMNS EXACTLY) */
+.badge-status {
+  display: inline-block !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-main) !important;
+  padding: 0 !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  white-space: nowrap !important;
+}
+
+.badge-tunggu-service,
+.badge-tunggu-dm,
+.badge-approve,
+.badge-reject,
+.badge-done,
+.badge-batal {
+  background: transparent !important;
+  color: var(--text-main) !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 /* TABLE SPACING CLEAN */
@@ -2495,23 +2637,30 @@ body.design-mode-3d-isometric .dashboardTable th {
   transform: translateX(-50%) !important;
   width: calc(100% - 1mm) !important;
   max-width: calc(100% - 1mm) !important;
-  height: 52px !important;
-  background: var(--bg-box) !important;
-  backdrop-filter: blur(16px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  height: 54px !important;
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.82) 0%, rgba(30, 41, 59, 0.82) 100%) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
   display: flex;
   justify-content: space-around !important;
   align-items: center !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
-  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
   border-radius: 5px !important;
   margin: 0 auto !important;
   z-index: 99999999 !important;
-  padding: 0 4px !important;
+  padding: 0 6px !important;
   box-sizing: border-box !important;
   transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease, background 0.3s ease, border-color 0.3s ease !important;
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+.nav-label-desktop {
+  display: inline !important;
+}
+.nav-label-mobile {
+  display: none !important;
 }
 
 #bottomMenu.hide-bottom-menu {
@@ -2522,23 +2671,24 @@ body.design-mode-3d-isometric .dashboardTable th {
 
 #bottomMenu button {
   background: transparent !important;
-  border: none !important;
+  border: 1px solid transparent !important;
   cursor: pointer !important;
   display: flex;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  color: var(--text-muted) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
   font-size: 10px !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.4px !important;
   flex: 1 !important;
   height: 100% !important;
-  padding: 4px 0 !important;
+  padding: 3px 0 !important;
   border-radius: 5px !important;
   pointer-events: auto !important;
   position: relative !important;
   z-index: 100000000 !important;
-  transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease !important;
+  transition: color 0.25s ease, transform 0.25s ease, background 0.25s ease, border-color 0.25s ease !important;
 }
 
 #bottomMenu button[style*="display: none"],
@@ -2548,26 +2698,35 @@ body.design-mode-3d-isometric .dashboardTable th {
   display: none !important;
 }
 
-#bottomMenu button:hover,
-#bottomMenu button.active {
-  color: var(--primary) !important;
+#bottomMenu button:hover {
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+}
+
+#bottomMenu button:hover .material-symbols-rounded {
+  color: #10b981 !important;
+  transform: scale(1.1) !important;
 }
 
 #bottomMenu button.active {
-  background: var(--bg-header) !important;
-  font-weight: 700 !important;
-  border: 1px solid var(--border-color) !important;
+  background: rgba(16, 185, 129, 0.18) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  border: 1px solid rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 }
 
 #bottomMenu button .material-symbols-rounded {
-  font-size: 20px !important;
-  margin-bottom: 1px !important;
-  transition: transform 0.2s ease !important;
+  font-size: 22px !important;
+  margin-bottom: 2px !important;
+  transition: transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275), color 0.25s ease, filter 0.25s ease !important;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3)) !important;
 }
 
 #bottomMenu button.active .material-symbols-rounded {
-  transform: scale(1.15) !important;
-  color: var(--primary) !important;
+  transform: scale(1.18) translateY(-1px) !important;
+  color: #10b981 !important;
+  filter: drop-shadow(0 0 8px #10b981) !important;
 }
 
 /* ALL POPUP BACKDROP OVERLAYS IN APP: NO BLUR, MORE DIMMED OVERLAY (80% GELAP REDUP) FOR ALL POPUPS */
@@ -2644,8 +2803,9 @@ div[id*="Modal"] {
 }
 
 #popupNotif,
-#popupNotifCard {
-  z-index: 2147483646 !important;
+#popupNotifCard,
+.popupNotifCard {
+  z-index: 2147483648 !important;
 }
 
 #loadingOverlay,
@@ -2680,6 +2840,118 @@ div[id*="Modal"] {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   animation: fade .25s ease-out;
+}
+
+/* ==========================================================================
+   KHUSUS TAMPILAN HP / MOBILE (@media (max-width: 768px) ONLY):
+   - SEMUA TEKS 100% DIBUAT 12PX (SELAIN DISPLAY DASHBOARD & PC LAPTOP)
+   - TOMBOL AKSI: IKON SAMA SEPERTI AWAL, UKURAN KOTAK DIKURANGI AGAR KOMPAK
+   - LAPTOP / PC TIDAK TERSENTUH (100% ASLI SEMULA)
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 1. SAMAKAN SEMUA TEKS PADA HP MENJADI 12PX */
+  body,
+  p, div, span, label, input, select, textarea, button, a, td, th, li, h1, h2, h3, h4, h5, h6,
+  .modal, .modal *,
+  .modal-content, .modal-content *,
+  .artemisBoxPopup, .artemisBoxPopup *,
+  .popupBoxDetailV2, .popupBoxDetailV2 *,
+  #artemisOverlay, #artemisOverlay *,
+  #popupNotifList, #popupNotifList *,
+  .popupNotifCard, .popupNotifCard *,
+  #notifListBody, #notifListBody *,
+  .detailTable2, .detailTable2 *,
+  .detailTableV2, .detailTableV2 *,
+  .historyTable, .historyTable *,
+  .userPage, .userPage *,
+  .inputPage, .inputPage *,
+  .settingsPage, .settingsPage *,
+  .badge-status, .badge, .status-pill,
+  .tab-btn, .btn, .btn-primary, .btn-secondary, .btn-danger, .btn-success, .btn-info {
+    font-size: 12px !important;
+  }
+
+  /* 2. PENGECUALIAN KECUALI DISPLAY DASHBOARD STAT CARDS */
+  #dashboardPage .stats,
+  #dashboardPage .stats *,
+  #dashboardPage .cardStat,
+  #dashboardPage .cardStat *,
+  #dashboardPage .cardTop *,
+  #dashboardPage .cardText *,
+  #dashboardPage .judul,
+  #dashboardPage .angka {
+    font-size: unset;
+  }
+
+  #dashboardPage .cardStat .judul {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.5px !important;
+  }
+
+  #dashboardPage .cardStat .angka {
+    font-size: 18px !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+  }
+
+  /* 3. TOMBOL AKSI HP: UKURAN KOTAK (30PX) & IKON (19PX) DIKECILKAN PAS KHUSUS HP */
+  #helpButton,
+  .notif-bell-btn,
+  .theme-toggle-btn,
+  .btn-action,
+  .btnAction,
+  .btnIcon,
+  .btn-icon,
+  .top-header-actions button {
+    height: 30px !important;
+    width: 30px !important;
+    min-width: 30px !important;
+    padding: 2px !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #helpButton .material-symbols-rounded,
+  .notif-bell-btn .material-symbols-rounded,
+  .theme-toggle-btn .material-symbols-rounded,
+  .btn-action .material-symbols-rounded,
+  .btnAction .material-symbols-rounded,
+  .btnIcon .material-symbols-rounded,
+  .btn-icon .material-symbols-rounded,
+  .top-header-actions button .material-symbols-rounded,
+  .btn-action span,
+  .btnAction span {
+    font-size: 19px !important;
+  }
+
+  /* LEBAR KOLOM TABEL HP: PRES & PATEN VS AUTO FIT */
+  .dashboardTable th:nth-child(1), .dashboardTable td:nth-child(1),
+  .dashboardTable th:nth-child(2), .dashboardTable td:nth-child(2),
+  .dashboardTable th:nth-child(4), .dashboardTable td:nth-child(4),
+  .historyTable th:nth-child(1), .historyTable td:nth-child(1),
+  .historyTable th:nth-child(2), .historyTable td:nth-child(2),
+  .historyTable th:nth-child(6), .historyTable td:nth-child(6),
+  .detailTable2 th:nth-child(1), .detailTable2 td:nth-child(1),
+  .detailTable2 th:nth-child(3), .detailTable2 td:nth-child(3),
+  .detailTable2 th:nth-child(4), .detailTable2 td:nth-child(4),
+  .detailTableV2 th:nth-child(1), .detailTableV2 td:nth-child(1),
+  .detailTableV2 th:nth-child(3), .detailTableV2 td:nth-child(3),
+  .detailTableV2 th:nth-child(4), .detailTableV2 td:nth-child(4) {
+    width: 1% !important;
+    white-space: nowrap !important;
+  }
+
+  .dashboardTable th:nth-child(3), .dashboardTable td:nth-child(3),
+  .historyTable th:nth-child(3), .historyTable td:nth-child(3),
+  .detailTable2 th:nth-child(2), .detailTable2 td:nth-child(2),
+  .detailTableV2 th:nth-child(2), .detailTableV2 td:nth-child(2) {
+    width: auto !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+  }
 }
 
 /* PERFECTLY BALANCED DEAD-CENTER POPUP AKUN (1CM SCREEN GAP TOP & BOTTOM) */
@@ -4148,8 +4420,8 @@ html body #popupUserForm .popupBox {
   }
 
   .stats {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 6px !important;
   }
 
   .cardStat .angka {
@@ -4179,22 +4451,27 @@ html body #popupUserForm .popupBox {
   #dashboardPage {
     overflow: hidden !important;
     overflow-y: hidden !important;
-    height: calc(100vh - 65px) !important;
-    max-height: calc(100vh - 65px) !important;
-    padding-top: 6px !important;
+    height: calc(100vh - 60px) !important;
+    max-height: calc(100vh - 60px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-top: 4px !important;
     padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
     touch-action: pan-x pan-y !important;
+    box-sizing: border-box !important;
   }
 
   #detailDashboard .tableWrap {
     width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    flex: 1 1 auto !important;
     display: block !important;
     position: relative !important;
-    height: calc(100vh - 310px) !important;
-    max-height: calc(100vh - 310px) !important;
-    min-height: 200px !important;
     overflow-x: auto !important;
-    overflow-y: scroll !important;
+    overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-x pan-y !important;
     border-radius: 5px !important;
@@ -4355,75 +4632,285 @@ html body #popupUserForm .popupBox {
   }
 
   section#dashboardPage.page.active,
-  section#riwayatPage.page.active,
-  section#masterDbPage.page.active,
-  #dashboardPage.active,
-  #riwayatPage.active,
-  #masterDbPage.active {
-    display: flex !important;
-    flex-direction: column !important;
-    height: calc(100vh - 60px - 1mm) !important;
-    max-height: calc(100vh - 60px - 1mm) !important;
-    overflow: hidden !important;
+  #dashboardPage.active {
+    padding-top: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
-    padding-top: 4px !important;
     padding-bottom: 0 !important;
-    margin-bottom: 0 !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
-    touch-action: auto !important;
   }
 
-  .header h3 {
-    font-size: 17px;
+  .dashboardTop {
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
+  .dashboardTop .header,
+  .header {
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* EXACT WRAPPER FOR NAMA USER & AREA USER: EXACT 1MM TOP, LEFT & BOTTOM PADDING */
+  html body .header > div,
+  .header > div {
+    padding-top: 1mm !important;
+    padding-left: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-right: 0 !important;
+    margin-top: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  .header h3,
   #namaUser {
-    font-size: 15px !important;
+    font-size: clamp(10px, 3.5vw, 14px) !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1.1 !important;
+    max-width: calc(100vw - 150px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
-  .stats {
-    grid-template-columns: 1fr 1fr;
-    gap: 6px !important;
-    margin: 2px 0 1mm 0 !important;
+  #areaUser {
+    font-size: 11px !important;
+    padding: 0 !important;
+    margin-top: 1px !important;
+    margin-bottom: 0 !important;
+    max-width: calc(100vw - 150px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
 
-  .cardStat {
-    padding: 8px 10px !important;
-    min-height: 72px !important;
+  /* KHUSUS TAMPILAN HP: UNTUK SEMUA TABEL BUAT UKURAN HURUF DIFEST KECIL SAMA DENGAN AREA USER (11PX) */
+  .dashboardTable th,
+  .dashboardTable td,
+  .historyTable th,
+  .historyTable td,
+  #tableMasterDb th,
+  #tableMasterDb td,
+  #tableUserMgmt th,
+  #tableUserMgmt td,
+  .detailTable2 th,
+  .detailTable2 td,
+  .detailTableV2 th,
+  .detailTableV2 td,
+  #riwayatData th,
+  #riwayatData td,
+  #detailDashboard table th,
+  #detailDashboard table td {
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* HIDE DESKTOP DATE & CLOCK BOX ON HP / MOBILE VIEW */
+  #liveClockSquareBox,
+  .top-header-actions .live-clock-square-box,
+  #mobileClockSquareBox,
+  .mobile-clock-box {
+    display: none !important;
+  }
+
+  /* STACKED DATE (DD/MM/YYYY) & CLOCK (HH:mm:SS) SEBELAH ICON BANTUAN & NOTIFIKASI */
+  #mobileClockInlineBox,
+  .mobile-clock-inline-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 2px 7px !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    margin: 0 2px !important;
+    line-height: 1 !important;
+  }
+
+  /* COLOR & THEME MATCHED 100% IDENTICAL FOR DATE-CLOCK BOX, HELP BUTTON & NOTIF BELL BUTTON (MATCHING NOTIFIKASI) */
+  #mobileClockInlineBox,
+  .mobile-clock-inline-box,
+  #helpButton,
+  .helpButton,
+  #notifBellBtn,
+  .notif-bell-btn {
+    background: rgba(255, 255, 255, 0.18) !important;
+    border: 1px solid rgba(255, 255, 255, 0.35) !important;
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
     border-radius: 5px !important;
   }
 
+  .mobileClockDateText,
+  .mobileClockTimeText {
+    font-size: 10px !important;
+    font-weight: 500 !important;
+    color: #ffffff !important;
+    font-family: monospace, monospace !important;
+    line-height: 1 !important;
+  }
+
+  #helpButton .material-symbols-rounded,
+  .helpButton .material-symbols-rounded,
+  #notifBellBtn .material-symbols-rounded,
+  .notif-bell-btn .material-symbols-rounded {
+    font-size: 18px !important;
+    color: #ffffff !important;
+  }
+
+  /* HP / MOBILE BOTTOM MENU SHORTENED LABELS (HOME, DETAIL, MASTER, USER) */
+  .nav-label-desktop {
+    display: none !important;
+  }
+  .nav-label-mobile {
+    display: inline !important;
+  }
+
+  /* GREEN CONNECTION DOT - SMALLER SIZE & ALIGNED TO TOP */
+  #firebaseOnlineDot {
+    width: 6px !important;
+    height: 6px !important;
+    min-width: 6px !important;
+    min-height: 6px !important;
+    border-radius: 50% !important;
+    background: #10b981 !important;
+    box-shadow: 0 0 6px #10b981 !important;
+    align-self: flex-start !important;
+    margin-top: 2px !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* SPACING & SIZING FOR HELP & NOTIF BUTTONS ON HP VIEW - TOP 1MM & RIGHT 0.5MM PADDING */
+  .top-header-actions {
+    position: fixed !important;
+    top: 1mm !important;
+    right: 0.5mm !important;
+    padding-top: 1mm !important;
+    padding-right: 0.5mm !important;
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin-left: auto !important;
+  }
+
+  #helpButton,
+  .helpButton,
+  #notifBellBtn,
+  .notif-bell-btn {
+    height: 32px !important;
+    width: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 5px !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #notifBellBtn,
+  .notif-bell-btn {
+    margin-right: 0 !important;
+  }
+
+  #helpButton .material-symbols-rounded,
+  .helpButton .material-symbols-rounded {
+    font-size: 18px !important;
+    color: #10b981 !important;
+  }
+
+  /* 2MM GAP BETWEEN 5 STAT CARDS AND DASHBOARD TABLE (PAD DITANGKAS / TABEL DITINGGIKAN) */
+  .stats {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 4px !important;
+    margin: 0 0 2mm 0 !important;
+    width: 100% !important;
+  }
+
+  html body .cardStat,
+  .cardStat {
+    padding: 6px 4px !important;
+    height: 72px !important;
+    min-height: 72px !important;
+    border-radius: 5px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
+  }
+
   .cardStat .icon {
-    width: 36px !important;
-    height: 36px !important;
+    width: 28px !important;
+    height: 28px !important;
+    display: none !important;
   }
 
   .cardStat .icon .material-symbols-rounded {
-    font-size: 20px !important;
+    font-size: 18px !important;
   }
 
+  html body .cardStat .cardTop,
   .cardStat .cardTop {
-    gap: 8px !important;
+    gap: 2px !important;
+    justify-content: center !important;
+    text-align: center !important;
+    margin-bottom: 2px !important;
   }
 
   .cardStat .judul {
-    font-size: 11px !important;
-    letter-spacing: 0.5px !important;
+    font-size: 10px !important;
+    letter-spacing: 0.3px !important;
+    font-weight: 800 !important;
+    text-align: center !important;
     margin-bottom: 0 !important;
+    text-transform: uppercase !important;
+  }
+
+  html body .cardStat .angka,
+  .cardStat .angka {
+    font-size: 22px !important;
+    font-weight: 900 !important;
+    text-align: center !important;
+    line-height: 1.1 !important;
+    margin-top: 4px !important;
+    padding-top: 2px !important;
+    display: block !important;
+  }
+
+  .cardStat .bgWatermark {
+    font-size: 28px !important;
+    opacity: 0.1 !important;
+    right: 2px !important;
+    bottom: -2px !important;
   }
 
   .akunBox {
-  width: 450px !important;
-  max-width: 94vw !important;
-  height: auto !important;
-  max-height: 94vh !important;
-  overflow: visible !important;
-  padding: 16px 16px 14px 16px !important;
-  border-radius: 6px !important;
-  box-sizing: border-box !important;
-  margin: auto !important;
-}
+    width: 450px !important;
+    max-width: 94vw !important;
+    height: auto !important;
+    max-height: 94vh !important;
+    overflow: visible !important;
+    padding: 16px 16px 14px 16px !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+    margin: auto !important;
+  }
 
   .akunGrid {
     display: grid !important;
@@ -4456,20 +4943,23 @@ html body #popupUserForm .popupBox {
     white-space: nowrap !important;
   }
 
-  .cardStat .angka {
-    font-size: 22px !important;
-  }
-
-  .cardStat .bgWatermark {
-    font-size: 48px !important;
-    right: 4px !important;
-  }
-
   #detailDashboard {
+    flex: 1 1 auto !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
     padding: 0 !important;
-    margin-bottom: 12px !important;
-    background: transparent !important;
-    border: none !important;
+    margin: 0 0 2px 0 !important;
+    border-radius: 5px !important;
+    -webkit-clip-path: inset(0 round 5px) !important;
+    clip-path: inset(0 round 5px) !important;
+    background: var(--bg-box) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1.5px solid rgba(255, 255, 255, 0.45) !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.75), 0 8px 30px rgba(0, 0, 0, 0.35) !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   #detailDashboard #lastData {
@@ -4648,14 +5138,14 @@ button.btnKembali {
   }
 
   .cardStat .judul {
-    font-size: 11px !important;
+    font-size: 13.5px !important;
     letter-spacing: 0.5px !important;
     margin-bottom: 2px !important;
     line-height: 1 !important;
   }
 
   .cardStat .angka {
-    font-size: 24px !important;
+    font-size: 30px !important;
     line-height: 1 !important;
     font-weight: 900 !important;
   }
@@ -4716,15 +5206,16 @@ button.btnKembali {
 
   @media (max-width: 1150px) {
     .stats {
-      display: flex !important;
-      flex-wrap: wrap !important;
-      gap: 8px !important;
+      display: grid !important;
+      grid-template-columns: repeat(5, 1fr) !important;
+      gap: 6px !important;
       margin: 1px 0 0.5mm 0 !important;
     }
 
     .cardStat {
-      flex: 1 1 calc(50% - 6px) !important;
-      min-width: 140px !important;
+      flex: none !important;
+      width: 100% !important;
+      min-width: 0 !important;
     }
   }
 
@@ -9690,7 +10181,7 @@ html body #loginPage .login-card {
   border-radius: 8px !important;
   -webkit-clip-path: none !important;
   clip-path: none !important;
-  padding: 28px 24px 28px 24px !important;
+  padding: 2mm !important;
   box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
   border: 1px solid var(--border-color, #e2e8f0) !important;
   backdrop-filter: blur(16px) !important;
@@ -9732,7 +10223,7 @@ html body #loginPage .login-card {
     width: calc(100vw - 2mm) !important;
     max-width: calc(100vw - 2mm) !important;
     margin: 0 auto auto auto !important;
-    padding: 24px 18px 24px 18px !important;
+    padding: 2mm !important;
     border-radius: 8px !important;
     box-sizing: border-box !important;
   }
@@ -10262,13 +10753,242 @@ html body #inputPage .inputPageHeader {
   background: var(--bg-box) !important;
 }
 
-/* REJECTION & CONFIRMATION POPUPS ALWAYS ON TOP (FRONTMOST Z-INDEX OVERRIDE) */
+/* REJECTION & CONFIRMATION POPUPS Z-INDEX OVERRIDE */
 html body #rejectOverlay,
 html body #modalRejectBreakdown,
 html body #modalRejectParsial,
 html body #confirmOverlay,
 html body .popupOverlay#rejectOverlay,
 html body .popupOverlay#modalRejectBreakdown {
-  z-index: 2147483647 !important;
+  z-index: 2147483640 !important;
+}
+
+/* POPUP NOTIF CARD ALWAYS IN FRONT OF ALL MODALS AND INPUTS (#inputAlasanRejectParsial) */
+html body #popupNotif,
+html body #popupNotifCard,
+html body .popupNotifCard,
+html body .popupOverlay#popupNotif {
+  z-index: 2147483648 !important;
+}
+
+/* BY DEFAULT, HIDE REJECT OVERLAYS UNLESS ACTIVE/SHOWING */
+#rejectOverlay:not(.show):not(.active),
+#modalRejectBreakdown:not(.show):not(.active),
+#modalRejectParsial:not(.show):not(.active) {
+  display: none !important;
+}
+
+/* =======================================================================
+   RESPONSIVE REJECT POPUP SYSTEM (TAMPILAN HP & LAPTOP EXACT BOUNDS)
+   ======================================================================= */
+/* 1. TAMPILAN HP (MOBILE: MAX-WIDTH 768PX) */
+@media screen and (max-width: 768px) {
+  html body #rejectOverlay.show,
+  html body #rejectOverlay.active,
+  html body #modalRejectBreakdown.show,
+  html body #modalRejectBreakdown.active,
+  html body #modalRejectParsial.show,
+  html body #modalRejectParsial.active,
+  html body .popupOverlay#rejectOverlay.show,
+  html body .popupOverlay#modalRejectBreakdown.show,
+  #rejectOverlay.show,
+  #rejectOverlay.active,
+  #modalRejectBreakdown.show,
+  #modalRejectBreakdown.active,
+  #modalRejectParsial.show,
+  #modalRejectParsial.active {
+    position: fixed !important;
+    top: 1mm !important;
+    left: 1mm !important;
+    right: 1mm !important;
+    bottom: 0 !important;
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 1mm) !important;
+    max-height: calc(100vh - 1mm) !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    z-index: 2147483640 !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  html body .rejectBoxPopup,
+  html body #rejectOverlay .rejectBoxPopup,
+  html body #modalRejectBreakdown .rejectBoxPopup,
+  .rejectBoxPopup {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-box) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .rejectHeaderPopup,
+  html body #rejectOverlay .rejectHeaderPopup,
+  html body #modalRejectBreakdown .rejectHeaderPopup,
+  .rejectHeaderPopup {
+    width: 100% !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: var(--primary) !important;
+    color: #ffffff !important;
+  }
+
+  html body .rejectBodyPopup,
+  html body #rejectOverlay .rejectBodyPopup,
+  html body #modalRejectBreakdown .rejectBodyPopup,
+  .rejectBodyPopup {
+    width: 100% !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2mm !important;
+  }
+
+  html body #rejectReason,
+  html body #inputAlasanRejectParsial,
+  #rejectReason,
+  #inputAlasanRejectParsial {
+    width: 100% !important;
+    padding: 8px 10px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-card) !important;
+    color: var(--text-main) !important;
+  }
+
+  html body .rejectBodyPopup .confirmButton,
+  html body #rejectOverlay .confirmButton,
+  html body #modalRejectBreakdown .confirmButton,
+  .confirmButton {
+    display: flex !important;
+    gap: 2mm !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 2mm !important;
+  }
+}
+
+/* 2. TAMPILAN LAPTOP (DESKTOP: MIN-WIDTH 769PX) */
+@media screen and (min-width: 769px) {
+  html body #rejectOverlay.show,
+  html body #rejectOverlay.active,
+  html body #modalRejectBreakdown.show,
+  html body #modalRejectBreakdown.active,
+  html body #modalRejectParsial.show,
+  html body #modalRejectParsial.active,
+  html body .popupOverlay#rejectOverlay.show,
+  html body .popupOverlay#modalRejectBreakdown.show,
+  #rejectOverlay.show,
+  #rejectOverlay.active,
+  #modalRejectBreakdown.show,
+  #modalRejectBreakdown.active,
+  #modalRejectParsial.show,
+  #modalRejectParsial.active {
+    position: fixed !important;
+    inset: 0 !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    z-index: 2147483640 !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  html body .rejectBoxPopup,
+  html body #rejectOverlay .rejectBoxPopup,
+  html body #modalRejectBreakdown .rejectBoxPopup,
+  .rejectBoxPopup {
+    width: 100% !important;
+    max-width: 480px !important;
+    margin: auto !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-box) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  html body .rejectHeaderPopup,
+  html body #rejectOverlay .rejectHeaderPopup,
+  html body #modalRejectBreakdown .rejectHeaderPopup,
+  .rejectHeaderPopup {
+    width: 100% !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    background: var(--primary) !important;
+    color: #ffffff !important;
+  }
+
+  html body .rejectBodyPopup,
+  html body #rejectOverlay .rejectBodyPopup,
+  html body #modalRejectBreakdown .rejectBodyPopup,
+  .rejectBodyPopup {
+    width: 100% !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2mm !important;
+  }
+
+  html body #rejectReason,
+  html body #inputAlasanRejectParsial,
+  #rejectReason,
+  #inputAlasanRejectParsial {
+    width: 100% !important;
+    padding: 8px 10px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    border-radius: 6px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-card) !important;
+    color: var(--text-main) !important;
+  }
+
+  html body .rejectBodyPopup .confirmButton,
+  html body #rejectOverlay .confirmButton,
+  html body #modalRejectBreakdown .confirmButton,
+  .confirmButton {
+    display: flex !important;
+    gap: 2mm !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin-top: 2mm !important;
+  }
 }
 

@@ -202,8 +202,23 @@
 
   <!-- TOP-RIGHT HEADER ACTIONS CONTAINER (ALIGNED FLUSH TO RIGHT CARD BOUNDARY) -->
   <div id="topHeaderActions" class="top-header-actions">
-    <!-- BULAT KECIL INDIKATOR STATUS ONLINE (KONEK / DISKONEK) - RATA ATAS -->
-    <div id="firebaseOnlineDot" title="STATUS KONEKSI: TERHUBUNG KE SUPABASE (KLIK UNTUK LIHAT STATUS)" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; flex-shrink: 0; cursor: pointer; transition: all 0.3s; align-self: flex-start !important; margin-top: 2px !important; transform: none !important; pointer-events: auto !important;" onclick="klikStatusKoneksiServer()"></div>
+    <!-- BULAT KECIL INDIKATOR STATUS ONLINE (KONEK / DISKONEK) - RATA ATAS PRESISI & UKURAN KECIL -->
+    <div id="firebaseOnlineDot" title="STATUS KONEKSI: TERHUBUNG KE SUPABASE (KLIK UNTUK LIHAT STATUS)" style="width: 6px !important; height: 6px !important; min-width: 6px !important; min-height: 6px !important; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px #10b981; flex-shrink: 0; cursor: pointer; transition: all 0.3s; align-self: flex-start !important; margin-top: 2px !important; transform: none !important; pointer-events: auto !important;" onclick="klikStatusKoneksiServer()"></div>
+
+    <!-- KOTAK PERSEGI TANGGAL & JAM REAL-TIME SEBELAH ICON STATUS DATABASE (METALLIC SILVER CHROME 46PX FOR DESKTOP) -->
+    <div id="liveClockSquareBox" class="live-clock-square-box">
+      <span class="material-symbols-rounded" style="color: #f59e0b; font-size: 18px; flex-shrink: 0;">calendar_month</span>
+      <span id="liveDateText" style="color: #ffffff !important; font-weight: 700 !important; white-space: nowrap !important;">--</span>
+      <span style="color: rgba(255, 255, 255, 0.4); margin: 0 2px;">|</span>
+      <span class="material-symbols-rounded" style="color: #38bdf8; font-size: 18px; flex-shrink: 0;">schedule</span>
+      <span id="liveTimeText" style="color: #38bdf8 !important; font-family: monospace, monospace !important; font-size: 13px !important; font-weight: 800 !important; white-space: nowrap !important;">--:--:-- WIB</span>
+    </div>
+
+    <!-- STACKED DATE (DD/MM/YYYY) & CLOCK (HH:mm:SS) SEBELAH ICON BANTUAN -->
+    <div id="mobileClockInlineBox" class="mobile-clock-inline-box" title="TANGGAL & JAM REAL-TIME SISTEM">
+      <div id="mobileClockDateText" class="mobileClockDateText" style="color: #ffffff !important; font-family: monospace, monospace !important; font-size: 10px !important; font-weight: 500 !important; white-space: nowrap !important; line-height: 1 !important; margin-bottom: 1px !important;">--/--/----</div>
+      <div id="mobileClockTimeText" class="mobileClockTimeText" style="color: #ffffff !important; font-family: monospace, monospace !important; font-size: 10px !important; font-weight: 500 !important; white-space: nowrap !important; line-height: 1 !important;">--:--:--</div>
+    </div>
 
     <button id="helpButton" class="helpButton" onclick="bukaBantuan()" title="PUSAT BANTUAN & CHAT" style="display: none;">
       <span class="material-symbols-rounded">support_agent</span>
@@ -356,13 +371,13 @@
         <div class="header">
           <div>
             <h3 id="namaUser">ADMINISTRATOR PUSAT</h3>
-            <small id="areaUser">ADMIN - ALL AREA</small>
+            <small id="areaUser" style="font-size: 10px !important; opacity: 0.75; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-top: 1px;">ADMIN - ALL AREA</small>
           </div>
         </div>
 
-        <!-- 4 Vibrant Glassmorphism Metric Cards (PENDING, APPROVE, REJECT, DONE) -->
+        <!-- 5 Modern Glassmorphism Metric Cards (PENDING, APPROVE, REJECT, DONE, BATAL) -->
         <div class="stats">
-          <div class="cardStat pending" onclick="filterDashboardRecent('PENDING')" title="TAMPILKAN DATA PENDING DI DASHBOARD">
+          <div class="cardStat pending active" onclick="filterDashboardRecent('PENDING')" title="TAMPILKAN DATA PENDING DI DASHBOARD">
             <div class="cardTop">
               <div class="icon"><span class="material-symbols-rounded">hourglass_top</span></div>
               <div class="cardText">
@@ -409,25 +424,31 @@
             <span class="material-symbols-rounded bgWatermark">assignment_turned_in</span>
             <div class="statProgressBg"><div id="barDone" class="statProgressFill" style="width: 20%;"></div></div>
           </div>
+
+          <div class="cardStat batal" onclick="filterDashboardRecent('BATAL')" title="TAMPILKAN DATA BATAL DI DASHBOARD">
+            <div class="cardTop">
+              <div class="icon"><span class="material-symbols-rounded">block</span></div>
+              <div class="cardText">
+                <div class="judul">BATAL</div>
+                <div id="batal" class="angka">0</div>
+              </div>
+            </div>
+            <span class="material-symbols-rounded bgWatermark">do_not_disturb_on</span>
+            <div class="statProgressBg"><div id="barBatal" class="statProgressFill" style="width: 10%;"></div></div>
+          </div>
         </div>
       </div>
 
-      <!-- TITLE DATA DASHBOARD DI LUAR KOTAK (DI ATAS TABEL) -->
-      <h3 id="dashboardRecentTitle" style="margin: 1mm 0 1mm 2px !important; font-size: 13.5px !important; font-weight: 700 !important; color: var(--text-main); text-align: left !important; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;">
-        <span class="material-symbols-rounded" style="color: var(--primary); font-size: 18px;">format_list_bulleted</span>
-        PERMINTAAN PENDING
-      </h3>
-
-      <!-- TABEL DASHBOARD (SUDUT 95 DERAJAT / 9.5PX BORDER-RADIUS) -->
-      <div id="detailDashboard" style="margin: 1mm 0 1mm 0 !important; padding: 0 !important; border-radius: 5px !important; border: 0 !important; background: var(--bg-box) !important; overflow-x: auto !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important;">
+      <!-- TABEL DASHBOARD (TERLETAK SEGERA DI BAWAH KOTAK STATUS - DENGAN GAP 5MM) -->
+      <div id="detailDashboard">
         <div class="tableWrap" style="border-radius: 5px !important; overflow-x: auto !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; margin: 0 !important; border: 0 !important;">
           <table class="dashboardTable" style="border-radius: 5px !important; border-collapse: separate !important; border-spacing: 0 !important; border: 0 !important; min-width: 650px !important;">
             <thead>
-              <tr>
-                <th style="width: 18%; text-align: center !important; border-radius: 9.5px 0 0 0 !important; position: sticky; top: 0; z-index: 20;">TANGGAL</th>
+              <tr style="background: var(--primary); color: #fff;">
+                <th style="width: 18%; text-align: center !important; border-radius: 0 !important; position: sticky; top: 0; z-index: 20;">TANGGAL</th>
                 <th style="width: 32%; text-align: center !important; border-radius: 0 !important; position: sticky; top: 0; z-index: 20;">NO SURAT</th>
                 <th style="width: 30%; text-align: center !important; border-radius: 0 !important; position: sticky; top: 0; z-index: 20;">NAMA TOKO</th>
-                <th style="width: 20%; text-align: center !important; border-radius: 0 9.5px 0 0 !important; position: sticky; top: 0; z-index: 20;">STATUS</th>
+                <th style="width: 20%; text-align: center !important; border-radius: 0 !important; position: sticky; top: 0; z-index: 20;">STATUS</th>
               </tr>
             </thead>
             <tbody id="lastData">
@@ -821,7 +842,7 @@
     <div id="bottomMenu" style="display:none;">
       <button onclick="showPage('dashboardPage')">
         <span class="material-symbols-rounded">home</span>
-        DASHBOARD
+        <span class="nav-label-desktop">DASHBOARD</span><span class="nav-label-mobile">HOME</span>
       </button>
 
       <button onclick="showPage('inputPage')">
@@ -831,17 +852,17 @@
 
       <button onclick="bukaMenuRiwayat()">
         <span class="material-symbols-rounded">history</span>
-        DETAIL DATA
+        <span class="nav-label-desktop">DETAIL DATA</span><span class="nav-label-mobile">DETAIL</span>
       </button>
 
       <button id="btnMasterDbNav" onclick="showPage('masterDbPage')" style="display: none;">
         <span class="material-symbols-rounded">dataset</span>
-        MASTER DATA
+        <span class="nav-label-desktop">MASTER DATA</span><span class="nav-label-mobile">MASTER</span>
       </button>
 
       <button id="btnUserNav" onclick="showPage('userManagementPage')" style="display: none;">
         <span class="material-symbols-rounded">manage_accounts</span>
-        USER MGMT
+        <span class="nav-label-desktop">USER MGMT</span><span class="nav-label-mobile">USER</span>
       </button>
 
       <button onclick="bukaAkun()">
