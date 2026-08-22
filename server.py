@@ -7,7 +7,6 @@ PORT = 8080
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(DIRECTORY, "cloud_db.json")
 
-# Initialize cloud_db.json if not exists
 if not os.path.exists(DB_FILE):
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump({"requests": [], "users": [], "stores": [], "lookup": {}}, f, indent=2)
@@ -16,12 +15,17 @@ class SyncHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-cache, no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
+        super().end_headers()
+
     def do_GET(self):
         if self.path.startswith("/api/sync"):
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
-            self.send_header("Cache-Control", "no-cache")
             self.end_headers()
             if os.path.exists(DB_FILE):
                 with open(DB_FILE, "rb") as f:
@@ -50,7 +54,7 @@ class SyncHandler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(json.dumps({"error": str(e)}).encode("utf-8"))
         else:
-            self.send_error(404)
+            super().do_POST()
 
     def do_OPTIONS(self):
         self.send_response(200)

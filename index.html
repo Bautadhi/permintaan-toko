@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>PERMINTAAN TOKO</title>
+  <!-- Favicon Toko Biru -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg?v=20260819_v10096">
+  <link rel="alternate icon" href="favicon.svg?v=20260819_v10096">
+  <link rel="apple-touch-icon" href="favicon.svg?v=20260819_v10096">
 
   <!-- Google Fonts: Poppins & Material Symbols Rounded -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -16,22 +20,190 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <!-- WAJIB ADA: Library Supabase Client agar database engine dapat berjalan -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.min.js"></script>
+  <!-- PDF.js & Tesseract OCR untuk pembacaan dokumen PDF & Gambar lokal / failsafe -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-  <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260807_v22">
-  <script src="app.js?v=20260807_v531"></script>
-
-  <!-- Firebase App, Firestore & Realtime Database Web SDK (Compat Mode) -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-</head>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
+
+  <!-- Master Stylesheet -->
+  <link rel="stylesheet" href="styles.css?v=20260820_v10290">
+  <script src="app.js?v=20260820_v10300"></script>
+
+  <!-- Global Failsafe Gemini AI Key Handler -->
+  <script>
+    function getGeminiApiKey() {
+      var key = localStorage.getItem('gemini_api_key') || localStorage.getItem('GEMINI_API_KEY') || '';
+      key = String(key).trim();
+      if (key === 'null' || key === 'undefined') key = '';
+      return key;
+    }
+
+    function updateAiKeyBadgeStatus() {
+      var btn = document.getElementById('btnGeminiApiKey');
+      var label = document.getElementById('labelGeminiApiKey');
+      var key = getGeminiApiKey();
+      if (label) {
+        label.textContent = key ? 'KEY AI (AKTIF)' : 'KEY AI';
+      }
+      if (btn) {
+        if (key) {
+          btn.style.setProperty('background', 'linear-gradient(135deg, #10b981, #059669)', 'important');
+          btn.title = 'Gemini AI API Key Aktif (Klik untuk ubah/hapus)';
+        } else {
+          btn.title = 'Masukkan Google Gemini AI API Key (Hanya Diisi Sekali Saja)';
+        }
+      }
+    }
+
+    function tutupModalGeminiApiKey() {
+      var modal = document.getElementById('modalGeminiApiKey');
+      if (modal) {
+        modal.style.setProperty('display', 'none', 'important');
+        modal.classList.remove('show');
+      }
+    }
+
+    function simpanGeminiApiKeyDariModal() {
+      var input = document.getElementById('inputGeminiApiKeyVal');
+      var val = input ? String(input.value).trim() : '';
+      if (!val) {
+        if (typeof showNotif === 'function') showNotif('API KEY KOSONG! SILAHKAN TEMPEL KEY GEMINI ANDA.', 'warning');
+        else alert('API KEY KOSONG! SILAHKAN TEMPEL KEY GEMINI ANDA.');
+        return;
+      }
+      localStorage.setItem('gemini_api_key', val);
+      localStorage.setItem('GEMINI_API_KEY', val);
+      updateAiKeyBadgeStatus();
+      tutupModalGeminiApiKey();
+      if (typeof showNotif === 'function') showNotif('GEMINI API KEY BERHASIL DISIMPAN!', 'success');
+      else alert('GEMINI API KEY BERHASIL DISIMPAN!');
+    }
+
+    function hapusGeminiApiKeyPermanen() {
+      localStorage.removeItem('gemini_api_key');
+      localStorage.removeItem('GEMINI_API_KEY');
+      var input = document.getElementById('inputGeminiApiKeyVal');
+      if (input) input.value = '';
+      updateAiKeyBadgeStatus();
+      tutupModalGeminiApiKey();
+      if (typeof showNotif === 'function') showNotif('GEMINI API KEY TELAH DIHAPUS!', 'info');
+      else alert('GEMINI API KEY TELAH DIHAPUS!');
+    }
+
+    function aturGeminiApiKey() {
+      console.log('[GEMINI AI] Opening Custom Gemini API Key Modal...');
+      var modal = document.getElementById('modalGeminiApiKey');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalGeminiApiKey';
+        document.body.appendChild(modal);
+      }
+
+      var currentKey = getGeminiApiKey();
+
+      modal.className = 'modalBackdrop show';
+      modal.onclick = function(e) {
+        if (e.target === modal) tutupModalGeminiApiKey();
+      };
+      if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+
+      var isDesktop = window.innerWidth > 768;
+      var alignStyle = isDesktop ? 'align-items: center !important; padding: 12px !important;' : 'align-items: flex-start !important; padding-top: 1mm !important; padding-bottom: 2mm !important; padding-left: 1mm !important; padding-right: 1mm !important;';
+      var marginStyle = isDesktop ? 'margin: auto !important;' : 'margin: 0 auto !important;';
+      var widthStyle = isDesktop ? 'max-width: 480px !important;' : 'width: calc(100vw - 2mm) !important; max-width: calc(100vw - 2mm) !important;';
+
+      modal.style.cssText = 'display: flex !important; position: fixed !important; top: 0px !important; left: 0px !important; right: 0px !important; bottom: 0px !important; width: 100vw !important; height: 100vh !important; background: rgba(0, 0, 0, 0.85) !important; z-index: 1000000000 !important; justify-content: center !important; ' + alignStyle + ' box-sizing: border-box !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important;';
+
+      modal.innerHTML = `
+        <div class="modalKeyBox" onclick="event.stopPropagation()" style="background: #ffffff !important; color: #0f172a !important; border-radius: 4px !important; width: 100% !important; ` + widthStyle + ` box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important; border: 2.5px solid #f59e0b !important; overflow: hidden !important; box-sizing: border-box !important; ` + marginStyle + ` font-family: system-ui, -apple-system, sans-serif !important;">
+          <div class="modalKeyHeader" style="background: linear-gradient(135deg, #f59e0b, #d97706) !important; padding: 10px 12px !important; color: #ffffff !important; display: flex !important; justify-content: space-between !important; align-items: center !important;">
+            <div style="display: flex !important; align-items: center !important; gap: 8px !important; font-weight: 800 !important; font-size: 14px !important; letter-spacing: 0.5px !important;">
+              <span class="material-symbols-rounded" style="font-size: 22px !important; color: #ffffff !important;">key</span>
+              <span>PENGATURAN / UBAH GEMINI API KEY</span>
+            </div>
+            <button type="button" onclick="tutupModalGeminiApiKey()" style="color: #ffffff !important; font-weight: 900 !important; font-size: 28px !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important; padding: 0 4px !important;" title="TUTUP">&times;</button>
+          </div>
+          <div class="modalKeyBody" style="padding: 2mm !important; display: flex !important; flex-direction: column !important; gap: 10px !important; box-sizing: border-box !important; background: #ffffff !important;">
+            <p style="margin: 0 !important; font-size: 12px !important; color: #475569 !important; line-height: 1.5 !important;">
+              Masukan KEY AI. Buat key gratis di <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style="color: #d97706 !important; font-weight: 700 !important; text-decoration: underline !important;">https://aistudio.google.com/</a>
+            </p>
+            <div style="width: 100% !important; box-sizing: border-box !important;">
+              <div style="display: flex !important; justify-content: space-between !important; align-items: center !important; margin-bottom: 6px !important;">
+                <label style="font-size: 11.5px !important; font-weight: 800 !important; color: #0f172a !important; margin: 0 !important;">GOOGLE GEMINI API KEY:</label>
+                <button type="button" onclick="var inp=document.getElementById('inputGeminiApiKeyVal'); if(inp){ inp.value=''; inp.focus(); }" style="background: none !important; border: none !important; color: #ef4444 !important; font-size: 11px !important; font-weight: 700 !important; cursor: pointer !important; text-decoration: underline !important;">
+                  HAPUS TEKS
+                </button>
+              </div>
+              <div style="position: relative !important; display: flex !important; align-items: center !important; width: 100% !important;">
+                <input type="text" id="inputGeminiApiKeyVal" value="${currentKey}" placeholder="Tempel API Key di sini (Contoh: AIzaSy...)" style="width: 100% !important; height: 44px !important; padding: 8px 12px !important; border-radius: 3px !important; border: 1.5px solid #cbd5e1 !important; background: #f8fafc !important; color: #0f172a !important; font-family: monospace !important; font-size: 13px !important; outline: none !important; box-sizing: border-box !important;">
+              </div>
+            </div>
+            <div style="display: flex !important; gap: 8px !important; justify-content: space-between !important; align-items: center !important; margin-top: 6px !important; flex-wrap: wrap !important;">
+              <button type="button" onclick="hapusGeminiApiKeyPermanen()" style="background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important; border-radius: 3px !important; padding: 10px 14px !important; font-weight: 700 !important; font-size: 12px !important; cursor: pointer !important;">
+                KOSONGKAN KEY
+              </button>
+              <div style="display: flex !important; gap: 8px !important; align-items: center !important;">
+                <button type="button" onclick="tutupModalGeminiApiKey()" style="background: #f1f5f9 !important; color: #334155 !important; border: 1px solid #cbd5e1 !important; border-radius: 3px !important; padding: 10px 16px !important; font-weight: 700 !important; font-size: 12px !important; cursor: pointer !important;">
+                  BATAL
+                </button>
+                <button type="button" onclick="simpanGeminiApiKeyDariModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #ffffff !important; border: none !important; border-radius: 3px !important; padding: 10px 20px !important; font-weight: 800 !important; font-size: 12px !important; cursor: pointer !important; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35) !important;">
+                  SIMPAN PERUBAHAN
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      var inputEl = document.getElementById('inputGeminiApiKeyVal');
+      if (inputEl) {
+        inputEl.onkeydown = function(e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            simpanGeminiApiKeyDariModal();
+          }
+        };
+        setTimeout(function() {
+          inputEl.focus();
+          inputEl.select();
+        }, 150);
+      }
+    }
+
+    window.getGeminiApiKey = getGeminiApiKey;
+    window.updateAiKeyBadgeStatus = updateAiKeyBadgeStatus;
+    window.tutupModalGeminiApiKey = tutupModalGeminiApiKey;
+    window.simpanGeminiApiKeyDariModal = simpanGeminiApiKeyDariModal;
+    window.hapusGeminiApiKeyPermanen = hapusGeminiApiKeyPermanen;
+    window.aturGeminiApiKey = aturGeminiApiKey;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      updateAiKeyBadgeStatus();
+    });
+  </script>
+
+  <!-- Firebase App, Firestore & Realtime Database Web SDK (Compat Mode) -->
+  </head>
 <body class="dark-mode">
+
+  <!-- AESTHETIC SUBTLE AMBIENT SCENERY BACKGROUND (SAMAR-SAMAR) -->
+  <div class="aesthetic-bg-container" aria-hidden="true">
+    <div class="aesthetic-bg-image"></div>
+    <div class="aesthetic-bg-grid"></div>
+    <div class="aesthetic-orb aesthetic-orb-1"></div>
+    <div class="aesthetic-orb aesthetic-orb-2"></div>
+    <div class="aesthetic-orb aesthetic-orb-3"></div>
+  </div>
 
   <!-- TOP-RIGHT HEADER ACTIONS CONTAINER (ALIGNED FLUSH TO RIGHT CARD BOUNDARY) -->
   <div id="topHeaderActions" class="top-header-actions">
-    <!-- BULAT KECIL INDIKATOR FIREBASE ONLINE (KONEK / DISKONEK) -->
-    <div id="firebaseOnlineDot" title="FIREBASE DATABASE ONLINE: TERHUBUNG" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; flex-shrink: 0; cursor: pointer; transition: all 0.3s;" onclick="showNotif('STATUS FIREBASE DATABASE WEB ONLINE: TERHUBUNG', 'success')"></div>
+    <!-- BULAT KECIL INDIKATOR STATUS ONLINE (KONEK / DISKONEK) - RATA ATAS -->
+    <div id="firebaseOnlineDot" title="STATUS KONEKSI: TERHUBUNG KE SUPABASE (KLIK UNTUK LIHAT STATUS)" style="width: 10px; height: 10px; border-radius: 50%; background: #10b981; box-shadow: 0 0 8px #10b981; flex-shrink: 0; cursor: pointer; transition: all 0.3s; align-self: flex-start !important; margin-top: 2px !important; transform: none !important; pointer-events: auto !important;" onclick="klikStatusKoneksiServer()"></div>
 
     <button id="helpButton" class="helpButton" onclick="bukaBantuan()" title="PUSAT BANTUAN & CHAT" style="display: none;">
       <span class="material-symbols-rounded">support_agent</span>
@@ -43,34 +215,37 @@
     </button>
   </div>
   <!-- POPUP DAFTAR NOTIFIKASI SISTEM (STANDAR SAMA DENGAN POPUP NOTIFCARD) -->
-  <div id="popupNotifList" class="popupOverlay">
-    <div class="popupNotifCard" style="width: 500px; max-width: 92vw; padding: 5mm; border-radius: 20px; text-align: left !important;">
-      <div style="background: linear-gradient(135deg, #0284c7, #0369a1); margin: -5mm -5mm 12px -5mm; padding: 14px 18px; border-radius: 18px 18px 0 0; display: flex; justify-content: space-between; align-items: center;">
-        <span style="display: flex; align-items: center; gap: 8px; font-weight: 800; color: #fff; font-size: 15px; text-transform: uppercase;">
-          <span class="material-symbols-rounded">notifications</span> NOTIFIKASI SISTEM
+  <div id="popupNotifList" class="popupOverlay" style="display: none; box-sizing: border-box !important;">
+    <div class="popupNotifCard" style="width: 1000px !important; max-width: 98vw !important; height: calc(100vh - 2cm) !important; max-height: calc(100vh - 2cm) !important; padding: 10px; border-radius: 5px; text-align: left !important; margin: auto !important; display: flex !important; flex-direction: column !important; -webkit-clip-path: inset(0 round 5px) !important; clip-path: inset(0 round 5px) !important;">
+      <div style="background: linear-gradient(135deg, #0284c7, #0369a1); margin: -10px -10px 8px -10px; padding: 10px 14px; border-radius: 5px 5px 0 0; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+        <span style="display: flex; align-items: center; gap: 8px; font-weight: 800; color: #fff; font-size: 14px; text-transform: uppercase;">
+          <span class="material-symbols-rounded" style="font-size: 20px;">notifications</span> NOTIFIKASI SISTEM
         </span>
-        <button type="button" onclick="tutupNotificationModal()" style="background: none; border: none; color: #ef4444 !important; font-size: 24px; font-weight: 900; cursor: pointer; line-height: 1;" title="TUTUP">&times;</button>
+        <button type="button" onclick="tutupNotificationModal()" style="background: none; border: none; color: #ef4444 !important; font-size: 22px; font-weight: 900; cursor: pointer; line-height: 1;" title="TUTUP">&times;</button>
       </div>
 
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px; gap: 8px;">
-        <button type="button" style="background: none; border: none; color: var(--primary); font-size: 11.5px; font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="markAllNotifAsRead()">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; padding: 0 4px; gap: 8px; flex-shrink: 0;">
+        <button type="button" style="background: none; border: none; color: var(--primary); font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="markAllNotifAsRead()">
           TANDAI SEMUA DIBACA
+        </button>
+        <button type="button" id="btnHapusSemuaNotifSystem" style="display: none; background: none; border: none; color: #ef4444; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline;" onclick="hapusSemuaNotifikasiSystem()">
+          HAPUS SEMUA NOTIFIKASI
         </button>
       </div>
 
-      <div id="notifListBody" style="max-height: 340px; overflow-y: auto; padding-right: 4px;">
+      <div id="notifListBody" style="max-height: none !important; min-height: 200px !important; overflow-y: auto; padding-right: 4px; flex: 1 1 0px !important;">
         <!-- Injected Dynamically -->
       </div>
 
-      <div style="margin-top: 14px;">
-        <button type="button" class="btnOkNotif" style="height: 42px; width: 100%; border-radius: 12px; background: linear-gradient(135deg, #0284c7, #0369a1);" onclick="tutupNotificationModal()">TUTUP</button>
+      <div style="margin-top: 10px; flex-shrink: 0;">
+        <button type="button" class="btnOkNotif" style="height: 36px; width: 100%; border-radius: 5px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #0284c7, #0369a1);" onclick="tutupNotificationModal()">TUTUP</button>
       </div>
     </div>
   </div>
 
-  <!-- CHAT WIDGET POPUP - SHORTER 380PX HEIGHT -->
-  <div id="popupBantuan" class="popupBantuan">
-    <div class="chatBox">
+  <!-- CHAT WIDGET POPUP (FULL POPUP OVERLAY WITH BACKDROP BLUR) -->
+  <div id="popupBantuan" class="popupOverlay popupBantuan" onclick="if(event.target === this) tutupBantuan()" style="display: none; box-sizing: border-box !important;">
+    <div class="chatBox" style="height: calc(100vh - 2cm) !important; max-height: calc(100vh - 2cm) !important; margin: auto !important; border-radius: 5px !important; -webkit-clip-path: inset(0 round 5px) !important; clip-path: inset(0 round 5px) !important;">
       <div class="chatHeader">
         <div class="chatInfo">
           <div class="chatAvatar"><span class="material-symbols-rounded">support_agent</span></div>
@@ -79,11 +254,46 @@
             <div class="chatStatus">ONLINE &bull; READY TO HELP</div>
           </div>
         </div>
-        <button type="button" class="chatClose" onclick="tutupBantuan()">&times;</button>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" id="btnHapusSemuaChatHeader" class="btnHapusChatAllHeader" onclick="hapusSemuaChatAdmin()" title="HAPUS SEMUA CHAT SISTEM (KHUSUS ADMIN)" style="display: none; background: none; border: none; color: #ffffff; opacity: 0.85; cursor: pointer; align-items: center;">
+            <span class="material-symbols-rounded" style="font-size: 20px;">delete_forever</span>
+          </button>
+          <button type="button" class="chatClose" onclick="tutupBantuan()" title="TUTUP CHAT SUPPORT" style="font-weight: 900 !important; font-size: 26px !important; color: #ffffff !important;">&times;</button>
+        </div>
       </div>
 
       <!-- Admin Conversation Room List -->
-      <div id="chatList" style="display:none; flex:1; overflow-y:auto; padding:10px;"></div>
+      <div id="chatList" style="display:none; flex:1; overflow-y:auto; padding:2mm 0 0 0;"></div>
+
+      <!-- Admin User Picker for Starting New Chat -->
+      <div id="chatUserPicker" style="display:none; flex:1; overflow-y:auto; padding:2mm 0 0 0; flex-direction:column;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <div style="font-weight:700; font-size:13px; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+            <span class="material-symbols-rounded" style="color:var(--primary); font-size:18px;">contacts</span> PILIH TOKO / USER
+          </div>
+          <button type="button" onclick="tutupUserPickerChat()" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:26px; line-height:1; font-weight:900;" title="TUTUP">&times;</button>
+        </div>
+        <input type="text" id="cariUserChatInput" placeholder="Cari nama toko / user / area..." style="width:100%; padding:8px 12px; border-radius: 5px; border:1px solid var(--border-color); background:var(--input-bg, #fff); color:var(--text-main); margin-bottom:8px; font-size:12px;" oninput="filterListUserChat(this.value)">
+        <div id="listUserChatContainer" style="flex:1; overflow-y:auto;"></div>
+      </div>
+
+      <!-- Broadcast Dialog Modal -->
+      <div id="chatBroadcastModal" style="display:none; position:absolute; inset:0; background:rgba(0,0,0,0.65); z-index:100; align-items:center; justify-content:center; padding:16px;">
+        <div style="background:var(--card-bg, #ffffff); border-radius: 5px; padding:16px; width:100%; max-width:320px; box-shadow:0 10px 25px rgba(0,0,0,0.3); border:1px solid var(--border-color);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-weight:700; font-size:13px; color:#d97706; display:flex; align-items:center; gap:6px;">
+              <span class="material-symbols-rounded" style="font-size:18px;">campaign</span> SIARKAN KE SEMUA TOKO
+            </div>
+            <button type="button" onclick="tutupBroadcastChatModal()" style="background:none; border:none; color:var(--primary); cursor:pointer; font-size:26px; font-weight:900;" title="TUTUP">&times;</button>
+          </div>
+          <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Pesan ini akan dikirimkan secara serentak ke seluruh Toko & Sales.</p>
+          <textarea id="pesanBroadcastChatInput" rows="3" placeholder="Tulis pesan siaran di sini..." style="width:100%; padding:8px 10px; border-radius: 5px; border:1px solid var(--border-color); background:var(--input-bg, #fff); color:var(--text-main); font-size:12px; resize:none; margin-bottom:12px; box-sizing:border-box;"></textarea>
+          <div style="display:flex; gap:8px; justify-content:flex-end;">
+            <button type="button" onclick="tutupBroadcastChatModal()" style="padding:6px 12px; border-radius: 5px; border:1px solid var(--border-color); background:transparent; color:var(--text-main); font-size:12px; cursor:pointer;">BATAL</button>
+            <button type="button" onclick="kirimBroadcastChatKeSemuaUser()" style="padding:6px 14px; border-radius: 5px; border:none; background:#d97706; color:#fff; font-weight:700; font-size:12px; cursor:pointer;">KIRIM SIARAN</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Chat Message Body -->
       <div id="chatBody" class="chatBody"></div>
@@ -93,7 +303,7 @@
         <button type="button" id="btnBackAdmin" style="display:none; width:36px; height:36px; border-radius:50%; background:#64748b; color:#fff; border:none; cursor:pointer;" onclick="kembaliKeDaftarAdmin()">
           <span class="material-symbols-rounded">arrow_back</span>
         </button>
-        <input type="text" id="chatPesan" placeholder="KETIK PESAN..." onkeypress="if(event.key==='Enter') kirimPesanChat()">
+        <input type="text" id="chatPesan" placeholder="KETIK PESAN..." onkeydown="if((event.key==='Enter'||event.keyCode===13)&&!event.shiftKey){event.preventDefault();kirimPesanChat();}">
         <button type="button" onclick="kirimPesanChat()">
           <span class="material-symbols-rounded">send</span>
         </button>
@@ -123,6 +333,9 @@
           <div class="input-group">
             <span><span class="material-symbols-rounded">lock</span></span>
             <input type="password" id="password" placeholder="PASSWORD">
+            <button type="button" id="togglePasswordBtn" onclick="togglePasswordVisibility()" title="LIHAT / SEMBUNYIKAN PASSWORD">
+              <span class="material-symbols-rounded" id="togglePasswordIcon" style="font-size: 20px;">visibility</span>
+            </button>
           </div>
 
           <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 15px; margin-top: -4px;">
@@ -136,14 +349,14 @@
     </section>
 
     <!-- ==========================================================================
-         2. DASHBOARD PAGE (RICH VIVID COLORED METRIC CARDS & FILTERABLE LIST)
+         DASHBOARD PAGE (USER NAME & STAT CARDS FIXED AT TOP, ONLY TABLE SCROLLS)
          ========================================================================== -->
     <section id="dashboardPage" class="page">
       <div class="dashboardTop">
-        <div class="header" style="text-align: left !important; justify-content: flex-start !important;">
-          <div style="text-align: left !important;">
-            <h3 id="namaUser" style="text-align: left !important;">ADMINISTRATOR PUSAT</h3>
-            <small id="areaUser" style="text-align: left !important; display: block !important;">ADMIN - ALL AREA</small>
+        <div class="header">
+          <div>
+            <h3 id="namaUser">ADMINISTRATOR PUSAT</h3>
+            <small id="areaUser">ADMIN - ALL AREA</small>
           </div>
         </div>
 
@@ -200,21 +413,21 @@
       </div>
 
       <!-- TITLE DATA DASHBOARD DI LUAR KOTAK (DI ATAS TABEL) -->
-      <h3 id="dashboardRecentTitle" style="margin: 6px 0 8px 2px !important; font-size: 18px !important; font-weight: 900 !important; color: var(--text-main); text-align: left !important; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;">
-        <span class="material-symbols-rounded" style="color: var(--primary); font-size: 22px;">format_list_bulleted</span>
+      <h3 id="dashboardRecentTitle" style="margin: 1mm 0 1mm 2px !important; font-size: 13.5px !important; font-weight: 700 !important; color: var(--text-main); text-align: left !important; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px;">
+        <span class="material-symbols-rounded" style="color: var(--primary); font-size: 18px;">format_list_bulleted</span>
         PERMINTAAN PENDING
       </h3>
 
-      <!-- TABEL DASHBOARD TANPA CARD (LANGSUNG TERHUBUNG KE HALAMAN) -->
-      <div id="detailDashboard" style="background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 0 22px 0 !important;">
-        <div class="tableWrap">
-          <table class="dashboardTable">
+      <!-- TABEL DASHBOARD (SUDUT 95 DERAJAT / 9.5PX BORDER-RADIUS) -->
+      <div id="detailDashboard" style="margin: 1mm 0 1mm 0 !important; padding: 0 !important; border-radius: 5px !important; border: 0 !important; background: var(--bg-box) !important; overflow-x: auto !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important;">
+        <div class="tableWrap" style="border-radius: 5px !important; overflow-x: auto !important; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-x pan-y !important; margin: 0 !important; border: 0 !important;">
+          <table class="dashboardTable" style="border-radius: 5px !important; border-collapse: separate !important; border-spacing: 0 !important; border: 0 !important; min-width: 650px !important;">
             <thead>
               <tr>
-                <th style="width: 18%; text-align: left;">TANGGAL</th>
-                <th style="width: 32%; text-align: left;">NO SURAT</th>
-                <th style="width: 30%; text-align: left;">NAMA TOKO</th>
-                <th style="width: 20%; text-align: center;">STATUS</th>
+                <th style="width: 18%; text-align: center !important; border-radius: 9.5px 0 0 0 !important; position: sticky; top: 0; z-index: 20;">TANGGAL</th>
+                <th style="width: 32%; text-align: center !important; border-radius: 0 !important; position: sticky; top: 0; z-index: 20;">NO SURAT</th>
+                <th style="width: 30%; text-align: center !important; border-radius: 0 !important; position: sticky; top: 0; z-index: 20;">NAMA TOKO</th>
+                <th style="width: 20%; text-align: center !important; border-radius: 0 9.5px 0 0 !important; position: sticky; top: 0; z-index: 20;">STATUS</th>
               </tr>
             </thead>
             <tbody id="lastData">
@@ -229,22 +442,59 @@
          3. INPUT FORM PAGE (FULL SCREEN LAYOUT WITH MARGIN)
          ========================================================================== -->
     <section id="inputPage" class="page">
-      <div class="box">
-        <h3>FORM PERMINTAAN TOKO</h3>
+      <div class="inputPageHeader" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 10px 14px; flex-wrap: wrap; gap: 8px;">
+        <h3 style="margin: 0;">FORM PERMINTAAN TOKO</h3>
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+          <button type="button" onclick="triggerUploadPdfAutoFill()" title="INPUT PDF AUTO-FILL" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; border: 1.5px solid #047857; border-radius: 4px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(16, 185, 129, 0.25); transition: transform 0.15s ease;">
+            <span class="material-symbols-rounded" style="font-size: 18px; line-height: 1;">picture_as_pdf</span>
+          </button>
+          <button type="button" onclick="triggerUploadGambarAutoFill()" title="INPUT GAMBAR AUTO-FILL" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; background: linear-gradient(135deg, #7c3aed, #9333ea); color: #ffffff; border: 1.5px solid #6d28d9; border-radius: 4px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(147, 51, 234, 0.25); transition: transform 0.15s ease;">
+            <span class="material-symbols-rounded" style="font-size: 18px; line-height: 1;">image</span>
+          </button>
+          <button type="button" onclick="triggerUploadExcelAutoFill()" title="INPUT EXCEL AUTO-FILL" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; background: linear-gradient(135deg, #107c41, #0f7b40); color: #ffffff; border: 1.5px solid #0b592e; border-radius: 4px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(16, 124, 65, 0.3); transition: transform 0.15s ease;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+              <path d="M14 2H20C21.1 2 22 2.9 22 4V20C22 21.1 21.1 22 20 22H14V2Z" fill="#185C37"/>
+              <path d="M15 6H20V8.5H15V6Z" fill="#33C481"/>
+              <path d="M15 10.75H20V13.25H15V10.75Z" fill="#33C481"/>
+              <path d="M15 15.5H20V18H15V15.5Z" fill="#33C481"/>
+              <path d="M2 3.5C2 2.67 2.67 2 3.5 2H14V22H3.5C2.67 22 2 21.33 2 20.5V3.5Z" fill="#107C41"/>
+              <path d="M5 6.5L7.5 12L5 17.5H7.2L8.6 14.1L10 17.5H12.2L9.7 12L12.2 6.5H10L8.6 9.9L7.2 6.5H5Z" fill="#FFFFFF"/>
+            </svg>
+          </button>
+          <button type="button" onclick="downloadTemplateExcelPermintaan()" title="Download Format Template Excel" style="width: 32px; height: 32px; min-width: 32px; min-height: 32px; padding: 0; background: rgba(16, 124, 65, 0.14); color: #107c41; border: 1.5px solid #107c41; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(16, 124, 65, 0.15); transition: transform 0.15s ease;">
+            <span class="material-symbols-rounded" style="font-size: 19px; line-height: 1; color: #107c41;">download_for_offline</span>
+          </button>
+        </div>
+        <input type="file" id="inputPdfAutoFill" accept="application/pdf,.pdf" style="display: none;" onchange="prosesPdfAutoFillGemini(event)">
+        <input type="file" id="inputGambarAutoFill" accept="image/*,.jpg,.jpeg,.png,.webp,.heic" style="display: none;" onchange="prosesGambarAutoFillGemini(event)">
+        <input type="file" id="inputExcelAutoFill" accept=".xlsx,.xls,.csv" style="display: none;" onchange="prosesExcelAutoFill(event)">
+      </div>
+      <div class="box" style="margin-top: 10px;">
 
         <label>TANGGAL</label>
         <input id="tanggal" readonly>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; width: 100%;">
           <label style="margin-bottom: 0;">NAMA TOKO</label>
           
           <!-- Bungkus dengan ID containerTambahToko -->
           <div id="containerTambahToko">
-            <button type="button" style="background: none; border: none; color: var(--primary); font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="bukaModalTambahToko()">
+            <button type="button" style="background: none; border: none; color: var(--primary); font-weight: bold; font-size: 12px; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0;" onclick="bukaModalTambahToko(this)">
               <span class="material-symbols-rounded" style="font-size: 16px;">add_circle</span> TAMBAH TOKO
             </button>
           </div>
         </div>
-        <select id="toko"></select>
+
+        <!-- Baris Pilihan Toko & Kolom Pencarian Toko Cepat (Rata Kanan Sempurna 100% Lebar) -->
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; width: 100%; box-sizing: border-box;">
+          <select id="toko" style="flex: 3; min-width: 0; height: 44px; margin: 0; border-radius: 5px; box-sizing: border-box;"></select>
+          <div id="wrapperCariToko" style="flex: 1; min-width: 120px; max-width: 25%; position: relative; height: 44px; box-sizing: border-box; margin: 0;">
+            <span class="material-symbols-rounded" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-muted); pointer-events: none;">search</span>
+            <input type="text" id="cariTokoInput" placeholder="CARI TOKO" style="width: 100%; height: 44px; padding: 0 28px 0 34px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 12px; text-transform: uppercase; box-sizing: border-box; margin: 0;" oninput="filterDropdownToko(this.value)">
+            <button type="button" id="btnHapusCariToko" onclick="resetCariToko()" title="Hapus Pencarian" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; display: none; padding: 2px; align-items: center;">
+              <span class="material-symbols-rounded" style="font-size: 16px;">cancel</span>
+            </button>
+          </div>
+        </div>
 
         <label>JENIS PERMINTAAN</label>
         <select id="jenisPermintaan" onchange="gantiJenis()">
@@ -252,7 +502,7 @@
           <option value="DUS">DUS</option>
         </select>
 
-        <h3 style="margin-top: 25px; margin-bottom: 12px; text-align: left !important;">DETAIL PERMINTAAN</h3>
+        <h3 id="judulDetailPermintaan" style="margin-top: 25px; margin-bottom: 12px; text-align: left !important; color: var(--primary) !important;">DETAIL PERMINTAAN</h3>
         <div id="infoSerial" style="text-align: left !important;"></div>
 
         <!-- Dynamic Container Rows (No Header) -->
@@ -265,12 +515,12 @@
         </div>
 
         <div id="sectionUploadFoto">
-          <label>FOTO BARANG PENDUKUNG (MAKSIMAL 5 FOTO)</label>
+          <label id="labelUploadFoto">FOTO BARANG PENDUKUNG (SESUAI JUMLAH ITEM)</label>
           <div class="uploadBox">
-            <input type="file" id="foto" accept="image/*" multiple onchange="previewFoto(event)" style="display:none">
+            <input type="file" id="foto" accept="image/png, image/jpeg, image/jpg, image/webp, image/heic, image/heif, image/*" multiple onchange="previewFoto(event)" style="display:none">
             <div id="previewArea" onclick="pilihFoto()">
               <span class="material-symbols-rounded uploadIcon">add_a_photo</span>
-              <div id="previewText">TAP / DRAG FOTO DI SINI (MAKSIMAL 5 FOTO)</div>
+              <div id="previewText">TAP / PILIH FOTO DI SINI</div>
               <div id="photoPreviewsGrid" class="photo-grid-preview"></div>
             </div>
           </div>
@@ -288,12 +538,12 @@
          ========================================================================== -->
     <section id="riwayatPage" class="page">
       <div class="riwayatContent">
-        <h3>DETAIL DATA PERMINTAAN</h3>
+        <h3 id="riwayatPageTitle" style="text-align: center !important; margin-top: 0 !important; padding-top: 1mm !important; margin-bottom: 6px !important;">DETAIL DATA PERMINTAAN</h3>
 
         <div class="searchToolbar">
-          <input type="text" id="searchRiwayat" placeholder="CARI NO SURAT, TOKO, TYPE, SERIAL..." onkeyup="filterRiwayat()">
+          <input type="text" id="searchRiwayat" placeholder="CARI NO SURAT, TOKO, TYPE..." onkeyup="filterRiwayat()">
 
-          <select id="filterStatusDropdown" style="width: 170px;" onchange="filterRiwayatDropdown()">
+          <select id="filterStatusDropdown" onchange="filterRiwayatDropdown()">
             <option value="ALL">SEMUA STATUS</option>
             <option value="PENDING">PENDING</option>
             <option value="APPROVE">APPROVE</option>
@@ -301,8 +551,8 @@
             <option value="DONE">DONE</option>
           </select>
 
-          <button class="btnDownload" onclick="downloadExcel()">
-            <span class="material-symbols-rounded">download</span> DOWNLOAD EXCEL (.XLSX)
+          <button class="btnDownload" onclick="downloadExcel()" title="DOWNLOAD EXCEL (.XLSX)">
+            <span class="material-symbols-rounded">download</span>
           </button>
         </div>
 
@@ -325,7 +575,7 @@
     <section id="masterDbPage" class="page">
       <div class="box box-full">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-          <h3 style="color: var(--primary);">MASTER DATABASE PERMINTAAN LENGKAP (ADMIN DATA UTAMA)</h3>
+          <h3 style="color: var(--primary);">MASTER DATA PERMINTAAN LENGKAP (ADMIN DATA UTAMA)</h3>
           <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
             <button type="button" id="btnHapusMultiMasterDb" class="btnDownload" style="display: none; background: #ef4444; height: 42px; padding: 0 18px; font-weight: 800;" onclick="hapusMultiMasterDb()">
               <span class="material-symbols-rounded">delete_sweep</span> HAPUS (0) DATA
@@ -337,7 +587,7 @@
         </div>
 
         <div class="searchToolbar">
-          <input type="text" id="searchMasterDb" placeholder="CARI MASTER DATABASE (NO SURAT, TOKO, TYPE, SERI, BARANG)..." onkeyup="loadMasterDbTable()">
+          <input type="text" id="searchMasterDb" placeholder="CARI DATA PERMINTAAN (NO SURAT, TOKO, TYPE, SERI, BARANG)..." onkeyup="loadMasterDbTable()">
         </div>
 
         <div class="tableWrap">
@@ -370,119 +620,131 @@
          6. USER MANAGEMENT & SETTINGS PAGE (ADMIN TSM - WITH KODE TOKO FIELD)
          ========================================================================== -->
     <section id="userManagementPage" class="page">
-      <!-- FONTE WHATSAPP AUTOMATION TOKEN CONFIGURATION -->
-      <div class="box" style="border-left: 4px solid #16a34a; margin-bottom: 20px;">
-        <h3 style="color: #16a34a; display: flex; align-items: center; gap: 8px;">
-          <span class="material-symbols-rounded">chat</span> PENGATURAN AUTOMATION WHATSAPP (FONTE / FONNTE API)
+      <!-- FONTE WHATSAPP AUTOMATION TOKEN -->
+      <div class="box" style="border-left: 4px solid #16a34a; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <h3 style="color: #16a34a; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span class="material-symbols-rounded">chat</span> PENGATURAN AUTOMATION WHATSAPP (FONTE)
         </h3>
         <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
-          NOTIFIKASI WHATSAPP AKAN OTOMATIS DIKIRIMKAN KE SERVICE, DM, DAN TOKO/SALES UNTUK SETIAP PERUBAHAN STATUS PERMINTAAN.
+          MASUKKAN TOKEN FONTE WHATSAPP UNTUK OTOMASI PEMBERITAHUAN APLIKASI SECARA REALTIME.
         </p>
 
         <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-          <input type="text" id="fonteTokenInput" placeholder="MASUKKAN TOKEN FONTE" style="flex: 1; min-width: 280px; padding: 12px;">
+          <input type="text" id="fonteTokenInput" placeholder="MASUKKAN TOKEN FONTE (CONTOH: 7dK9...)" style="flex: 1; min-width: 280px; padding: 12px;">
           <button type="button" class="btnDownload" style="background: #16a34a; height: 44px;" onclick="simpanFonteToken()">
             <span class="material-symbols-rounded">save</span> SIMPAN TOKEN WA
+          </button>
+          <button type="button" class="btnDownload" style="background: #0284c7; height: 44px; font-weight: 700;" onclick="tesKoneksiFonteToken()" title="CEK APAKAH TOKEN VALID & TERHUBUNG KE WA">
+            <span class="material-symbols-rounded">verified</span> TES KONEKSI WA
           </button>
         </div>
       </div>
 
-      <!-- ADMIN CONTROL SWITCH: FEATURE TOGGLE FOR UPLOAD FOTO INPUT -->
-      <div class="box" style="border-left: 4px solid #8b5cf6; margin-bottom: 20px; background: rgba(139, 92, 246, 0.05);">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-          <div>
-            <h3 style="color: #8b5cf6; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span class="material-symbols-rounded">camera_alt</span> ATUR KOLOM UNGGAH FOTO USER (ON / OFF)
-            </h3>
-            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-              KONTROL ADMIN UNTUK MENAMPILKAN ATAU MENYEMBUNYIKAN SEKSI UPLOAD FOTO DI HALAMAN FORM PERMINTAAN SEMUA USER.
-            </p>
-          </div>
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span id="photoFeatureStatusText" style="font-weight: 700; font-size: 13px; color: #10b981;">AKTIF (ON)</span>
-            <button type="button" id="btnTogglePhotoFeature" class="btnDownload" style="background: #8b5cf6; height: 38px; padding: 0 16px;" onclick="toggleFeaturePhotoAdmin()">
-              TOGGLE ON / OFF
-            </button>
-          </div>
+      <!-- PENGATURAN DISTRICT MANAGER (DM) FOR PDF STAMPING -->
+      <div class="box" style="border-left: 4px solid #0284c7; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span class="material-symbols-rounded">badge</span> PENGATURAN NAMA DISTRICT MANAGER (DM)
+        </h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          MASUKKAN NAMA DISTRICT MANAGER (DM) YANG AKAN DISIMPAN DI SUPABASE & DITEMPELKAN PADA CETAKAN DOKUMEN PDF/SPBAS.
+        </p>
+
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <input type="text" id="inputNamaDM" placeholder="MASUKKAN NAMA DISTRICT MANAGER (DM)..." style="flex: 1; min-width: 280px; padding: 12px; font-size: 12.5px; font-weight: 700; text-transform: uppercase;">
+          <button type="button" class="btnDownload" style="background: #0284c7; height: 44px; font-weight: 700;" onclick="simpanNamaDM()">
+            <span class="material-symbols-rounded">save</span> SIMPAN NAMA DM
+          </button>
         </div>
       </div>
 
-      <!-- ADMIN CONTROL TOGGLES (REMINDER PENDING SERVICE & DM) -->
-      <div id="adminReminderControlContainer" class="box" style="border-left: 4px solid #7c3aed; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-        <div>
-          <h3 style="color: #7c3aed; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-            <span class="material-symbols-rounded">notifications_active</span> REMINDER OTOMATIS PENDING SERVICE & DM
-          </h3>
-          <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-            KIRIM NOTIFIKASI REMINDER OTOMATIS KE SERVICE AREA & DM JIKA ADA PERMINTAAN BARU YANG BELUM DI-APPROVE.
-          </p>
-        </div>
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <label style="font-size: 11px; font-weight: 700; color: var(--text-main); margin-bottom: 0;">JAM WA:</label>
-            <input type="time" id="adminReminderTimeInput" style="padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color);" onchange="simpanAdminReminderTime()">
+      <!-- ADMIN CONTROL: HAPUS GAMBAR / FOTO SUPABASE -->
+      <div class="box" style="border-left: 4px solid #ef4444; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 style="color: #ef4444; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="material-symbols-rounded">delete</span> HAPUS GAMBAR / FOTO SUPABASE
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+              MENGHAPUS SEMUA GAMBAR/FOTO DARI SUPABASE CLOUD DAN APLIKASI UNTUK MENGHEMAT KAPASITAS PENYIMPANAN.
+            </p>
           </div>
-          <span id="reminderFeatureStatusText" style="font-size: 13px; font-weight: 800; color: #10b981;">AKTIF (ON)</span>
-          <button type="button" class="btnDownload" style="background: #7c3aed; height: 38px; padding: 0 16px;" onclick="toggleAdminReminderFeature()">
-            <span class="material-symbols-rounded">toggle_on</span> ON / OFF
+          <button type="button" class="btnDownload" style="background: #dc2626; color: #ffffff; padding: 10px 16px; font-weight: 700;" onclick="hapusSemuaFotoBiasa()">
+            <span class="material-symbols-rounded" style="vertical-align: middle; margin-right: 4px;">delete_forever</span> HAPUS SEMUA FOTO
           </button>
         </div>
       </div>
 
       <!-- ADMIN CONTROL: PENGATURAN UPLOAD FOTO (GLOBAL ON / OFF) -->
-      <div id="adminPhotoControlContainer" class="box" style="border-left: 4px solid #10b981; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div id="adminPhotoControlContainer" class="box" style="border-left: 4px solid #10b981; margin-bottom: 1mm !important; background: var(--bg-card); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
         <div>
           <h3 style="color: #10b981; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
             <span class="material-symbols-rounded">add_a_photo</span> PENGATURAN UPLOAD FOTO BUKTI (GLOBAL ON / OFF)
           </h3>
           <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-            JIKA STATUS OFF, FITUR UPLOAD FOTO DI SELEKSI FORM INPUT DAN LIHAT FOTO DINOAKTIFKAN UNTUK SEMUA AKUN / USER.
+            KONTROL ADMIN GLOBAL: JIKA STATUS OFF, FITUR UPLOAD FOTO DI FORMULIR PERMINTAAN DAN TOMBOL LIHAT FOTO DINONAKTIFKAN DI SELURUH PERANGKAT USER SECARA REALTIME.
           </p>
         </div>
         <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
           <span id="photoFeatureStatusText" style="font-size: 13px; font-weight: 800; color: #10b981;">AKTIF (ON)</span>
-          <button type="button" class="btnDownload" style="background: #10b981; height: 38px; padding: 0 16px;" onclick="toggleFeaturePhotoAdmin()">
-            <span class="material-symbols-rounded">toggle_on</span> ON / OFF
+          <button type="button" id="btnTogglePhotoFeature" class="btnDownload" style="background: #10b981; height: 38px; padding: 0 16px; font-weight: 700;" onclick="toggleFeaturePhotoAdmin()">
+            <span id="photoToggleBtnIcon" class="material-symbols-rounded">toggle_on</span> <span id="photoToggleBtnText">ON / OFF</span>
           </button>
         </div>
       </div>
 
       <!-- ADMIN CONTROL: HAPUS SEMUA CHAT DI FIREBASE & LOKAL -->
-      <div class="box" style="border-left: 4px solid #ef4444; margin-bottom: 20px; background: rgba(239, 68, 68, 0.05);">
+      <div class="box" style="border-left: 4px solid #ef4444; margin-bottom: 1mm !important; background: var(--bg-card);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="color: #ef4444; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span class="material-symbols-rounded">forum</span> HAPUS SEMUA CHAT DI FIREBASE & LOKAL
+              <span class="material-symbols-rounded">forum</span> HAPUS SEMUA CHAT BANTUAN
             </h3>
             <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-              BERSIHKAN SELURUH PESAN CHAT DAN ROOM CHAT BANTUAN SECARA PERMANEN DARI DATABASE CLOUD & PENYIMPANAN LOKAL.
+              BERSIHKAN SELURUH PESAN CHAT DAN ROOM CHAT BANTUAN SECARA PERMANEN.
             </p>
           </div>
           <button type="button" class="btnDownload" style="background: #ef4444; height: 42px; padding: 0 20px; font-weight: 800;" onclick="hapusSemuaChatAdmin()">
-            <span class="material-symbols-rounded">delete_sweep</span> HAPUS SEMUA CHAT CLOUD
+            <span class="material-symbols-rounded">delete_sweep</span> HAPUS SEMUA CHAT
           </button>
         </div>
       </div>
 
       <!-- ADMIN CONTROL: HAPUS SEMUA NOTIFIKASI DI FIREBASE & LOKAL -->
-      <div class="box" style="border-left: 4px solid #dc2626; margin-bottom: 20px; background: rgba(220, 38, 38, 0.05);">
+      <div class="box" style="border-left: 4px solid #dc2626; margin-bottom: 1mm !important; background: var(--bg-card);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="color: #dc2626; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-              <span class="material-symbols-rounded">notifications_off</span> HAPUS SEMUA NOTIFIKASI DI FIREBASE & LOKAL
+              <span class="material-symbols-rounded">notifications_off</span> HAPUS SEMUA NOTIFIKASI
             </h3>
             <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
-              BERSIHKAN SELURUH RIWAYAT NOTIFIKASI PERMINTAAN SECARA PERMANEN DARI DATABASE CLOUD FIREBASE & PENYIMPANAN PERANGKAT.
+              BERSIHKAN SELURUH RIWAYAT NOTIFIKASI PERMINTAAN SECARA PERMANEN.
             </p>
           </div>
           <button type="button" class="btnDownload" style="background: #dc2626; height: 42px; padding: 0 20px; font-weight: 800;" onclick="hapusSemuaNotifFirebaseDanLokal()">
-            <span class="material-symbols-rounded">delete_sweep</span> HAPUS SEMUA NOTIF CLOUD
+            <span class="material-symbols-rounded">delete_sweep</span> HAPUS SEMUA NOTIFIKASI
+          </button>
+        </div>
+      </div>
+
+      <!-- ADMIN CONTROL: HAPUS PENYIMPANAN LOKAL / CACHE -->
+      <div id="containerHapusPenyimpananLokalAdmin" class="box" style="border-left: 4px solid #ef4444; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="color: #ef4444; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="material-symbols-rounded">delete_forever</span> HAPUS LOKAL PENYIMPANAN / CACHE
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+              BERSIHKAN SELURUH DATA LOKAL PENYIMPANAN & CACHE APLIKASI DI PERANGKAT SECARA PERMANEN.
+            </p>
+          </div>
+          <button type="button" class="btnDownload" style="background: linear-gradient(135deg, #ef4444, #b91c1c); height: 42px; padding: 0 20px; font-weight: 800; border: none; border-radius: 5px; color: #ffffff; cursor: pointer; box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);" onclick="hapusSemuaDataLokal()">
+            <span class="material-symbols-rounded">delete_forever</span> HAPUS LOKAL PENYIMPANAN / CACHE
           </button>
         </div>
       </div>
 
       <!-- UPLOAD MASTER LOOKUP KODE UNIT (FILE EXCEL .XLSX: A=KODE, B=TYPE) -->
-      <div class="box" style="border-left: 4px solid #0284c7; margin-bottom: 20px;">
+      <div class="box" style="border-left: 4px solid #0284c7; margin-bottom: 1mm !important; background: var(--bg-card);">
         <h3 style="color: #0284c7; display: flex; align-items: center; gap: 8px;">
           <span class="material-symbols-rounded">upload_file</span> UPLOAD MASTER LOOKUP KODE UNIT (FILE EXCEL .XLSX)
         </h3>
@@ -499,8 +761,24 @@
         </div>
       </div>
 
+      <!-- BOX UPLOAD MASTER DAFTAR TOKO SEKALIGUS (FILE EXCEL 2 KOLOM: A=NAMA TOKO, B=AREA) -->
+      <div class="box" style="border-left: 4px solid #16a34a; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <h3 style="color: #16a34a; display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+          <span class="material-symbols-rounded">file_upload</span> UPLOAD DAFTAR TOKO SEKALIGUS (EXCEL / CSV - 2 KOLOM)
+        </h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+          DATA EXCEL: <strong>KOLOM A = NAMA TOKO</strong> | <strong>KOLOM B = AREA</strong> (MISAL: BDG, CKR, TSMI, CSB). KODE TOKO UNIK OTOMATIS DIBUAT & DISIMPAN KE CLOUD.
+        </p>
+        <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+          <input type="file" id="excelTokoFileAdminInput" accept=".xlsx, .xls, .csv" style="display:none" onchange="prosesUploadExcelToko(event)">
+          <button type="button" class="btnDownload" style="background: #16a34a; height: 42px;" onclick="document.getElementById('excelTokoFileAdminInput').click()">
+            <span class="material-symbols-rounded">upload_file</span> UPLOAD EXCEL DAFTAR TOKO (KOLOM A = NAMA, KOLOM B = AREA)
+          </button>
+        </div>
+      </div>
+
       <!-- PENGATURAN MODEL TEMPLATE PDF SURAT PERMINTAAN (5 MODEL WITH LARGE POPUP MODAL) -->
-      <div class="box" style="border-left: 4px solid #7c3aed; margin-bottom: 28px; background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(109, 40, 217, 0.03)); box-shadow: 0 4px 14px rgba(124, 58, 237, 0.08);">
+      <div class="box" style="border-left: 4px solid #7c3aed; margin-bottom: 1mm !important; background: var(--bg-card);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
           <div>
             <h3 style="color: #7c3aed; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-weight: 900;">
@@ -508,64 +786,31 @@
             </h3>
             <p style="font-size: 12.5px; color: var(--text-muted); margin: 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
               STATUS MODEL TERPASANG: 
-              <span id="activePdfModelBadge" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #ffffff; padding: 4px 12px; border-radius: 20px; font-weight: 900; font-size: 11px; letter-spacing: 0.5px; box-shadow: 0 3px 8px rgba(124, 58, 237, 0.25);">
+              <span id="activePdfModelBadge" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #ffffff; padding: 4px 12px; border-radius: 5px; font-weight: 900; font-size: 11px; letter-spacing: 0.5px; box-shadow: 0 3px 8px rgba(124, 58, 237, 0.25);">
                 MODE 1 (STANDAR KLASIK)
               </span>
             </p>
           </div>
-          <button type="button" class="btnTambahBarang" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); height: 44px; padding: 0 22px; font-weight: 800; border-radius: 12px; box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);" onclick="bukaModalPdfModels()">
+          <button type="button" class="btnTambahBarang" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); height: 44px; padding: 0 22px; font-weight: 800; border-radius: 5px; box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);" onclick="bukaModalPdfModels()">
             <span class="material-symbols-rounded">style</span> PILIH & PRATINJAU MODEL PDF (MODE 1 - 5)
           </button>
         </div>
       </div>
 
-      <!-- USER MANAGEMENT TABLE -->
-      <div class="box">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
-          <h3>PENGATURAN AKUN USER, KODE TOKO & HAK AKSES</h3>
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <button type="button" id="btnHapusMultiUser" class="btnDownload" style="display: none; background: #ef4444; height: 38px; padding: 0 16px; font-weight: 800;" onclick="hapusMultiUser()">
-              <span class="material-symbols-rounded">delete_sweep</span> HAPUS (0) USER
-            </button>
-            <button class="btnTambahBarang" onclick="bukaUserModal()">
-              <span class="material-symbols-rounded">person_add</span> TAMBAH USER BARU
-            </button>
+      <!-- KONTROL ADMIN: KELOLA AKUN USER & HAK AKSES (POPUP TABEL USER) -->
+      <div class="box" style="border-left: 4px solid #0f766e; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <div>
+            <h3 style="color: #0f766e; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="material-symbols-rounded">manage_accounts</span> PENGATURAN AKUN USER & HAK AKSES
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+              PENGATURAN AKUN USER, KODE TOKO, HAK AKSES (ROLE), EDIT, HAPUS & TAMBAH USER BARU DALAM TABEL POPUP.
+            </p>
           </div>
-        </div>
-
-        <div class="tableWrap">
-          <table class="historyTable">
-            <thead>
-              <tr>
-                <th style="width: 36px; text-align: center;">
-                  <input type="checkbox" id="selectAllUsers" onchange="toggleSelectAllUsers(this)" style="cursor: pointer; width: 16px; height: 16px;" title="PILIH SEMUA">
-                </th>
-                <th>USERNAME</th>
-                <th>PASSWORD</th>
-                <th>NAMA LENGKAP</th>
-                <th>KODE TOKO</th>
-                <th>NO. HP</th>
-                <th>KATEGORI</th>
-                <th>AREA</th>
-                <th style="text-align: right;">AKSI MANAGEMENT</th>
-              </tr>
-            </thead>
-            <tbody id="userTableBody">
-              <tr>
-                <td style="font-weight:600;">ADMIN</td>
-                <td style="font-family:monospace; color:var(--text-muted);">1</td>
-                <td>ADMINISTRATOR PUSAT</td>
-                <td><strong style="color:var(--primary);">-</strong></td>
-                <td>-</td>
-                <td><span class="badgeStatus badge-pending" style="font-weight:600;">ADMIN</span></td>
-                <td><span style="color:var(--primary); font-weight:600;">ALL</span></td>
-                <td style="text-align: right; white-space:nowrap;">
-                  <button class="btnIcon btnEdit" onclick="bukaUserModal('USR-ADMIN')" title="EDIT USER"><span class="material-symbols-rounded">edit</span></button>
-                  <button class="btnIcon btnDelete" onclick="hapusUser('USR-ADMIN')" title="HAPUS USER"><span class="material-symbols-rounded">delete</span></button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <button type="button" class="btnTambahBarang" style="background: linear-gradient(135deg, #0f766e, #115e59); color: #ffffff; padding: 10px 18px; font-weight: 800; border-radius: 5px; box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3); margin-bottom: 5mm !important; display: inline-flex; align-items: center; gap: 6px; cursor: pointer;" onclick="bukaPopupUserManagement()">
+            <span class="material-symbols-rounded" style="font-size: 18px;">manage_accounts</span> PENGATURAN & EDIT USER LOGIN
+          </button>
         </div>
       </div>
     </section>
@@ -590,8 +835,8 @@
       </button>
 
       <button id="btnMasterDbNav" onclick="showPage('masterDbPage')" style="display: none;">
-        <span class="material-symbols-rounded">database</span>
-        MASTER DB
+        <span class="material-symbols-rounded">dataset</span>
+        MASTER DATA
       </button>
 
       <button id="btnUserNav" onclick="showPage('userManagementPage')" style="display: none;">
@@ -611,101 +856,196 @@
        MODALS & POPUPS
        ========================================================================== -->
 
-  <!-- 1. POPUP AKUN & PROFILE MODAL -->
-  <div id="popupAkun" class="popupAkun">
-    <div class="akunBox" style="position: relative;">
-      <button type="button" class="popupClose" onclick="tutupAkun()" style="position: absolute; top: 12px; right: 12px;" title="TUTUP">&times;</button>
-      <h2>PROFIL AKUN</h2>
-      <div class="akunGrid">
+  <div id="popupAkun" class="popupAkun" onclick="if(event.target === this || event.target.id === 'popupAkun') tutupAkun();" style="display: none; box-sizing: border-box !important;">
+    <div class="akunBox" style="position: relative; width: 450px !important; max-width: calc(100vw - 2mm) !important; height: auto !important; max-height: calc(100vh - 2mm) !important; max-height: calc(100dvh - 2mm) !important; margin: 0 auto !important; overflow-y: auto !important; border-radius: 6px !important; padding: 2mm !important; -webkit-clip-path: inset(0 round 6px) !important; clip-path: inset(0 round 6px) !important;">
+            <button type="button" class="popupClose" onclick="tutupAkun()" style="position: absolute !important; top: 10px !important; right: 12px !important; font-size: 24px !important; font-weight: 900 !important; color: var(--primary) !important; background: transparent !important; border: none !important; border-radius: 0 !important; width: auto !important; height: auto !important; padding: 0 4px !important; cursor: pointer !important; z-index: 10 !important;" title="TUTUP PROFIL AKUN">&times;</button>
+      <h2 style="margin-top: 0; margin-bottom: 8px; font-size: 15px; font-weight: 900; text-align: center; color: var(--primary);">PROFIL AKUN</h2>
+      
+      <div class="akunGrid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px 8px; margin-bottom: 5px;">
         <div style="min-width: 0;">
-          <label>NAMA LENGKAP</label>
-          <input type="text" id="akunNama">
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px; display: block;">NAMA LENGKAP</label>
+          <input type="text" id="akunNama" style="width: 100%; padding: 5px 8px; font-size: 11.5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); box-sizing: border-box;">
         </div>
 
         <div style="min-width: 0;">
-          <label>NO. HP / WA</label>
-          <input type="text" id="akunHP">
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px; display: block;">NO. HP / WA</label>
+          <input type="text" id="akunHP" placeholder="0812... / 0898..." style="width: 100%; padding: 5px 8px; font-size: 11.5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); box-sizing: border-box;">
         </div>
 
         <div style="min-width: 0;">
-          <label style="white-space: nowrap !important; word-break: keep-all !important; overflow: hidden !important; text-overflow: ellipsis !important;">AREA SERVICE</label>
-          <input type="text" id="akunArea" readonly style="white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important; width: 100%;">
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px; display: block; white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important;">AREA SERVICE</label>
+          <input type="text" id="akunArea" readonly style="width: 100%; padding: 5px 8px; font-size: 11.5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); box-sizing: border-box; white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important;">
         </div>
 
         <div style="min-width: 0;">
-          <label style="white-space: nowrap !important; word-break: keep-all !important; overflow: hidden !important; text-overflow: ellipsis !important;">KATEGORI</label>
-          <input type="text" id="akunKategori" readonly style="white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important; width: 100%;">
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px; display: block; white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important;">KATEGORI</label>
+          <input type="text" id="akunKategori" readonly style="width: 100%; padding: 5px 8px; font-size: 11.5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); box-sizing: border-box; white-space: nowrap !important; text-overflow: ellipsis !important; overflow: hidden !important;">
         </div>
 
         <div style="grid-column: span 2;">
-          <label>PASSWORD BARU (KOSONGKAN JIKA TIDAK DIUBAH)</label>
-          <input type="password" id="akunPassword" placeholder="MASUKKAN PASSWORD BARU">
+          <label style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); margin-bottom: 2px; display: block;">PASSWORD BARU (KOSONGKAN JIKA TIDAK DIUBAH)</label>
+          <div style="display: flex; gap: 6px; width: 100%; align-items: center;">
+            <input type="password" id="akunPassword" placeholder="MASUKKAN PASSWORD BARU" style="flex: 1; min-width: 0; padding: 5px 8px; font-size: 11.5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); height: 30px; box-sizing: border-box;">
+            <button type="button" class="btnSimpan" onclick="simpanAkun()" style="flex-shrink: 0; height: 30px; padding: 0 16px; border-radius: 5px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #16a34a, #15803d); color: #ffffff; border: none; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px;">
+              <span class="material-symbols-rounded" style="font-size: 16px;">save</span> SIMPAN
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Tambahkan ID menuKelolaTokoAkun di sini -->
-      <div id="menuKelolaTokoAkun" style="margin-top: 10px;">
-        <button type="button" class="btnTambahBarang" style="background: #0284c7; width: 100%; justify-content: center; height: 40px;" onclick="tutupAkun(); bukaModalTambahToko();">
-          <span class="material-symbols-rounded">store</span> KELOLA / TAMBAH TOKO BARU
+      <!-- KELOLA TOKO & KELOLA TTD (SEJAJAR 1 BARIS BAGI 2) -->
+      <div id="containerKelolaTokoTTD" style="margin-top: 5px; margin-bottom: 5px; display: flex; gap: 6px; width: 100%;">
+        <div id="menuKelolaTokoAkun" style="flex: 1; min-width: 0;">
+          <button type="button" class="btnTambahBarang" style="background: linear-gradient(135deg, #0284c7, #0369a1); width: 100%; justify-content: center; height: 30px; border-radius: 5px; font-size: 11px; font-weight: 700; color: #ffffff; border: none; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.25); cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0 4px; white-space: nowrap;" onclick="bukaModalTambahToko()">
+            <span class="material-symbols-rounded" style="font-size: 16px;">store</span> KELOLA TOKO
+          </button>
+        </div>
+        <div id="menuTTD" style="flex: 1; min-width: 0; display: none;">
+          <button type="button" class="btnTambahBarang" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); width: 100%; justify-content: center; height: 30px; border-radius: 5px; font-size: 11px; font-weight: 700; color: #ffffff; border: none; box-shadow: 0 2px 6px rgba(139, 92, 246, 0.25); cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0 4px; white-space: nowrap;" onclick="bukaTTD()">
+            <span class="material-symbols-rounded" style="font-size: 16px;">draw</span> KELOLA TTD
+          </button>
+        </div>
+      </div>
+
+      <!-- 2 EQUAL BUTTONS: GANTI BG & GANTI TEMA -->
+      <div style="margin-top: 5px; margin-bottom: 5px; display: flex; gap: 6px; width: 100%;">
+        <button type="button" class="bg-icon-btn" onclick="if(typeof window.gantiBackgroundApp==='function') window.gantiBackgroundApp(); else if(typeof gantiBackgroundApp==='function') gantiBackgroundApp();" title="GANTI GAMBAR LATAR BELAKANG" style="flex: 1; height: 30px; padding: 2px 4px; border-radius: 5px; border: none; background: linear-gradient(135deg, #059669, #047857); color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(5, 150, 105, 0.25);">
+          <span class="material-symbols-rounded" style="font-size: 16px;">wallpaper</span> GANTI BG
+        </button>
+        <button type="button" class="theme-icon-btn" onclick="toggleTheme()" title="GANTI TEMA TAMPILAN" style="flex: 1; height: 30px; padding: 2px 4px; border-radius: 5px; border: none; background: linear-gradient(135deg, #6366f1, #4338ca); color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 4px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);">
+          <span class="material-symbols-rounded" style="font-size: 16px;">palette</span> GANTI TEMA
         </button>
       </div>
 
-      <div id="menuTTD" style="margin-top: 8px; text-align: center; display: none;">
-        <button type="button" class="btnTambahBarang" style="background: #7c3aed; width: 100%; justify-content: center; height: 40px;" onclick="tutupAkun(); bukaTTD();">
-          <span class="material-symbols-rounded">draw</span> KELOLA TANDA TANGAN DIGITAL (TTD)
+                  <!-- SETELAN TRANSPARANSI BACKGROUND & TOMBOL SAPU HAPUS LOKAL (GRID 1 BARIS PERSIS 44PX) -->
+      <div style="margin-top: 5px; margin-bottom: 5px; display: grid; grid-template-columns: 44px 1fr; grid-template-rows: 44px; gap: 6px; width: 100%; box-sizing: border-box;">
+        
+        <!-- TOMBOL ICON SAPU HAPUS PENYIMPANAN LOKAL (KIRI - PERSIS 44PX) -->
+        <button type="button" class="btnSapuLokal" onclick="hapusPenyimpananLokalAkun()" title="BERSIHKAN / HAPUS PENYIMPANAN LOKAL" style="width: 44px; height: 44px; margin: 0 !important; padding: 0 !important; border-radius: 6px !important; border: 1px solid var(--border-color) !important; background: var(--bg-body) !important; color: #ef4444 !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; box-shadow: 0 1px 3px rgba(0,0,0,0.12) !important; box-sizing: border-box !important; outline: none !important;">
+          <span class="material-symbols-rounded" style="font-size: 23px; color: #ef4444; line-height: 1; display: block;">cleaning_services</span>
+        </button>
+
+        <!-- KOTAK SETELAN TRANSPARANSI BACKGROUND (KANAN - PERSIS 44PX) -->
+        <div style="width: 100%; height: 44px; margin: 0 !important; padding: 4px 10px !important; border-radius: 6px !important; border: 1px solid var(--border-color) !important; background: var(--bg-body) !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important; justify-content: center !important; overflow: hidden !important;">
+          <div style="display: flex; justify-content: space-between; align-items: center; line-height: 1; margin-top: 1px; margin-bottom: 3px;">
+            <span style="font-size: 10.5px; font-weight: 700; color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px;">
+              <span class="material-symbols-rounded" style="font-size: 14px; color: var(--primary); line-height: 1;">opacity</span> TRANSPARANSI BG
+            </span>
+            <span id="bgOpacityValText" style="font-size: 11px; font-weight: 800; color: var(--primary); line-height: 1;">48%</span>
+          </div>
+          <input type="range" id="bgOpacityRange" min="0" max="100" value="48" oninput="ubahTransparansiBackground(this.value)" style="width: 100%; accent-color: var(--primary); cursor: pointer; height: 4px; border-radius: 2px; display: block; margin: 0; padding: 0;">
+        </div>
+
+      </div>
+
+      <!-- TOMBOL PENGATURAN GEMINI API KEY -->
+      <div style="margin-top: 5px; margin-bottom: 5px;">
+        <button type="button" style="background: linear-gradient(135deg, #f59e0b, #d97706); width: 100%; justify-content: center; height: 30px; border-radius: 5px; font-size: 11px; font-weight: 800; color: #ffffff; border: none; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3); cursor: pointer; display: flex; align-items: center; gap: 5px;" onclick="aturGeminiApiKey()">
+          <span class="material-symbols-rounded" style="font-size: 16px;">key</span> PENGATURAN GEMINI API KEY
         </button>
       </div>
 
+      <button type="button" class="btnLogout" onclick="logout()" style="width: 100%; height: 30px; margin-top: 5px; margin-bottom: 2px !important; border-radius: 5px; font-size: 11px; font-weight: 700; background: linear-gradient(135deg, #dc2626, #991b1b); color: #ffffff; border: none; box-shadow: 0 2px 6px rgba(220, 38, 38, 0.25); cursor: pointer;">LOGOUT KELUAR</button>
+    </div>
+  </div>
 
-
-      <!-- 2 EQUAL BUTTONS: REFRESH WEB & GANTI TEMA -->
-      <div style="margin-top: 10px; margin-bottom: 12px; display: flex; gap: 8px; width: 100%;">
-        <button type="button" onclick="location.reload()" title="REFRESH HALAMAN WEB" style="flex: 1; height: 40px; padding: 8px; border-radius: 10px; border: 1px solid var(--border-color); background: #0284c7; color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">
-          <span class="material-symbols-rounded" style="font-size: 18px;">refresh</span> REFRESH WEB
-        </button>
-        <button type="button" class="theme-icon-btn" onclick="toggleTheme()" title="GANTI TEMA TAMPILAN" style="flex: 1; height: 40px; padding: 8px; border-radius: 10px; border: 1px solid var(--border-color); background: var(--primary); color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">
-          <span class="material-symbols-rounded" style="font-size: 18px;">palette</span> GANTI TEMA
-        </button>
+        <!-- POPUP VERIFIKASI PASSWORD KEAMANAN HAPUS PENYIMPANAN LOKAL -->
+  <div id="popupSecurityPinHapusLokal" class="popupOverlay" style="display: none; box-sizing: border-box !important;">
+    <div class="popupBox" style="width: 360px !important; max-width: 94vw !important; background: var(--bg-card) !important; border-radius: 8px !important; box-shadow: 0 25px 60px rgba(0,0,0,0.5) !important; border: 1px solid var(--border-color) !important; overflow: hidden !important; animation: spinnerPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+      
+      <!-- HEADER (SESUAI DENGAN TEMA AKTIF) -->
+      <div style="background: var(--primary); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; color: #ffffff; border-radius: 8px 8px 0 0;">
+        <div style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13.5px; letter-spacing: 0.5px;">
+          <span class="material-symbols-rounded" style="font-size: 20px;">lock_reset</span>
+          <span>VERIFIKASI KEAMANAN</span>
+        </div>
+        <button type="button" onclick="tutupModalPinHapusLokal()" style="background: none; border: none; color: #ffffff; font-size: 24px; font-weight: 900; cursor: pointer; line-height: 1; padding: 0;" title="BATAL">&times;</button>
       </div>
 
-      <div class="akunButton" style="display:flex; align-items:center; gap:8px;">
-        <button type="button" class="btnBatal" onclick="tutupAkun()">BATAL</button>
-        <button type="button" class="btnSimpan" onclick="simpanAkun()">SIMPAN</button>
-      </div>
+      <!-- BODY -->
+      <div style="padding: 16px 18px 18px 18px; text-align: center;">
+        <div style="font-size: 12px; color: var(--text-main); font-weight: 700; line-height: 1.5; margin-bottom: 12px;">
+          MASUKKAN PASSWORD KEAMANAN UNTUK MEMBERSIHKAN PENYIMPANAN LOKAL &amp; LOGOUT:
+        </div>
 
-      <button type="button" class="btnLogout" onclick="logout()">LOGOUT KELUAR</button>
+        <div style="position: relative; margin-bottom: 8px;">
+          <input type="password" id="inputPinHapusLokal" maxlength="6" inputmode="numeric" placeholder="••••••" onkeydown="if(event.key==='Enter'){event.preventDefault();verifikasiDanEksekusiHapusLokal();}" style="width: 100%; height: 44px; text-align: center; font-size: 22px; font-weight: 800; letter-spacing: 8px; border-radius: 6px; border: 2px solid var(--border-color); background: var(--bg-body); color: var(--text-main); box-sizing: border-box; outline: none; transition: border-color 0.2s;" onfocus="this.style.borderColor='var(--primary)'" onblur="this.style.borderColor='var(--border-color)'">
+        </div>
+
+        <div id="pinHapusLokalError" style="display: none; color: #ef4444; font-size: 11.5px; font-weight: 700; margin-bottom: 10px;">
+          PASSWORD KEAMANAN SALAH! (HARUS 6 DIGIT: 111111)
+        </div>
+
+        <div style="font-size: 10.5px; color: var(--text-muted); line-height: 1.3; margin-bottom: 14px;">
+          (Tanda Tangan &amp; Setelan Tema Anda akan tetap aman).
+        </div>
+
+        <!-- ACTION BUTTONS: NO (BATAL) & YES (HAPUS) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button type="button" onclick="tutupModalPinHapusLokal()" style="height: 38px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 12px; font-weight: 800; cursor: pointer;">
+            NO / BATAL
+          </button>
+          <button type="button" onclick="verifikasiDanEksekusiHapusLokal()" style="height: 38px; border-radius: 6px; border: none; background: var(--primary); color: #ffffff; font-size: 12px; font-weight: 800; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25);">
+            YES / HAPUS
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- POPUP TAMBAH TOKO MODAL (UNTUK SEMUA USER - OTOMATIS MASUK AREA USER & GENERATE 2 DIGIT KODE TOKO) -->
-  <div id="popupTambahToko" class="popupOverlay">
-    <div class="popupBox" style="width: 480px; max-width: 94vw; padding: 18px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
-      <div class="popupHeader" style="background: #0284c7; margin: -18px -18px 16px -18px; padding: 14px 18px; border-radius: 10px 10px 0 0;">
-        <span style="display: flex; align-items: center; gap: 6px;"><span class="material-symbols-rounded">store</span> KELOLA / TAMBAH TOKO BARU</span>
-        <button type="button" class="popupClose" onclick="tutupModalTambahToko()">&times;</button>
+  <div id="popupTambahToko" class="popupOverlay" onclick="if(event.target === this || event.target.id === 'popupTambahToko') { if(typeof window.tutupModalTambahToko==='function') window.tutupModalTambahToko(); else if(typeof tutupModalTambahToko==='function') tutupModalTambahToko(); }" style="display: none; align-items: center !important; justify-content: center !important; padding-top: 1mm !important; padding-bottom: 2cm !important; padding-left: 4px !important; padding-right: 4px !important; box-sizing: border-box !important;">
+    <div class="popupBox" style="width: 480px !important; max-width: 92vw !important; height: calc(100vh - 2cm) !important; max-height: calc(100vh - 2cm) !important; overflow: hidden !important; margin: auto !important; padding: 0 !important; border-radius: 5px !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important; display: flex !important; flex-direction: column !important; -webkit-clip-path: inset(0 round 5px) !important; clip-path: inset(0 round 5px) !important;">
+      
+      <!-- HEADER (DIAM / FIXED) -->
+      <div class="popupHeader" style="background: linear-gradient(135deg, #0284c7, #0369a1); margin: 0; padding: 14px 18px; border-radius: 5px 5px 0 0 !important; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+        <span style="display: flex; align-items: center; gap: 6px; color: #ffffff; font-weight: 800; font-size: 14px;"><span class="material-symbols-rounded">store</span> KELOLA / TAMBAH TOKO BARU</span>
+        <button type="button" class="popupClose" onclick="if(typeof window.tutupModalTambahToko==='function') window.tutupModalTambahToko(); else if(typeof tutupModalTambahToko==='function') tutupModalTambahToko();" style="cursor: pointer; background: transparent; border: none; color: #ffffff; font-size: 28px; font-weight: 900; line-height: 1; margin: 0; padding: 0 4px; outline: none;" title="TUTUP">&times;</button>
       </div>
-      <div class="popupBody">
-        <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 12px;">
-          TOKO AKAN OTOMATIS TERSIMPAN PADA AREA <strong id="tokoModalAreaText" style="color: var(--primary);"></strong> DENGAN KODE TOKO 2 DIGIT OTOMATIS.
-        </p>
 
-        <!-- INPUT NAMA TOKO BARU -->
-        <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-          <input type="text" id="inputNamaTokoBaru" placeholder="MASUKKAN NAMA TOKO BARU..." style="flex: 1; padding: 10px; text-transform: uppercase; border-radius: 6px; border: 1px solid var(--border-color);" onkeypress="if(event.key==='Enter') simpanTokoBaru()">
-          <button type="button" class="btnDownload" style="background: #16a34a; white-space: nowrap; padding: 0 16px;" onclick="simpanTokoBaru()">
-            <span class="material-symbols-rounded" style="vertical-align: middle;">save</span> SIMPAN
-          </button>
+      <!-- POPUP BODY (CONTAINER TANPA SCROLL, FORM TERKUNCI DIAM) -->
+      <div class="popupBody" style="padding: 12px 2mm 2mm 2mm !important; overflow: hidden; flex: 1; display: flex; flex-direction: column;">
+        
+        <!-- ELEMENT ATAS TERKUNCI (DIAM) -->
+        <div style="flex-shrink: 0;">
+          <p style="font-size: 11.5px; color: var(--text-muted); margin-bottom: 10px;">
+            PILIH AREA UNTUK TOKO BARU DENGAN KODE TOKO 2 DIGIT OTOMATIS:
+          </p>
+
+          <!-- PILIH AREA TOKO & INPUT NAMA TOKO BARU -->
+          <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+            <select id="selectAreaTokoBaru" style="min-width: 110px; padding: 10px; font-weight: 700; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--primary); font-size: 12px;"></select>
+            <input type="text" id="inputNamaTokoBaru" placeholder="MASUKKAN NAMA TOKO BARU..." style="flex: 1; min-width: 180px; padding: 10px; text-transform: uppercase; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main);" onkeypress="if(event.key==='Enter') simpanTokoBaru()">
+            <button type="button" id="btnSimpanTokoBaru" class="btnDownload" style="background: #16a34a; white-space: nowrap; padding: 0 16px; border-radius: 5px;" onclick="simpanTokoBaru(this)">
+              <span class="material-symbols-rounded" style="vertical-align: middle;">save</span> SIMPAN
+            </button>
+          </div>
+
+          <!-- LABEL DAFTAR TOKO (DIAM) -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div style="font-size: 11px; font-weight: bold; color: var(--primary);">DAFTAR TOKO TERDAFTAR DI AREA ANDA:</div>
+          </div>
+
+          <!-- KOLOM PENCARIAN DAFTAR TOKO MODAL -->
+          <div style="margin-bottom: 8px; position: relative;">
+            <div style="position: relative; display: flex; align-items: center;">
+              <span class="material-symbols-rounded" style="position: absolute; left: 10px; font-size: 17px; color: var(--text-muted); pointer-events: none;">search</span>
+              <input type="text" id="cariTokoModalInput" placeholder="CARI TOKO DI TABEL (NAMA / KODE / AREA)..." style="width: 100%; padding: 7px 30px 7px 32px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 11.5px; text-transform: uppercase;" oninput="filterDaftarTokoModal(this.value)">
+              <button type="button" id="btnHapusCariTokoModal" onclick="resetCariTokoModal()" title="Hapus Pencarian" style="position: absolute; right: 8px; background: none; border: none; color: var(--text-muted); cursor: pointer; display: none; padding: 2px; align-items: center;">
+                <span class="material-symbols-rounded" style="font-size: 16px;">cancel</span>
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- DAFTAR TOKO TERDAFTAR -->
-        <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px; color: var(--primary);">DAFTAR TOKO TERDAFTAR DI AREA INI:</div>
-        <div style="max-height: 220px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-header);">
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
-            <thead>
-              <tr style="background: var(--bg-card); border-bottom: 1px solid var(--border-color);">
-                <th style="padding: 8px; text-align: left;">NAMA TOKO</th>
-                <th style="padding: 8px; text-align: center;">KODE TOKO</th>
-                <th style="padding: 8px; text-align: center;">HAPUS</th>
+        <div style="flex: 1; min-height: 120px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 5px; background: var(--bg-box) !important; -webkit-overflow-scrolling: touch; margin-bottom: 0; -webkit-clip-path: inset(0 round 5px) !important; clip-path: inset(0 round 5px) !important;">
+          <table id="tabelDaftarTokoModal" style="width: 100%; border-collapse: collapse; border-spacing: 0; font-size: 12px; position: relative; background: var(--bg-box) !important;">
+            <thead style="position: sticky; top: 0; z-index: 50; background: var(--primary); border-radius: 5px 5px 0 0;">
+              <tr style="background: var(--primary); color: #ffffff;">
+                <th style="position: sticky; top: 0; z-index: 50; background: var(--primary); color: #ffffff; padding: 10px 8px; text-align: left; font-weight: 700; white-space: nowrap; border-bottom: 2px solid rgba(0,0,0,0.2) !important; border-top-left-radius: 5px !important; border-radius: 5px 0 0 0 !important;">NAMA TOKO</th>
+                <th style="position: sticky; top: 0; z-index: 50; background: var(--primary); color: #ffffff; padding: 10px 8px; text-align: center; font-weight: 700; white-space: nowrap; border-bottom: 2px solid rgba(0,0,0,0.2) !important; border-radius: 0 !important;">AREA</th>
+                <th style="position: sticky; top: 0; z-index: 50; background: var(--primary); color: #ffffff; padding: 10px 8px; text-align: center; font-weight: 700; white-space: nowrap; border-bottom: 2px solid rgba(0,0,0,0.2) !important; border-radius: 0 !important;">KODE TOKO</th>
+                <th style="position: sticky; top: 0; z-index: 50; background: var(--primary); color: #ffffff; padding: 10px 8px; text-align: center; font-weight: 700; white-space: nowrap; border-bottom: 2px solid rgba(0,0,0,0.2) !important; border-top-right-radius: 5px !important; border-radius: 0 5px 0 0 !important;">AKSI</th>
               </tr>
             </thead>
             <tbody id="daftarTokoTableBody">
@@ -714,167 +1054,472 @@
           </table>
         </div>
 
-        <div style="margin-top: 14px; text-align: right;">
-          <button type="button" class="btnBatal" style="padding: 8px 18px; border-radius: 6px;" onclick="tutupModalTambahToko()">TUTUP</button>
+      </div>
+    </div>
+  </div>
+
+<!-- 2. POPUP CAMERA BARCODE / QR SCANNER (1MM SCREEN MARGIN ON HP) -->
+  <div id="scannerModal" class="popupOverlay" style="display: none;">
+    <div class="popupBox">
+      <div class="popupHeader" style="background: var(--primary); border-radius: 5px 5px 0 0; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 13px; font-weight: 800; color: #ffffff;"><span class="material-symbols-rounded" style="vertical-align: middle; font-size: 18px;">qr_code_scanner</span> SCAN BARCODE / QR NO SERI</span>
+        <button type="button" onclick="tutupScanner()" style="background: none; border: none; color: #ffffff; font-size: 24px; cursor: pointer; font-weight: 800; line-height: 1; padding: 0;">&times;</button>
+      </div>
+      <div class="popupContent" style="text-align: center; padding: 10px 2mm 10px 2mm !important; box-sizing: border-box;">
+        <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600;">ARAHKAN KAMERA KE BARCODE / QR NO SERI</p>
+        <div id="readerScanner" style="width: 100%; max-width: 290px; margin: 4px auto 10px auto; border-radius: 5px; overflow: hidden; background: transparent;"></div>
+        <div style="display: flex; gap: 8px; justify-content: center; width: 100%;">
+          <button type="button" class="btnBatal" style="width: 100%; height: 38px; background: #ef4444; color: #fff; border: none; border-radius: 5px; cursor: pointer; font-weight: 700; font-size: 12.5px;" onclick="tutupScanner()">BATAL / TUTUP</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 2. POPUP CAMERA BARCODE / QR SCANNER -->
-  <div id="scannerModal" class="popupOverlay">
-    <div class="popupBox" style="width: 440px; max-width: 94vw;">
-      <div class="popupHeader" style="background: var(--primary);">
-        <span><span class="material-symbols-rounded" style="vertical-align: middle;">qr_code_scanner</span> SCAN BARCODE / QR NO SERI</span>
-        <button type="button" onclick="tutupScanner()">&times;</button>
+  <!-- 3. POPUP CONFIRMATION MODAL (YES/NO CENTERED SCREEN CARD) -->
+  <div id="confirmOverlay" class="popupOverlay" style="display: none; z-index: 2000000000 !important; align-items: center !important; justify-content: center !important;" onclick="if(event.target === this) { event.preventDefault(); event.stopPropagation(); if (typeof triggerConfirmBoxFlash === 'function') triggerConfirmBoxFlash(); }">
+    <div class="popupNotifCard" id="confirmBoxCard" style="width: 350px !important; max-width: 88vw !important; border-radius: 5px !important; overflow: hidden !important; margin: auto !important;" onclick="event.stopPropagation()">
+      <div class="popupNotifBody" style="padding: 16px 18px 12px 18px; text-align: center;">
+        <span class="material-symbols-rounded" style="font-size: 32px; color: var(--primary); margin-bottom: 4px; display: block;">help</span>
+        <p id="confirmMessage" style="font-size: 13px; font-weight: 700; line-height: 1.45; color: var(--text-main); margin: 0;">YAKIN INGIN MELANJUTKAN KAN?</p>
       </div>
-      <div class="popupContent" style="text-align: center; padding: 18px;">
-        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">ARAHKAN KAMERA KE BARCODE / QR CODE NO SERI UNIT</p>
-        <div id="readerScanner" style="width: 100%; border-radius: 12px; overflow: hidden; background: #000; min-height: 240px; margin: 0 auto 14px auto;"></div>
-        <div style="display: flex; gap: 10px; justify-content: center;">
-          <button type="button" class="btnBatal" style="width: 100%; height: 40px; background: #ef4444; color: #fff; border: none; border-radius: 8px; cursor: pointer;" onclick="tutupScanner()">BATAL / TUTUP</button>
-        </div>
+      <div class="popupNotifFooter" style="padding: 0 14px 16px 14px; display: flex; gap: 8px;">
+        <button type="button" class="btnBatal" style="flex: 1; height: 36px; border-radius: 5px; border: none; font-weight: 700; font-size: 12.5px; cursor: pointer; background: #ef4444 !important; color: #ffffff !important;" onclick="closeConfirm()">BATAL</button>
+        <button type="button" class="btnOkNotif" style="flex: 1; height: 36px; border-radius: 5px; border: none; background: var(--primary); color: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer;" onclick="confirmYes()">YA, LANJUT</button>
       </div>
     </div>
   </div>
 
-  <!-- 3. POPUP CONFIRMATION MODAL (SAME MODEL CARD AS NOTIFICATION POPUP) -->
-  <div id="confirmOverlay" class="popupOverlay" style="z-index: 10000000;">
-    <div class="popupNotifCard" id="confirmBoxCard">
-      <div class="popupNotifBody" style="padding: 20px 20px 14px 20px; text-align: center;">
-        <span class="material-symbols-rounded" style="font-size: 32px; color: var(--primary); margin-bottom: 6px; display: block;">help</span>
-        <p id="confirmMessage" style="font-size: 13.5px; font-weight: 700; line-height: 1.5; color: var(--text-main); margin: 0;">YAKIN INGIN MELANJUTKAN KAN?</p>
+  <!-- 4. CLEAN & ATTRACTIVE NOTIFICATION DIALOG MODAL (OK CENTERED SCREEN CARD) -->
+  <div id="popupNotif" class="popupOverlay" style="display: none; z-index: 9999999999 !important; align-items: center !important; justify-content: center !important;">
+    <div class="popupNotifCard" id="popupNotifCard" style="width: 350px !important; max-width: 88vw !important; border-radius: 5px !important; overflow: hidden !important; margin: auto !important;">
+      <div class="popupNotifBody" style="padding: 16px 18px 12px 18px; text-align: center;">
+        <span id="popupNotifIcon" class="material-symbols-rounded" style="font-size: 32px; color: var(--primary); margin-bottom: 4px; display: block;">info</span>
+        <p id="popupNotifMessage" style="font-size: 13px; font-weight: 700; line-height: 1.45; color: var(--text-main); margin: 0;">MEMPROSES...</p>
       </div>
-      <div class="popupNotifFooter" style="padding: 0 16px 16px 16px; display: flex; gap: 10px;">
-        <button type="button" class="btnBatal" style="flex: 1; height: 38px; border-radius: 10px; border: none; font-weight: 700; cursor: pointer;" onclick="closeConfirm()">BATAL</button>
-        <button type="button" class="btnOkNotif" style="flex: 1; height: 38px; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer;" onclick="confirmYes()">YA, LANJUT</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 4. CLEAN & ATTRACTIVE NOTIFICATION DIALOG MODAL (SAME MODEL CARD AS CONFIRMATION POPUP) -->
-  <div id="popupNotif" class="popupOverlay" style="z-index: 10000000;">
-    <div class="popupNotifCard" id="popupNotifCard">
-      <div class="popupNotifBody" style="padding: 20px 20px 14px 20px; text-align: center;">
-        <span id="popupNotifIcon" class="material-symbols-rounded" style="font-size: 32px; color: var(--primary); margin-bottom: 6px; display: block;">info</span>
-        <p id="popupNotifMessage" style="font-size: 13.5px; font-weight: 700; line-height: 1.5; color: var(--text-main); margin: 0;">MEMPROSES...</p>
-      </div>
-      <div class="popupNotifFooter" style="padding: 0 16px 16px 16px; display: flex; justify-content: center;">
-        <button type="button" class="btnOkNotif" id="btnOkNotif" style="width: 100%; height: 38px; border-radius: 10px; border: none; background: var(--primary); color: #fff; font-weight: 700; cursor: pointer;" onclick="closePopup()">OK</button>
+      <div class="popupNotifFooter" style="padding: 0 14px 16px 14px; display: flex; justify-content: center;">
+        <button type="button" class="btnOkNotif" id="btnOkNotif" style="width: 100%; height: 36px; border-radius: 5px; border: none; background: var(--primary); color: #fff; font-weight: 700; font-size: 12.5px; cursor: pointer;" onclick="closePopup()">OK</button>
       </div>
     </div>
   </div>
 
-  <!-- 5. POPUP REJECT REASON MODAL -->
-  <div id="rejectOverlay" class="popupOverlay">
-    <div class="rejectBoxPopup">
-      <div class="rejectHeaderPopup">
-        <span class="material-symbols-rounded">cancel</span>
-        <span id="rejectTitle">TOLAK PERMINTAAN</span>
+  <!-- ========================================== -->
+  <!-- MODAL PILIH TEMPLATE EXCEL DUS / DEFAULT   -->
+  <!-- ========================================== -->
+  <div id="excelTemplateOverlay" class="popupOverlay modalBackdrop" onclick="if(event.target === this) closeExcelTemplateModal();" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; padding: 2mm; box-sizing: border-box;">
+    <div class="modalBox" onclick="event.stopPropagation()" style="width: 100%; max-width: 400px; background: var(--bg-box); border-radius: 4px !important; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); border: 1.5px solid #107c41; box-sizing: border-box; margin: 0 auto; animation: popIn 0.2s ease-out;">
+      <!-- HEADER POPUP -->
+      <div style="background: linear-gradient(135deg, #107c41, #0f7b40); color: #ffffff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
+        <span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13.5px; letter-spacing: 0.5px;">
+          <span class="material-symbols-rounded" style="font-size: 20px;">download_for_offline</span>
+          <span>DOWNLOAD TEMPLATE EXCEL</span>
+        </span>
+        <button type="button" onclick="closeExcelTemplateModal()" class="popupClose" style="color: #ffffff !important; font-size: 26px !important; font-weight: 900 !important; background: transparent !important; border: none !important; cursor: pointer !important; padding: 0 !important; margin: 0 !important; line-height: 1 !important;" title="TUTUP">&times;</button>
       </div>
-      <div class="rejectBodyPopup">
-        <input type="hidden" id="rejectNoSurat">
-        <input type="hidden" id="rejectRoleType">
-        <p>MASUKKAN ALASAN PENOLAKAN:</p>
-        <textarea id="rejectReason" rows="3" placeholder=""></textarea>
-        <div class="confirmButton">
-          <button type="button" class="btnBatal" onclick="closeReject()">BATAL</button>
-          <button type="button" class="btnHapus" onclick="kirimReject()">KIRIM</button>
-        </div>
+
+      <!-- BODY POPUP -->
+      <div style="padding: 16px; display: flex; flex-direction: column; gap: 10px; background: var(--bg-box); color: var(--text-main); box-sizing: border-box;">
+        <p style="font-size: 11.5px; color: var(--text-muted); margin: 0 0 2px 0; font-weight: 700; text-transform: uppercase; text-align: center;">
+          PILIH JENIS PERMINTAAN TEMPLATE:
+        </p>
+
+        <!-- TOMBOL OPTION DUS -->
+        <button type="button" onclick="unduhTemplateExcelProses('DUS')" style="width: 100%; padding: 12px 14px; background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1.5px solid rgba(59, 130, 246, 0.35); border-radius: 3px !important; font-weight: 700; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-sizing: border-box;">
+          <span style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-rounded" style="font-size: 20px;">inventory_2</span>
+            <span>JENIS DUS (DENGAN SN DUS)</span>
+          </span>
+          <span class="material-symbols-rounded" style="font-size: 18px;">download</span>
+        </button>
+
+        <!-- TOMBOL OPTION DEFAULT -->
+        <button type="button" onclick="unduhTemplateExcelProses('DEFAULT')" style="width: 100%; padding: 12px 14px; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 3px !important; font-weight: 700; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease; box-sizing: border-box;">
+          <span style="display: flex; align-items: center; gap: 8px;">
+            <span class="material-symbols-rounded" style="font-size: 20px;">widgets</span>
+            <span>JENIS DEFAULT (TANPA SN DUS)</span>
+          </span>
+          <span class="material-symbols-rounded" style="font-size: 18px;">download</span>
+        </button>
+
+        <!-- BATAL -->
+        <button type="button" onclick="closeExcelTemplateModal()" style="margin-top: 4px; width: 100%; height: 36px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 3px !important; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+          BATAL
+        </button>
       </div>
+
     </div>
   </div>
 
-  <!-- 6. POPUP DETAIL BARANG V2 (NEW EXCLUSIVE MODAL) -->
-  <div id="popupDetailBarangV2" class="popupOverlay" onclick="if(event.target === this) tutupDetailBarangV2();" style="display:none;">
-    <div class="popupBoxDetailV2">
-      <div class="popupHeaderV2" style="background: var(--primary) !important; color: #ffffff !important; padding: 14px 18px !important; border-bottom: 1px solid rgba(255,255,255,0.2) !important; position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important; border-radius: 18px 18px 0 0 !important;">
-        <span id="popupTitleV2" style="font-weight: 800 !important; text-align: center !important; font-size: 16px !important; letter-spacing: 0.5px !important; text-transform: uppercase !important; color: #ffffff !important; margin: 0 auto !important;">DETAIL PERMINTAAN</span>
-        <button type="button" class="popupCloseV2" onclick="tutupDetailBarangV2()" title="TUTUP" style="position: absolute !important; right: 14px !important; top: 50% !important; transform: translateY(-50%) !important; font-size: 28px !important; font-weight: 900 !important; color: #ef4444 !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important;">&times;</button>
+  <!-- POPUP DETAIL PERMINTAAN (BASE LAYER MODAL) -->
+  <div id="popupDetailBarangV2" class="popupOverlay" onclick="if(event.target === this) tutupDetailBarangV2();" style="display:none; width: 100vw !important; max-width: 100vw !important; box-sizing: border-box !important;">
+    <div class="popupBoxDetailV2" style="margin: auto !important; border-radius: 5px !important; overflow: hidden !important; box-sizing: border-box !important; display: flex !important; flex-direction: column !important;">
+      <div class="popupHeaderV2" style="background: var(--primary) !important; color: #ffffff !important; padding: 14px 18px !important; border-bottom: 1px solid rgba(255,255,255,0.2) !important; position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important; text-align: center !important; border-radius: 5px 5px 0 0 !important; flex: 0 0 auto !important;">
+        <span id="popupTitleV2" style="font-weight: 800 !important; text-align: center !important; font-size: 16px !important; letter-spacing: 0.5px !important; text-transform: uppercase !important; color: #ffffff !important; margin: 0 auto !important; width: 100% !important; display: block !important;">DETAIL PERMINTAAN</span>
+        <button type="button" class="popupCloseV2" onclick="tutupDetailBarangV2()" title="TUTUP" style="position: absolute !important; right: 14px !important; top: 50% !important; transform: translateY(-50%) !important; font-size: 28px !important; font-weight: 900 !important; color: #ffffff !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important;">&times;</button>
       </div>
-      <div id="popupBodyV2">
+      <div id="popupBodyV2" style="flex: 1 1 0px !important; min-height: 0 !important; display: flex !important; flex-direction: column !important; overflow: hidden !important;">
         <!-- Injected Dynamically by JS -->
       </div>
     </div>
   </div>
 
-  <!-- 7. POPUP DIGITAL SIGNATURE (TTD) MODAL -->
-  <div id="popupTTD" class="popupTTD">
-    <div class="ttdBox">
-      <h3>TANDA TANGAN DIGITAL (TTD)</h3>
-      <div class="ttdInfo">BUAT / GAMBAR TANDA TANGAN ANDA DI BAWAH INI UNTUK SURAT DOKUMEN PERMINTAAN</div>
-      <canvas id="canvasTTD" width="540" height="220"></canvas>
-      <div class="ttdButton">
-        <button type="button" class="btnBack" onclick="tutupTTD()">BATAL</button>
-        <button type="button" class="btnSecondary" onclick="hapusTTD()">BERSIHKAN</button>
-        <button type="button" class="btnPrimary" onclick="simpanTTD()">SIMPAN TTD</button>
+  <!-- POPUP REJECT REASON MODAL (HALF SCREEN COMPACT CARD) -->
+  <div id="rejectOverlay" class="popupOverlay" style="z-index: 500000; display: none; align-items: center; justify-content: center;">
+    <div class="rejectBoxPopup">
+      
+      <!-- HEADER POPUP (ATAS / TOP HEADER) -->
+      <div class="rejectHeaderPopup" style="display: flex !important; justify-content: space-between !important; align-items: center !important;">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #ffffff;">
+          <span class="material-symbols-rounded" style="font-size: 20px;">cancel</span>
+          <span id="rejectTitle">TOLAK PERMINTAAN</span>
+        </span>
+        <button type="button" class="popupClose" onclick="closeReject()" style="background: transparent; border: none; color: #ffffff; font-size: 26px; font-weight: 900; line-height: 1; cursor: pointer; padding: 0 4px; margin: 0; outline: none;" title="TUTUP">&times;</button>
+      </div>
+
+      <!-- BODY POPUP (DI BAWAH HEADER) -->
+      <div class="rejectBodyPopup">
+        <input type="hidden" id="rejectNoSurat">
+        <input type="hidden" id="rejectRoleType">
+
+        <!-- KOTAK TULISAN ALASAN -->
+        <p id="rejectSubTitle" style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase;">MASUKKAN ALASAN PENOLAKAN:</p>
+        
+        <textarea id="rejectReason" rows="3" placeholder="Tuliskan alasan penolakan..."></textarea>
+
+        <!-- TOMBOL TIDAK & YA (DI BAWAH KOTAK ALASAN) -->
+        <div class="confirmButton">
+          <button type="button" class="btnBatal" onclick="closeReject()">TIDAK</button>
+          <button type="button" class="btnHapus" onclick="kirimReject()">YA</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- POPUP BUKTI PROSES ARTEMIS (DI DEPAN POPUP DETAIL PERMINTAAN) -->
+  <div id="artemisOverlay" class="popupOverlay" style="z-index: 600000; display: none;">
+    <div class="artemisBoxPopup" style="width: 480px !important; max-width: calc(100vw - 2mm) !important; padding: 2mm !important; border-radius: 6px !important; overflow: hidden !important; background: var(--bg-box) !important; border: 1px solid var(--border-color) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important; box-sizing: border-box !important;">
+      <div class="artemisHeaderPopup" style="background: var(--primary) !important; color: #ffffff !important; padding: 10px 12px !important; margin-bottom: 2mm !important; border-radius: 4px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; box-sizing: border-box !important;">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: #ffffff;"><span class="material-symbols-rounded" style="font-size: 20px;">photo_camera</span> <span id="artemisTitle">BUKTI PROSES ARTEMIS</span></span>
+        <button type="button" class="popupClose" onclick="closeArtemisModal()" style="background: none; border: none; color: #ffffff; font-size: 24px; font-weight: 800; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+      <div class="artemisBodyPopup" style="padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;">
+        <input type="hidden" id="artemisNoSurat">
+        <p id="artemisSubTitle" style="font-size: 11.5px; font-weight: 700; color: var(--text-main); margin-bottom: 2mm; line-height: 1.4;">UPLOAD FOTO BUKTI PROSES ARTEMIS UNTUK MENYELESAIKAN PERMINTAAN INI:</p>
+        
+        <input type="file" id="artemisFileInput" accept="image/jpeg, image/jpg, .jpg, .jpeg, image/*" multiple style="display: none;" onchange="handleArtemisPhotoSelect(event)">
+
+        <div id="artemisPasteBox" tabindex="0" onclick="document.getElementById('artemisFileInput').click();" title="PASTE DI SINI / KLIK UNTUK UPLOAD" style="margin-bottom: 2mm; padding: 2mm; border: 2px dashed var(--primary); border-radius: 4px; background: rgba(2, 132, 199, 0.04); text-align: center; cursor: pointer; transition: all 0.2s; outline: none; box-sizing: border-box;">
+          <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 4px;">
+            <span class="material-symbols-rounded" style="font-size: 24px; color: var(--primary);">content_paste_go</span>
+            <span class="material-symbols-rounded" style="font-size: 24px; color: var(--primary);">add_a_photo</span>
+          </div>
+          <div style="font-size: 13px; font-weight: 800; color: var(--primary); letter-spacing: 0.5px;">
+            PASTE DI SINI / KLIK UNTUK UPLOAD
+          </div>
+        </div>
+
+        <div style="margin-bottom: 2mm;">
+          <label style="display: block; font-size: 11px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">
+            STATUS / KETERANGAN PART (OPSIONAL)
+          </label>
+          <input type="text" id="inputKetPartArtemis" placeholder="Default: DIPENUHI (Isi jika ada keterangan part khusus)..." style="width: 100%; height: 38px; padding: 2mm; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 12px; font-weight: 600; box-sizing: border-box; outline: none;">
+        </div>
+
+        <div id="artemisPhotoPreviewGrid" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 180px; overflow-y: auto; margin-bottom: 2mm; padding: 2mm; background: var(--bg-body); border-radius: 4px; border: 1px dashed var(--border-color); box-sizing: border-box;">
+          <!-- Photo previews injected dynamically -->
+        </div>
+
+        <div class="confirmButton" style="display: flex; gap: 2mm; margin-bottom: 0;">
+          <button type="button" class="btnBatal" onclick="closeArtemisModal()" style="flex: 1; height: 38px; padding: 0 4px; border-radius: 4px; font-weight: 700; cursor: pointer; background: #ef4444 !important; color: #ffffff !important; border: none !important; font-size: 11.5px; text-transform: uppercase;">BATAL</button>
+          <button type="button" class="btnOkNotif" onclick="prosesSimpanDoneDenganBuktiArtemis()" style="flex: 1; height: 38px; padding: 0 4px; border-radius: 4px; background: var(--primary); color: #fff; font-weight: 700; border: none; cursor: pointer; font-size: 11.5px; text-transform: uppercase;">SELESAIKAN (DONE)</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- 8. POPUP USER FORM MODAL (SQUARE, COMPACT & RECTANGULAR BOX WITH KODE TOKO) -->
-  <div id="popupUserForm" class="popupOverlay">
-    <div class="popupBox" style="width: 540px; max-width: 92vw; padding: 16px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative;">
-      <button type="button" class="popupClose" onclick="tutupUserModal()" style="position: absolute; top: 12px; right: 12px;" title="TUTUP">&times;</button>
-      <h3 id="userFormTitle" style="color: var(--primary); margin-bottom: 12px; text-align: center; font-size: 15px;">TAMBAH USER BARU</h3>
-      <input type="hidden" id="editUserId">
+  <!-- 7. POPUP DIGITAL SIGNATURE (TTD) MODAL -->
+  <div id="popupTTD" class="popupTTD popupOverlay" onclick="if(event.target === this) tutupTTD();" style="display: none;">
+    <div class="ttdBox" onclick="event.stopPropagation()" style="position: relative !important; padding: 4mm !important; box-sizing: border-box !important;">
+      <button type="button" class="popupClose popupCloseTTD" onclick="tutupTTD()" title="TUTUP" style="position: absolute !important; top: 6px !important; right: 8px !important; background: transparent !important; border: none !important; color: var(--primary) !important; font-size: 26px !important; font-weight: 900 !important; line-height: 1 !important; cursor: pointer !important; padding: 0 6px !important; z-index: 20 !important;">&times;</button>
+      <h3 style="color: var(--primary); margin-bottom: 4px; font-size: 15px; font-weight: 800; padding-right: 24px;">TANDA TANGAN DIGITAL (TTD)</h3>
+      <div class="ttdInfo" style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px; padding-right: 24px;">GAMBAR TTD DI CANVAS ATAU AMBIL FOTO TTD KERTAS</div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; text-align: left;">
+      <div style="position: relative; width: 100%; box-sizing: border-box; overflow: hidden; margin-bottom: 4mm;">
+        <canvas id="canvasTTD" style="width: 100% !important; max-width: 100% !important; height: 220px !important; border: 2px dashed var(--primary) !important; border-radius: 5px !important; background: #ffffff !important; display: block !important; box-sizing: border-box !important; margin: 0 auto !important; touch-action: none;"></canvas>
+
+        <button type="button" onclick="pilihFotoTTD()" title="AMBIL / UPLOAD FOTO TTD DARI KAMERA/KERTAS" style="position: absolute; right: 10px; top: 10px; background: var(--primary); color: #ffffff; border: none; border-radius: 5px; padding: 6px 12px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 10; transition: transform 0.2s;">
+          <span class="material-symbols-rounded" style="font-size: 17px;">photo_camera</span> FOTO TTD
+        </button>
+
+        <input type="file" id="fotoTTDInput" accept="image/png, image/jpeg, image/jpg, image/webp, image/heic, image/heif, image/*" onchange="prosesFotoKeTTD(event)" style="display:none;">
+      </div>
+
+      <div class="ttdButton" style="display: flex; gap: 8px; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box; flex-wrap: nowrap;">
+        <button type="button" class="btnBack" onclick="tutupTTD()" style="flex: 1 1 0px !important; width: 0 !important; min-width: 0 !important; height: 38px !important; border-radius: 5px; font-weight: 800; background: #dc2626 !important; color: #ffffff !important; border: none !important; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box !important;">BATAL</button>
+        <button type="button" class="btnSecondary" onclick="hapusTTD()" style="flex: 1 1 0px !important; width: 0 !important; min-width: 0 !important; height: 38px !important; border-radius: 5px; font-weight: 800; background: var(--primary) !important; color: #ffffff !important; border: none !important; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box !important;">HAPUS</button>
+        <button type="button" class="btnPrimary" onclick="simpanTTD()" style="flex: 1 1 0px !important; width: 0 !important; min-width: 0 !important; height: 38px !important; border-radius: 5px; font-weight: 800; background: var(--primary) !important; color: #ffffff !important; border: none !important; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box !important;">SIMPAN</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP EDIT NO / STATUS PART (KHUSUS ROLE SERVICE / ADMIN) -->
+  <div id="popupEditStatusPart" class="popupOverlay" style="z-index: 500000; display: none;" onclick="if(event.target === this) tutupModalEditStatusPart();">
+    <div class="popupBox" style="width: 560px !important; max-width: 94vw !important; margin: auto !important; border-radius: 5px !important; overflow: hidden !important; background: var(--bg-box) !important; border: 1px solid var(--border-color) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important;">
+      <div class="popupHeader" style="background: var(--primary) !important; background-color: var(--primary) !important; background-image: none !important; color: #ffffff !important; padding: 14px 18px !important; display: flex !important; align-items: center !important; justify-content: space-between !important;">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 800; color: #ffffff;">
+          <span class="material-symbols-rounded" style="font-size: 22px;">build_circle</span>
+          <span id="editStatusPartTitle">UPDATE NO & STATUS PART</span>
+        </span>
+        <button type="button" onclick="tutupModalEditStatusPart()" style="background: none; border: none; color: #ffffff; font-size: 26px; font-weight: 800; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+      <div class="popupContent" style="padding: 16px; max-height: 70vh; overflow-y: auto;">
+        <input type="hidden" id="editStatusPartNoSurat">
+        <p style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+          PERBARUI NOMOR PART ATAU STATUS KETERSEDIAAN PART UNTUK SETIAP ITEM PERMINTAAN:
+        </p>
+        <div id="editStatusPartItemsContainer" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+          <!-- Item list dynamically injected -->
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btnBatal" onclick="tutupModalEditStatusPart()" style="flex: 1; height: 40px; border-radius: 5px; font-weight: 700; border: none; cursor: pointer; background: #ef4444 !important; color: #ffffff !important;">BATAL</button>
+          <button type="button" class="btnOkNotif" onclick="simpanStatusPart()" style="flex: 1.2; height: 40px; border-radius: 5px; background: #0284c7; color: #ffffff; font-weight: 700; border: none; cursor: pointer;">SIMPAN STATUS PART</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POPUP EDIT KETERANGAN PART PER BARIS (FREE TEXT KHUSUS SERVICE / ADMIN) -->
+  <div id="popupEditKeteranganPartSingle" class="popupOverlay" style="z-index: 500000; display: none;" onclick="if(event.target === this) tutupModalEditKetPartSingle();">
+    <div class="popupBox" style="width: 480px !important; max-width: calc(100vw - 2mm) !important; padding: 2mm !important; border-radius: 6px !important; overflow: hidden !important; background: var(--bg-box) !important; border: 1px solid var(--border-color) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important; box-sizing: border-box !important;">
+      <div class="popupHeader" style="background: var(--primary) !important; background-color: var(--primary) !important; color: #ffffff !important; padding: 10px 12px !important; margin-bottom: 2mm !important; border-radius: 4px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; box-sizing: border-box !important;">
+        <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 800; color: #ffffff;">
+          <span class="material-symbols-rounded" style="font-size: 20px;">edit_note</span>
+          <span id="editKetPartSingleTitle"></span>
+        </span>
+        <button type="button" onclick="tutupModalEditKetPartSingle()" style="background: none; border: none; color: #ffffff; font-size: 24px; font-weight: 800; cursor: pointer; line-height: 1;">&times;</button>
+      </div>
+      <div class="popupContent" style="padding: 0 !important; margin: 0 !important; box-sizing: border-box !important;">
+        <input type="hidden" id="editKetPartSingleNoSurat">
+        <input type="hidden" id="editKetPartSingleItemIndex">
+        <input type="hidden" id="editKetPartSingleFotoUrl">
+        <input type="file" id="editKetPartSingleFileInput" accept="image/*" style="display: none;" onchange="prosesPilihFotoBuktiPart(event)">
+        
+        <div id="editKetPartSingleItemInfo" style="background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 4px; padding: 2mm; margin-bottom: 2mm; font-size: 12px; font-weight: 700; color: var(--primary); box-sizing: border-box;">
+          <!-- Dynamic item details -->
+        </div>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2mm; flex-wrap: wrap; gap: 2mm;">
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); margin: 0;">KETERANGAN / STATUS PART (MANUAL FREE TEXT):</label>
+        </div>
+
+        <textarea id="editKetPartSingleInput" rows="3" placeholder="" style="width: 100%; padding: 2mm; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-box); color: var(--text-main); font-size: 12.5px; font-weight: 600; box-sizing: border-box; resize: vertical; margin-bottom: 2mm; outline: none;"></textarea>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; padding: 0; margin-bottom: 0;">
+          <button type="button" class="btnBatal" onclick="tutupModalEditKetPartSingle()" style="width: 100%; height: 38px; padding: 0 4px; border-radius: 4px; font-weight: 700; border: none; cursor: pointer; background: #ef4444 !important; color: #ffffff !important; font-size: 11.5px; text-transform: uppercase;">BATAL</button>
+          <button type="button" class="btnOkNotif" onclick="simpanKeteranganPartSingle()" style="width: 100%; height: 38px; padding: 0 4px; border-radius: 4px; background: #0284c7 !important; color: #ffffff !important; font-weight: 700; border: none; cursor: pointer; font-size: 11.5px; text-transform: uppercase;">SIMPAN KETERANGAN</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       POPUP MODAL: MANAJEMEN AKUN USER & HAK AKSES (1CM ATAS-BAWAH, SCROLL 4 ARAH)
+       ========================================================================== -->
+  <div id="popupUserManagementModal" class="popupOverlay" onclick="if(event.target === this) tutupPopupUserManagement()" style="display: none; padding: 1mm !important; box-sizing: border-box !important;">
+    <div class="userManagementBoxPopup" onclick="event.stopPropagation()">
+      <!-- Popup Header -->
+      <div class="userManagementHeader">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="material-symbols-rounded" style="font-size: 22px; color: #0f766e;">manage_accounts</span>
+          <h3 style="margin: 0; font-size: 15px; font-weight: 900; color: var(--text-main); letter-spacing: 0.5px;">MANAJEMEN AKUN USER & HAK AKSES</h3>
+        </div>
+        <!-- Tombol X Teal di pojok kanan -->
+        <button type="button" class="btnTutupUserModal" onclick="tutupPopupUserManagement()" title="Tutup Popup (Esc / Back)">
+          <span class="material-symbols-rounded" style="font-size: 20px;">close</span>
+        </button>
+      </div>
+
+      <!-- Action Toolbar inside Modal -->
+      <div class="userManagementToolbar">
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+          <input type="text" id="searchUserModalInput" placeholder="CARI USER, NAMA, KODE TOKO, ROLE, AREA..." onkeyup="filterTabelUserModal(this.value)" style="flex: 1; height: 36px; padding: 0 10px; font-size: 11.5px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--input-text); box-sizing: border-box; margin: 0;">
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" id="btnHapusMultiUserModal" class="btnDownload" style="display: none; background: #ef4444; height: 36px; padding: 0 12px; font-weight: 800; font-size: 11px;" onclick="hapusMultiUser(this)">
+            <span class="material-symbols-rounded" style="font-size: 16px;">delete_sweep</span> HAPUS (<span id="countSelectedUsers">0</span>) USER
+          </button>
+          <button type="button" class="btnTambahBarang" style="height: 36px; padding: 0 14px; font-size: 11.5px; font-weight: 800; margin: 0;" onclick="bukaUserModal(null, this)">
+            <span class="material-symbols-rounded" style="font-size: 18px;">person_add</span> TAMBAH USER
+          </button>
+        </div>
+      </div>
+
+      <!-- Table Wrapper with full 4-directional scroll (atas-bawah & kanan-kiri) -->
+      <div class="userManagementTableWrap">
+        <table class="historyTable userModalTable">
+          <thead>
+            <tr>
+              <th style="width: 36px; text-align: center; position: sticky; top: 0; z-index: 2;">
+                <input type="checkbox" id="selectAllUsersModal" onchange="toggleSelectAllUsers(this)" style="cursor: pointer; width: 16px; height: 16px;" title="PILIH SEMUA">
+              </th>
+              <th style="position: sticky; top: 0; z-index: 2;">USERNAME</th>
+              <th style="position: sticky; top: 0; z-index: 2;">PASSWORD</th>
+              <th style="position: sticky; top: 0; z-index: 2;">NAMA LENGKAP</th>
+              <th style="position: sticky; top: 0; z-index: 2;">KODE TOKO</th>
+              <th style="position: sticky; top: 0; z-index: 2;">NO. HP</th>
+              <th style="position: sticky; top: 0; z-index: 2;">KATEGORI</th>
+              <th style="position: sticky; top: 0; z-index: 2;">AREA</th>
+              <th style="position: sticky; top: 0; z-index: 2; text-align: right; min-width: 90px;">AKSI</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBodyModal">
+            <!-- Dynamic Users -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  
+          <!-- POPUP FORM TAMBAH / EDIT USER (#popupUserForm) - FULL ADAPTIF MENGIKUTI SEMUA TEMA, 1MM GAP & ZERO SCROLL -->
+  <div id="popupUserForm" class="popupOverlay" onclick="if(event.target === this || event.target.id === 'popupUserForm') tutupUserModal();" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.7); z-index: 10000005; align-items: center; justify-content: center; padding: 1mm !important; box-sizing: border-box !important; backdrop-filter: blur(3px);">
+    <div class="popupBox userFormCard" style="position: relative; width: 540px; max-width: 96vw; height: auto; max-height: calc(100vh - 2mm); overflow: hidden !important; background: var(--bg-box) !important; color: var(--text-main) !important; border-radius: 10px; border: 1px solid var(--border-color) !important; box-shadow: 0 15px 35px rgba(0,0,0,0.45); padding: 12px 18px 12px 18px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between;">
+      
+      <!-- HEADER: JUDUL SESUAI TEMA & TOMBOL X -->
+      <div style="position: relative; margin-bottom: 8px; text-align: center; flex-shrink: 0;">
+        <h3 id="userFormTitle" style="color: var(--primary) !important; font-weight: 800; font-size: 14px; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">EDIT USER</h3>
+        <button type="button" class="popupClose" onclick="tutupUserModal()" style="position: absolute; top: -4px; right: -4px; background: transparent; border: none; font-size: 20px; font-weight: 900; color: var(--primary) !important; cursor: pointer; line-height: 1; padding: 2px;" title="TUTUP">&#10006;</button>
+      </div>
+
+      <input type="hidden" id="editUserId" value="">
+      <input type="hidden" id="uFormArea" value="BDG">
+
+      <!-- GRID 2 KOLOM (ZERO-SCROLL THEMED INPUTS) -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-bottom: 8px; flex-shrink: 0;">
+        
+        <!-- ROW 1: USERNAME & KODE TOKO -->
         <div>
-          <label style="font-size: 11px; margin-bottom: 4px; display: block;">USERNAME</label>
-          <input type="text" id="uFormUsername" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
-
-          <label style="font-size: 11px; margin-bottom: 4px; display: block;">PASSWORD</label>
-          <input type="text" id="uFormPassword" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
-
-          <label style="font-size: 11px; margin-bottom: 4px; display: block;">NAMA LENGKAP</label>
-          <input type="text" id="uFormFullName" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+          <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 2px; display: block; text-transform: uppercase;">USERNAME <span style="color: #ef4444;">*</span></label>
+          <input type="text" id="uFormUsername" placeholder="USERNAME" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 600; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; text-transform: uppercase; box-sizing: border-box;">
         </div>
 
         <div>
-          <label style="font-size: 11px; margin-bottom: 4px; display: block;">KODE TOKO (FORMAT SURAT)</label>
-          <input type="text" id="uFormStoreCode" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+          <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 2px; display: block; text-transform: uppercase;">KODE TOKO (FORMAT SURAT)</label>
+          <input type="text" id="uFormStoreCode" placeholder="KODE TOKO" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 600; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; text-transform: uppercase; box-sizing: border-box;">
+        </div>
 
-          <label style="font-size: 11px; margin-bottom: 4px; display: block;">NO. HP / WHATSAPP</label>
-          <input type="text" id="uFormPhone" placeholder="" style="padding: 8px; font-size: 12px; margin-bottom: 8px;">
+        <!-- ROW 2: PASSWORD & NO. HP / WHATSAPP -->
+        <div>
+          <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 2px; display: block; text-transform: uppercase;">PASSWORD <span style="color: #ef4444;">*</span></label>
+          <input type="text" id="uFormPassword" placeholder="PASSWORD" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 600; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; box-sizing: border-box;">
+        </div>
 
-          <label style="font-size: 11px; margin-bottom: 4px; display: block;">KATEGORI (ROLE)</label>
-          <select id="uFormCategory" style="padding: 8px; font-size: 12px; margin-bottom: 8px; width: 100%;">
+        <div>
+          <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 2px; display: block; text-transform: uppercase;">NO. HP / WHATSAPP</label>
+          <input type="text" id="uFormPhone" placeholder="08xxxxxxxxxx" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 600; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; box-sizing: border-box;">
+        </div>
+
+        <!-- ROW 3: NAMA LENGKAP & KATEGORI (ROLE) -->
+        <div>
+          <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 2px; display: block; text-transform: uppercase;">NAMA LENGKAP <span style="color: #ef4444;">*</span></label>
+          <input type="text" id="uFormFullName" placeholder="NAMA LENGKAP" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 600; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; text-transform: uppercase; box-sizing: border-box;">
+        </div>
+
+        <div>
+          <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 2px; display: block; text-transform: uppercase;">KATEGORI (ROLE) <span style="color: #ef4444;">*</span></label>
+          <select id="uFormCategory" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 700; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; box-sizing: border-box; cursor: pointer;">
             <option value="TOKO">TOKO</option>
-            <option value="SALES">SALES</option>
-            <option value="SERVICE">SERVICE</option>
+            <option value="SERVICE">SERVICE (TSM)</option>
             <option value="DM">DM (DISTRICT MANAGER)</option>
+            <option value="GBJ">GBJ (GUDANG / BARANG JADI)</option>
+            <option value="ADMIN">SUPER ADMIN</option>
+            <option value="SALES">SALES</option>
           </select>
         </div>
+
       </div>
 
-      <div style="text-align: left;">
-        <label style="font-size: 11px; margin-bottom: 4px; display: block;">AREA WILAYAH</label>
-        <select id="uFormArea" style="padding: 8px; font-size: 12px; margin-bottom: 12px; width: 100%;">
-          <option value="BDG">BANDUNG (BDG)</option>
-          <option value="BDU">BANDUNG UTARA (BDU)</option>
-          <option value="CRB">CIREBON (CRB)</option>
-          <option value="SKB">SUKABUMI (SKB)</option>
-          <option value="SBN">SUBANG (SBN)</option>
-          <option value="TSM">TASIKMALAYA (TSM)</option>
-        </select>
+      <!-- AREA WILAYAH (BISA DILIPAT GANDA / CENTANG MULTI-AREA) -->
+      <div style="margin-bottom: 10px; flex-shrink: 0;">
+        <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 4px; display: block;">AREA WILAYAH (BISA DILIPAT GANDA / CENTANG MULTI-AREA):</label>
+        <div style="background: var(--bg-body) !important; border: 1px solid var(--border-color) !important; border-radius: 8px; padding: 8px 12px; box-sizing: border-box;">
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px 8px;">
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="BDG" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> BDG
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="BDU" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> BDU
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="CRB" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> CRB
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="SKB" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> SKB
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="SBN" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> SBN
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="TSM" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> TSM
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="BGR" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> BGR
+            </label>
+            <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-main) !important; cursor: pointer;">
+              <input type="checkbox" name="uFormAreaCheck" value="ALL" style="width: 15px; height: 15px; accent-color: var(--primary) !important; cursor: pointer;"> ALL
+            </label>
+          </div>
+        </div>
       </div>
 
-      <div class="confirmButton" style="margin-top: 8px; display: flex; gap: 10px;">
-        <button type="button" class="btnBatal" style="border-radius: 6px; height: 38px; flex: 1;" onclick="tutupUserModal()">BATAL</button>
-        <button type="button" class="btnHapus" style="background: var(--primary); border-radius: 6px; height: 38px; flex: 1;" onclick="simpanUserData()">SIMPAN USER</button>
+      <!-- DUA TOMBOL SEJAJAR: BATAL (MERAH) & SIMPAN USER (HIJAU) -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; flex-shrink: 0;">
+        <button type="button" onclick="tutupUserModal()" style="height: 36px; background: #dc2626 !important; color: #ffffff !important; font-weight: 800; font-size: 11.5px; border-radius: 6px; border: none; cursor: pointer; text-transform: uppercase; box-shadow: 0 2px 6px rgba(220,38,38,0.3); transition: filter 0.2s;">BATAL</button>
+        <button type="button" onclick="simpanUserData(this)" style="height: 36px; background: #16a34a !important; color: #ffffff !important; font-weight: 800; font-size: 11.5px; border-radius: 6px; border: none; cursor: pointer; text-transform: uppercase; box-shadow: 0 2px 6px rgba(220,38,38,0.3); transition: filter 0.2s;">SIMPAN USER</button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- 8. LIGHTBOX IMAGE VIEWER DENGAN KONTROL ZOOM & DOWNLOAD DI BOTTOM BAR -->
+  <div id="imageViewer" class="image-viewer-modal" style="display: none; position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; background: #000000 !important; z-index: 999999999 !important; overflow: hidden !important;">
+    <span class="closeViewer" onclick="tutupImageViewer()" style="position: fixed !important; top: 18px !important; right: 20px !important; color: #ffffff !important; font-size: 32px !important; font-weight: 900 !important; cursor: pointer !important; z-index: 100000005 !important; background: transparent !important; border: none !important; box-shadow: none !important; line-height: 1 !important;" title="TUTUP VIEWER">&times;</span>
+    
+    <!-- Tombol Kiri (<) -->
+    <button id="navViewerLeft" type="button" onclick="gantiFotoViewer(-1)" style="position: fixed !important; left: 16px !important; top: 50% !important; bottom: auto !important; transform: translateY(-50%) !important; background: rgba(15,23,42,0.88) !important; color: #ffffff !important; border: 2px solid rgba(255,255,255,0.4) !important; border-radius: 50% !important; width: 50px !important; height: 50px !important; display: none; align-items: center !important; justify-content: center !important; cursor: pointer !important; z-index: 100000005 !important; box-shadow: 0 4px 14px rgba(0,0,0,0.6) !important;" title="FOTO SEBELUMNYA">
+      <span class="material-symbols-rounded" style="font-size: 32px; font-weight: bold;">chevron_left</span>
+    </button>
+
+    <div class="imageViewerCanvas" id="imageViewerCanvas" style="position: fixed !important; inset: 0 !important; width: 100vw !important; height: 100vh !important; display: flex !important; align-items: center !important; justify-content: center !important; overflow: hidden !important; touch-action: none !important; user-select: none !important; -webkit-user-select: none !important; z-index: 100000000 !important;">
+      <img id="viewerImage" src="" alt="Bukti Foto" style="position: relative !important; margin: auto !important; max-width: 90vw !important; max-height: 82vh !important; border-radius: 8px !important; object-fit: contain !important; transform-origin: center center !important; will-change: transform !important; user-select: none !important; pointer-events: auto !important; display: block !important; box-shadow: 0 10px 40px rgba(0,0,0,0.8) !important;">
+    </div>
+
+    <!-- Tombol Kanan (>) -->
+    <button id="navViewerRight" type="button" onclick="gantiFotoViewer(1)" style="position: fixed !important; right: 16px !important; top: 50% !important; bottom: auto !important; transform: translateY(-50%) !important; background: rgba(15,23,42,0.88) !important; color: #ffffff !important; border: 2px solid rgba(255,255,255,0.4) !important; border-radius: 50% !important; width: 50px !important; height: 50px !important; display: none; align-items: center !important; justify-content: center !important; cursor: pointer !important; z-index: 100000005 !important; box-shadow: 0 4px 14px rgba(0,0,0,0.6) !important;" title="FOTO SELANJUTNYA">
+      <span class="material-symbols-rounded" style="font-size: 32px; font-weight: bold;">chevron_right</span>
+    </button>
+
+    <!-- CONTROL BAR BAWAH: COUNTER, DOWNLOAD & ZOOM -->
+    <div class="viewerBottomBar" style="position: fixed !important; bottom: 25px !important; top: auto !important; left: 50% !important; transform: translateX(-50%) !important; display: flex !important; align-items: center !important; gap: 14px !important; background: rgba(15, 23, 42, 0.9) !important; backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important; padding: 8px 18px !important; border-radius: 30px !important; border: 1px solid rgba(255, 255, 255, 0.25) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important; z-index: 100000005 !important;">
+      <div id="viewerCounter" style="color: #ffffff; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap;">1 / 1</div>
+      <div class="zoomControls" style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" onclick="unduhFotoViewerAktif()" title="Unduh / Download Foto" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1.5px solid rgba(52, 211, 153, 0.5); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">download</span></button>
+        <button type="button" onclick="zoomImage(-0.25)" title="Zoom Out" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">zoom_out</span></button>
+        <button type="button" onclick="resetZoom()" title="Reset Zoom" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">restart_alt</span></button>
+        <button type="button" onclick="zoomImage(0.25)" title="Zoom In" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">zoom_in</span></button>
       </div>
     </div>
   </div>
 
   <!-- 9. POPUP MODAL PILIHAN 5 MODEL TEMPLATE PDF (SIMPLE COMPACT 1-5 BUTTONS WITH FULL HEIGHT PREVIEW) -->
-  <div id="popupPdfModelsModal" class="popupOverlay" style="z-index: 1000000; align-items: flex-start; padding-top: 8px;">
-    <div class="popupBox" style="width: 840px; max-width: 96vw; height: 95vh; max-height: 95vh; display: flex; flex-direction: column; padding: 0; border-radius: 16px; overflow: hidden; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.35);">
-      <div class="popupHeader" style="background: linear-gradient(135deg, #7c3aed, #4c1d95); padding: 12px 18px; position: relative; justify-content: center !important;">
+  <div id="popupPdfModelsModal" class="popupOverlay" onclick="if(event.target === this) tutupModalPdfModels();" style="display: none; z-index: 1000000; padding: 0 !important; margin: 0 !important; width: 100vw !important; height: 100vh !important; height: 100dvh !important; box-sizing: border-box !important;">
+    <div class="popupBox" style="width: 100vw !important; max-width: 100vw !important; height: 100vh !important; height: 100dvh !important; max-height: 100vh !important; max-height: 100dvh !important; display: flex !important; flex-direction: column !important; padding: 0 !important; margin: 0 !important; border-radius: 0px !important; overflow: hidden !important; position: relative !important; box-shadow: none !important; -webkit-clip-path: none !important; clip-path: none !important;">
+      <div class="popupHeader" style="background: var(--primary) !important; background-color: var(--primary) !important; background-image: none !important; padding: 12px 18px; position: relative; justify-content: center !important; border-radius: 0px !important; ">
         <span style="font-size: 15px; font-weight: 900; color: #fff; text-align: center; letter-spacing: 0.5px;">
           <span class="material-symbols-rounded" style="vertical-align: middle; margin-right: 6px; font-size: 20px;">picture_as_pdf</span> PILIH MODEL TEMPLATE SURAT PDF (1 - 5)
         </span>
-        <button type="button" class="popupClose" onclick="tutupModalPdfModels()">&times;</button>
+        <button type="button" class="popupClose" onclick="tutupModalPdfModels()" style="position: absolute !important; right: 14px !important; top: 10px !important; font-size: 28px !important; font-weight: 900 !important; color: #ffffff !important; background: transparent !important; border: none !important; line-height: 1 !important; cursor: pointer !important; padding: 0 4px !important; text-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;" title="TUTUP">&times;</button>
       </div>
 
       <!-- ACTIVE MODEL DESCRIPTION BANNER -->
@@ -887,80 +1532,51 @@
         <!-- Injected Dynamically by JS -->
       </div>
 
-      <!-- BOTTOM MODEL SELECTOR BAR (SIMPLE BUTTONS 1 TO 5 & SIMPAN BUTTON) -->
-      <div class="popupFooter" style="padding: 10px 16px; background: var(--bg-box); border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="font-size: 11px; font-weight: 900; color: var(--text-muted); text-transform: uppercase;">MODE:</span>
-          <div id="pdfModelSelectorNav" class="pdf-model-simple-nav">
+      <!-- BOTTOM MODEL SELECTOR BAR (SIMPLE BUTTONS 1 TO 5 & TUTUP BUTTON) -->
+      <div class="popupFooter" style="padding: 12px 18px; background: var(--bg-box); border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size: 11.5px; font-weight: 900; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">PILIH MODE:</span>
+          <div id="pdfModelSelectorNav" class="pdf-model-simple-nav" style="display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap;">
             <!-- Injected Dynamically by JS -->
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <button type="button" class="btnBatal" style="padding: 8px 16px; border-radius: 10px; font-size: 12px; font-weight: 700;" onclick="tutupModalPdfModels()">BATAL</button>
-          <button type="button" class="btnTambahBarang" style="background: linear-gradient(135deg, #10b981, #059669); height: 40px; padding: 0 20px; font-size: 12px; font-weight: 900; border-radius: 10px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);" onclick="konfirmasiGunakanModelPdf()">
-            <span class="material-symbols-rounded" style="font-size: 18px;">check_circle</span> SIMPAN MODEL INI
-          </button>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" class="btnBatal" style="padding: 8px 22px; border-radius: 0px !important; font-size: 12px; font-weight: 800; background: #ef4444 !important; color: #ffffff !important; border: none !important; height: 38px; cursor: pointer;" onclick="tutupModalPdfModels()">TUTUP</button>
         </div>
       </div>
     </div>
   </div>
 
   <!-- 10. POPUP PDF DOCUMENT PREVIEW MODAL -->
-  <div id="pdfModal" class="popupOverlay" style="align-items: flex-start; padding-top: 25px;">
-    <div class="popupBox" style="width: 720px; max-width: 95vw; max-height: 86vh; display: flex; flex-direction: column; border-radius: 8px;">
-      <div class="popupHeader" style="background: #0284c7; position: relative; padding: 14px 20px;">
-        <button type="button" class="btnPrintHeader" onclick="cetakDokumenPdf()" title="CETAK PDF / PRINT">
-          <span class="material-symbols-rounded">print</span> PRINT
-        </button>
-        <span style="font-size: 15px; font-weight: 800; color: #fff; text-align: center;">PREVIEW SURAT DOKUMEN PERMINTAAN</span>
-        <button type="button" class="popupClose" onclick="tutupPdfModal()">&times;</button>
+  <div id="pdfModal" class="popupOverlay" onclick="if(event.target === this) tutupPdfModal();" style="display:none; padding-top: 1mm !important; padding-bottom: 1mm !important; padding-left: 1mm !important; padding-right: 1mm !important; justify-content: center !important; align-items: center !important; box-sizing: border-box !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important;">
+    <div class="popupBox" style="position: relative !important; width: 780px !important; max-width: calc(100vw - 2mm) !important; height: calc(100vh - 2mm) !important; height: calc(100dvh - 2mm) !important; max-height: calc(100vh - 2mm) !important; max-height: calc(100dvh - 2mm) !important; margin: 1mm auto !important; border-radius: 0px !important; display: flex !important; flex-direction: column !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important; -webkit-clip-path: none !important; clip-path: none !important;">
+      <div class="popupHeader" style="background: var(--primary) !important; background-color: var(--primary) !important; background-image: none !important; color: #ffffff !important; position: relative !important; display: flex !important; align-items: center !important; justify-content: space-between !important; padding: 10px 18px !important; min-height: 50px !important; flex-shrink: 0 !important; border-radius: 0px !important; width: 100% !important; box-sizing: border-box !important;">
+        <button type="button" class="btnPrintHeader" onclick="cetakDokumenPdf()" title="CETAK PDF / PRINT" style="display: inline-flex !important; align-items: center !important; gap: 8px !important; padding: 8px 18px !important; height: 38px !important; background: #ffffff !important; color: var(--primary) !important; border: 2px solid #ffffff !important; border-radius: 0px !important; font-weight: 800 !important; font-size: 14px !important; cursor: pointer !important;"><span class="material-symbols-rounded" style="font-size: 24px !important; font-weight: 900 !important;">print</span> PRINT</button>
+        <button type="button" class="popupClose" onclick="tutupPdfModal()" style="position: absolute !important; right: 14px !important; top: 8px !important; font-size: 28px !important; font-weight: 900 !important; color: #ffffff !important; background: transparent !important; border: none !important; border-radius: 0 !important; width: auto !important; height: auto !important; padding: 0 4px !important; cursor: pointer !important; z-index: 10 !important; text-shadow: 0 1px 3px rgba(0,0,0,0.5) !important;" title="TUTUP PDF">&times;</button>
       </div>
-      <div class="popupContent" id="pdfDocumentContent" style="flex: 1; overflow-y: auto; background: #f8fafc; padding: 14px;">
+      <div class="popupContent" id="pdfDocumentContent" style="flex: 1; overflow-y: auto !important; -webkit-overflow-scrolling: touch !important; touch-action: pan-y !important; background: #f8fafc; padding: 1mm 10px !important;">
         <!-- Injected dynamically -->
       </div>
     </div>
   </div>
 
-  <!-- LIGHTBOX IMAGE VIEWER DENGAN KONTROL ZOOM DI BOTTOM BAR -->
-  <div id="imageViewer" class="image-viewer-modal" style="display: none;">
-    <span class="closeViewer" onclick="tutupImageViewer()">&times;</span>
-    
-    <!-- Tombol Kiri (<) -->
-    <button id="navViewerLeft" onclick="gantiFotoViewer(-1)" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1002; transition: 0.2s;">
-      <span class="material-symbols-rounded" style="font-size: 28px;">chevron_left</span>
-    </button>
-
-    <img id="viewerImage" src="" alt="Bukti Foto">
-
-    <!-- Tombol Kanan (>) -->
-    <button id="navViewerRight" onclick="gantiFotoViewer(1)" style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 1002; transition: 0.2s;">
-      <span class="material-symbols-rounded" style="font-size: 28px;">chevron_right</span>
-    </button>
-
-    <!-- CONTROL BAR AT BOTTOM: COUNTER & ZOOM CONTROLS -->
-    <div class="viewerBottomBar">
-      <div id="viewerCounter">1 / 1</div>
-      <div class="zoomControls">
-        <button onclick="zoomImage(0.25)" title="Perbesar (+)">
-          <span class="material-symbols-rounded">zoom_in</span>
-        </button>
-        <button onclick="resetZoom()" title="Reset Ukuran">
-          <span class="material-symbols-rounded">restart_alt</span>
-        </button>
-        <button onclick="zoomImage(-0.25)" title="Perkecil (-)">
-          <span class="material-symbols-rounded">zoom_out</span>
-        </button>
-      </div>
+  <!-- 11. GLOBAL LOADING OVERLAY DIRECTLY AT BODY ROOT LEVEL (BULATAN SPINNER SAJA TANPA KOTAK & TULISAN) -->
+  <div id="loadingOverlay" class="loadingOverlay" style="display: none; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(0, 0, 0, 0.45) !important; z-index: 2147483647 !important; justify-content: center !important; align-items: center !important; backdrop-filter: blur(3px) !important;">
+    <div class="spinnerBox" style="display: flex !important; align-items: center !important; justify-content: center !important; background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important;">
+      <div class="spinner" style="width: 52px !important; height: 52px !important; border: 4px solid rgba(255,255,255,0.15) !important; border-top-color: #38bdf8 !important; border-right-color: #818cf8 !important; border-radius: 50% !important; animation: spinSmooth 0.85s linear infinite !important; filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.95)) !important;"></div>
+      <div id="loadingText" class="loadingText" style="display: none !important;"></div>
+      <button type="button" id="btnBatalLoading" style="display: none !important;"></button>
     </div>
   </div>
 
-  <!-- 11. GLOBAL LOADING OVERLAY (TEXTLESS, CENTERED ON ALL DEVICES) -->
-  <div id="loadingOverlay">
-    <div class="spinner"></div>
+  <!-- 12. MINI CENTER LOADING SPINNER DIRECTLY AT BODY ROOT LEVEL -->
+  <div id="miniCenterLoading" class="miniCenterLoading" style="display: none; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important; background: rgba(15, 23, 42, 0.75) !important; z-index: 2147483647 !important; justify-content: center !important; align-items: center !important;">
+    <div class="miniSpinnerBox" style="display: flex !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 14px !important; padding: 22px 28px !important; min-width: 180px !important; border-radius: 14px !important; background: #0f172a !important; border: 1.5px solid #38bdf8 !important;">
+      <div class="miniSpinner" style="width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.15); border-top-color: #38bdf8; border-radius: 50%; animation: spinSmooth 0.75s linear infinite;"></div>
+      <div id="miniCenterLoadingText" class="miniLoadingText" style="display: block !important; color: #ffffff !important; font-weight: 800 !important; font-size: 13px !important;">MEMBACA DOKUMEN...</div>
+    </div>
   </div>
 
-  <!-- Database Engine & Master Logic -->
-  <script src="app.js?v=20260804_clean"></script>
 </body>
 </html>
