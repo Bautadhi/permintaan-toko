@@ -952,7 +952,9 @@ function shouldEmitImportantNotification(targetRoles, targetArea, message, noSur
     'DITOLAK SERVICE',
     'DITOLAK',
     'SELESAI (DONE)',
-    'REMINDER PENDING'
+    'REMINDER PENDING',
+    'BREAKDOWN',
+    'PARSIAL'
   ];
 
   const containsImportant = importantPatterns.some(pattern => normalized.toUpperCase().includes(pattern));
@@ -1183,7 +1185,7 @@ function loadNotificationList() {
   });
 }
 
-function clickNotificationItem(notifId, noSurat) {
+async function clickNotificationItem(notifId, noSurat) {
   const notifs = typeof getSystemNotifications === 'function' ? getSystemNotifications() : [];
   const targetNotif = notifs.find(n => n && (n.id === notifId || (noSurat && n.noSurat === noSurat)));
 
@@ -1195,22 +1197,47 @@ function clickNotificationItem(notifId, noSurat) {
     notifListPopup.classList.remove('show');
   }
 
-  if (noSurat) {
-    const isBreakdownNotif = targetNotif && (
+  let targetNoSurat = String(noSurat || '').trim();
+  if (!targetNoSurat && targetNotif) {
+    targetNoSurat = String(targetNotif.noSurat || '').trim();
+  }
+  if (!targetNoSurat && targetNotif && targetNotif.message) {
+    const m = targetNotif.message.match(/(PRMT[\/\.\_\-A-Za-z0-9]+)/i) || targetNotif.message.match(/#?([A-Za-z0-9\/\.\_-]{5,30})/i);
+    if (m) targetNoSurat = m[1];
+  }
+
+  const cleanNoSurat = targetNoSurat.replace(/[-_]P\d+$/i, '').replace(/^#/, '').trim();
+
+  if (cleanNoSurat) {
+    if (typeof syncSupabaseBreakdownParsialToLocalCache === 'function') {
+      await syncSupabaseBreakdownParsialToLocalCache().catch(() => {});
+    }
+
+    const existingDetail = document.getElementById('popupDetailBarangV2');
+    if (existingDetail) {
+      existingDetail.style.display = 'none';
+      existingDetail.classList.remove('show');
+    }
+
+    const partials = typeof getPartialBreakdownsFromDB === 'function' ? getPartialBreakdownsFromDB(cleanNoSurat) : [];
+    const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+    const req = reqs.find(r => r && String(r.noSurat || '').trim().toUpperCase() === cleanNoSurat.toUpperCase());
+    const reqPartials = (req && Array.isArray(req.partialBreakdowns)) ? req.partialBreakdowns : [];
+
+    const hasBreakdownData = (Array.isArray(partials) && partials.length > 0) || (Array.isArray(reqPartials) && reqPartials.length > 0);
+    const isBreakdownNotif = hasBreakdownData || (targetNotif && (
       String(targetNotif.title || '').toUpperCase().includes('BREAKDOWN') ||
       String(targetNotif.message || '').toUpperCase().includes('BREAKDOWN') ||
       String(targetNotif.type || '').toUpperCase().includes('BREAKDOWN') ||
       String(targetNotif.title || '').toUpperCase().includes('PARSIAL') ||
       String(targetNotif.message || '').toUpperCase().includes('PARSIAL')
-    );
+    ));
 
-    setTimeout(() => {
-      if (isBreakdownNotif && typeof bukaModalRiwayatParsialList === 'function') {
-        bukaModalRiwayatParsialList(noSurat);
-      } else if (typeof lihatDetail === 'function') {
-        lihatDetail(noSurat, true);
-      }
-    }, 150);
+    if (isBreakdownNotif && typeof bukaModalRiwayatParsialList === 'function') {
+      bukaModalRiwayatParsialList(cleanNoSurat);
+    } else if (typeof lihatDetail === 'function') {
+      lihatDetail(cleanNoSurat, true);
+    }
   }
 }
 
@@ -1252,7 +1279,19 @@ function markNotifAsRead(notifId, noSurat = '') {
     appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(payload));
     try { localStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(payload)); } catch(e) {}
 
-    // Notifikasi dikelola secara lokal & Firebase (tidak dikirim ke Supabase)
+    // SINKRONISASI STATUS BACA (readBy) KE CLOUD FIRESTORE & REALTIME DATABASE
+    try {
+      const fsNotif = typeof getDbFirestore === 'function' ? getDbFirestore() : null;
+      if (fsNotif && targetNotif && targetNotif.id) {
+        fsNotif.collection('notifications').doc(targetNotif.id).set({
+          readBy: targetNotif.readBy
+        }, { merge: true }).catch(() => {});
+      }
+      const rtdbNotif = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
+      if (rtdbNotif && targetNotif && targetNotif.id) {
+        rtdbNotif.ref(`notifications/${targetNotif.id}/readBy`).set(targetNotif.readBy).catch(() => {});
+      }
+    } catch(e) {}
   }
 
   updateNotifBellCounter();
@@ -1295,6 +1334,18 @@ function markAllNotifAsRead(silent = false) {
 
   appStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(payload));
   try { localStorage.setItem(NOTIFICATIONS_DB_KEY, JSON.stringify(payload)); } catch(e) {}
+
+  // SINKRONISASI TANDAI SEMUA SUDAH DIBACA KE FIRESTORE & RTDB
+  try {
+    const fsNotif = typeof getDbFirestore === 'function' ? getDbFirestore() : null;
+    const rtdbNotif = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
+    notifs.forEach(n => {
+      if (n && n.id && Array.isArray(n.readBy)) {
+        if (fsNotif) fsNotif.collection('notifications').doc(n.id).set({ readBy: n.readBy }, { merge: true }).catch(() => {});
+        if (rtdbNotif) rtdbNotif.ref(`notifications/${n.id}/readBy`).set(n.readBy).catch(() => {});
+      }
+    });
+  } catch(e) {}
 
   // Notifikasi dikelola secara lokal & Firebase (tidak dikirim ke Supabase)
 
@@ -1964,10 +2015,26 @@ function startFirebaseRealtimeNotifListener() {
           return;
         }
 
+        const localNotifs = typeof getSystemNotifications === 'function' ? getSystemNotifications() : [];
+        const localReadMap = new Map();
+        if (Array.isArray(localNotifs)) {
+          localNotifs.forEach(l => {
+            if (l && l.id && Array.isArray(l.readBy)) {
+              localReadMap.set(l.id, l.readBy);
+            }
+          });
+        }
+
         const remoteNotifs = [];
         snapshot.forEach(doc => {
           const data = doc.data();
-          if (data && data.id) remoteNotifs.push(data);
+          if (data && data.id) {
+            const locReadBy = localReadMap.get(data.id) || [];
+            const remReadBy = Array.isArray(data.readBy) ? data.readBy : [];
+            const mergedReadBy = Array.from(new Set([...locReadBy, ...remReadBy]));
+            data.readBy = mergedReadBy;
+            remoteNotifs.push(data);
+          }
         });
 
         // Mirror directly to local storage
@@ -3265,6 +3332,22 @@ async function syncSupabaseUsersToLocalCache() {
 window.syncSupabaseUsersToLocalCache = syncSupabaseUsersToLocalCache;
 window.syncSupabaseUsersToLocalCache = syncSupabaseUsersToLocalCache;
 
+let _supabaseUserColumnsCache = null;
+
+async function getSupabaseUserColumns(client) {
+  if (_supabaseUserColumnsCache && _supabaseUserColumnsCache.length > 0) {
+    return _supabaseUserColumnsCache;
+  }
+  try {
+    const { data } = await client.from('users').select('*').limit(1);
+    if (data && data.length > 0) {
+      _supabaseUserColumnsCache = Object.keys(data[0]);
+      return _supabaseUserColumnsCache;
+    }
+  } catch (e) {}
+  return ['id', 'username', 'password', 'full_name', 'store_code', 'phone', 'category', 'area', 'ttd', 'created_at', 'updated_at'];
+}
+
 async function simpanUserKeSupabase(userObj) {
   const client = (typeof supabase !== 'undefined' && supabase) ? supabase : null;
   if (!client || !userObj) return;
@@ -3272,7 +3355,7 @@ async function simpanUserKeSupabase(userObj) {
     const username = String(userObj.username || userObj.id || '').trim();
     if (!username) return;
 
-    const payload = {
+    const fullPayload = {
       id: userObj.id || ('USR-' + username),
       username: username,
       password: String(userObj.password || '1').trim(),
@@ -3286,17 +3369,21 @@ async function simpanUserKeSupabase(userObj) {
       updated_at: new Date().toISOString()
     };
 
-    const { error: err1 } = await client.from('users').upsert(payload, { onConflict: 'id' });
-    if (err1) {
-      const { error: err2 } = await client.from('users').upsert(payload, { onConflict: 'username' });
-      if (err2) {
-        // Fallback: Jika kolom 'ttd' belum ada di tabel users Supabase, hapus ttd & coba lagi tanpa error
-        delete payload.ttd;
-        await client.from('users').upsert(payload, { onConflict: 'id' }).catch(() => {
-          client.from('users').upsert(payload, { onConflict: 'username' }).catch(() => {});
-        });
+    const validCols = await getSupabaseUserColumns(client);
+    const sanitizedPayload = {};
+    Object.keys(fullPayload).forEach(k => {
+      if (validCols.includes(k)) {
+        sanitizedPayload[k] = fullPayload[k];
       }
-    }
+    });
+
+    const { error: err1 } = await client.from('users').upsert(sanitizedPayload, { onConflict: 'id' });
+    if (!err1) return;
+
+    const { error: err2 } = await client.from('users').upsert(sanitizedPayload);
+    if (!err2) return;
+
+    await client.from('users').update(sanitizedPayload).eq('username', username);
   } catch (e) {
     console.warn('[SUPABASE USER UPSERT EXCEPTION]:', e);
   }
@@ -5704,6 +5791,11 @@ window.triggerConfirmBoxFlash = triggerConfirmBoxFlash;
 
     // 4. MODAL UTAMA LAINNYA (DITUTUP SATU PER SATU DARI LAPISAN PALING ATAS KE LAPISAN BELAKANG)
     const modalPriorityStack = [
+      { id: 'modalPilihanCetakPdf', closeFn: () => { const el = document.getElementById('modalPilihanCetakPdf'); if (el) el.remove(); } },
+      { id: 'modalDetailParsialSub', closeFn: () => { if (typeof tutupModalDetailParsialSub === 'function') { tutupModalDetailParsialSub(); } else { const el = document.getElementById('modalDetailParsialSub'); if (el) el.remove(); } } },
+      { id: 'modalRejectParsial', closeFn: () => { const el = document.getElementById('modalRejectParsial'); if (el) el.remove(); } },
+      { id: 'modalRiwayatParsialList', closeFn: () => { const el = document.getElementById('modalRiwayatParsialList'); if (el) el.remove(); } },
+      { id: 'modalBuatParsial', closeFn: () => { const el = document.getElementById('modalBuatParsial'); if (el) el.remove(); } },
       { id: 'artemisOverlay', closeFn: () => { if (typeof closeArtemisModal === 'function') closeArtemisModal(); } },
       { id: 'rejectOverlay', closeFn: () => { if (typeof tutupRejectModal === 'function') tutupRejectModal(); } },
       { id: 'confirmOverlay', closeFn: () => { 
@@ -7296,12 +7388,12 @@ function filterRiwayat() {
 
   thead.innerHTML = `
     <tr>
-      <th>AKSI</th>
+      <th style="width: 6cm !important; min-width: 6cm !important; max-width: 6cm !important; text-align: center !important;">AKSI</th>
+      <th>STATUS</th>
       <th>TGL</th>
       <th>NO SURAT</th>
       <th>TOKO</th>
       <th>JENIS</th>
-      <th>STATUS</th>
       <th>CATATAN</th>
     </tr>
   `;
@@ -7454,12 +7546,12 @@ function filterRiwayat() {
       tr.className = 'blink-row-red';
     }
     tr.innerHTML = `
-      <td><div style="display:flex; gap:4px; align-items:center;">${aksi}</div></td>
+      <td style="width: 6cm !important; min-width: 6cm !important; max-width: 6cm !important; box-sizing: border-box !important;"><div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap; justify-content:flex-start;">${aksi}</div></td>
+      <td>${getBadgeStatus(r)}</td>
       <td style="white-space:nowrap;">${formatDateDDMMYYYYString(r.tanggal)}</td>
       <td>${r.noSurat}</td>
       <td>${r.toko} <div style="font-size:11px; opacity:0.8;">${r.area}</div></td>
       <td style="white-space:nowrap;">${r.jenis || 'DEFAULT'}</td>
-      <td>${getBadgeStatus(r)}</td>
       <td style="word-break:break-word; white-space:normal;">${r.catatan || '-'}</td>
     `;
     tbody.appendChild(tr);
@@ -7858,11 +7950,25 @@ let tempArtemisPhotos = [];
 
 function doneService(noSurat) {
   if (!noSurat) return;
+  window._activeDonePartialId = null; // Reset partial breakdown DONE flag for main request
   const requests = getRequestsFromDB();
   const req = requests.find(r => r && (r.noSurat === noSurat || String(r.noSurat) === String(noSurat) || r.id === noSurat));
   if (!req) {
     showNotif('DATA PERMINTAAN TIDAK DITEMUKAN!', 'warning');
     return;
+  }
+
+  // CHECK UN-DONE PARTIAL BREAKDOWNS FIRST
+  const partialsCheck = typeof getPartialBreakdownsFromDB === 'function' ? getPartialBreakdownsFromDB(noSurat) : [];
+  if (Array.isArray(partialsCheck) && partialsCheck.length > 0) {
+    const unDonePartials = partialsCheck.filter(p => p && p.status !== 'DONE' && p.status !== 'REJECT');
+    if (unDonePartials.length > 0) {
+      const pids = unDonePartials.map(p => p.partial_id || p.partialId).join(', ');
+      if (typeof showNotif === 'function') {
+        showNotif(`TIDAK DAPAT SET DONE INDUK! MASIH ADA SURAT PARSIAL (${pids}) YANG BELUM BERSTATUS DONE.`, 'warning');
+      }
+      return;
+    }
   }
 
   // VALIDASI KETAT BRAKDOWN PARSIAL TERGANTUNG
@@ -7879,7 +7985,26 @@ function doneService(noSurat) {
   if (inputKet) inputKet.value = '';
 
   const artemisSubTitle = document.getElementById('artemisSubTitle');
-  if (artemisSubTitle) artemisSubTitle.textContent = `UPLOAD FOTO BUKTI PROSES ARTEMIS UNTUK MENYELESAIKAN PERMINTAAN #${noSurat}:`;
+  const pasteBox = document.getElementById('artemisPasteBox');
+  const previewGrid = document.getElementById('artemisPhotoPreviewGrid');
+  const hasPartials = Array.isArray(partialsCheck) && partialsCheck.length > 0;
+
+  if (hasPartials) {
+    if (pasteBox) pasteBox.style.display = 'none';
+    if (previewGrid) previewGrid.style.display = 'none';
+    if (artemisSubTitle) {
+      artemisSubTitle.textContent = `KONFIRMASI PENYELESAIKAN SURAT INDUK #${noSurat} (FOTO BUKTI SUDAH DISERAHKAN DI SURAT PARSIAL):`;
+    }
+  } else {
+    if (pasteBox) pasteBox.style.display = 'block';
+    if (previewGrid) previewGrid.style.display = 'flex';
+    if (artemisSubTitle) {
+      artemisSubTitle.textContent = `UPLOAD FOTO BUKTI PROSES ARTEMIS UNTUK MENYELESAIKAN PERMINTAAN #${noSurat}:`;
+    }
+  }
+
+  const titleEl = document.getElementById('artemisTitle');
+  if (titleEl) titleEl.innerText = `PROSES ARTEMIS / CONSOLATION DONE`;
 
   tempArtemisPhotos = [];
   renderArtemisPhotoPreviews();
@@ -7887,6 +8012,7 @@ function doneService(noSurat) {
   const overlay = document.getElementById('artemisOverlay');
   if (overlay) {
     overlay.classList.add('show');
+    overlay.style.setProperty('z-index', '99999999', 'important');
     overlay.style.setProperty('display', 'flex', 'important');
     overlay.style.setProperty('visibility', 'visible', 'important');
     overlay.style.setProperty('opacity', '1', 'important');
@@ -7895,8 +8021,18 @@ function doneService(noSurat) {
   }
 }
 window.doneService = doneService;
+window.bukaArtemisModal = doneService;
 
 function closeArtemisModal() {
+  window._activeDonePartialId = null;
+  const titleEl = document.getElementById('artemisTitle');
+  if (titleEl) titleEl.innerText = 'PROSES ARTEMIS / UPLOAD BUKTI FOTO';
+
+  const pasteBox = document.getElementById('artemisPasteBox');
+  const previewGrid = document.getElementById('artemisPhotoPreviewGrid');
+  if (pasteBox) pasteBox.style.display = 'block';
+  if (previewGrid) previewGrid.style.display = 'flex';
+
   const overlay = document.getElementById('artemisOverlay');
   if (overlay) {
     overlay.style.setProperty('display', 'none', 'important');
@@ -8046,9 +8182,84 @@ function prosesSimpanDoneDenganBuktiArtemis() {
     return;
   }
 
-  if (!Array.isArray(tempArtemisPhotos) || tempArtemisPhotos.length === 0) {
-    showNotif('TIDAK ADA FOTO BUKTI PROSES ARTEMIS YANG DIUPLOAD!', 'warning');
+  const partialId = window._activeDonePartialId;
+
+  // JIKA DONE ADALAH UNTUK CARD SURAT JALAN PARSIAL (BREAKDOWN CARD)
+  if (partialId) {
+    if (!Array.isArray(tempArtemisPhotos) || tempArtemisPhotos.length === 0) {
+      showNotif('TIDAK ADA FOTO BUKTI PROSES ARTEMIS YANG DIUPLOAD!', 'warning');
+      return;
+    }
+
+    showConfirm(`SELESAIKAN SURAT JALAN PARSIAL #${noSurat}-${partialId} DAN SIMPAN BUKTI FOTO?`, () => {
+      try {
+        const partials = getPartialBreakdownsFromDB(noSurat);
+        const pIdx = partials.findIndex(p => p && (p.partial_id === partialId || p.partialId === partialId || String(p.id).endsWith(`_${partialId}`)));
+
+        if (pIdx !== -1) {
+          partials[pIdx].status = 'DONE';
+          partials[pIdx].done_by = currentUser ? (currentUser.fullName || currentUser.username) : 'SERVICE';
+          partials[pIdx].done_at = new Date().toISOString();
+
+          const existingPhotos = parsePhotosArray(partials[pIdx].photos);
+          const newPhotos = Array.isArray(tempArtemisPhotos) ? tempArtemisPhotos : [];
+          partials[pIdx].photos = [...existingPhotos, ...newPhotos];
+
+          savePartialBreakdownsToDB(partials, noSurat);
+          pushPartialBreakdownsToCloud(partials, noSurat);
+
+          // Update item main request yang diserahkan di parsial ini
+          const requests = getRequestsFromDB();
+          const targetNo = String(noSurat).trim().toUpperCase();
+          const mainIdx = requests.findIndex(r => r && String(r.noSurat || '').trim().toUpperCase() === targetNo);
+          if (mainIdx !== -1 && Array.isArray(partials[pIdx].items)) {
+            partials[pIdx].items.forEach(pItem => {
+              const itemIdx = pItem.itemIdx;
+              if (itemIdx >= 0 && itemIdx < requests[mainIdx].items.length) {
+                requests[mainIdx].items[itemIdx].statusPart = 'SUDAH DISERAHKAN';
+                requests[mainIdx].items[itemIdx].keteranganPart = 'SUDAH DISERAHKAN';
+              }
+            });
+            saveRequestsToDB(requests);
+            if (typeof safeSupabaseUpsertPermintaan === 'function') safeSupabaseUpsertPermintaan(requests[mainIdx]);
+          }
+
+          window._activeDonePartialId = null;
+          closeArtemisModal();
+          showNotif(`SURAT JALAN PARSIAL #${noSurat}-${partialId} SELESAI (DONE) & BUKTI FOTO DISIMPAN!`, 'success');
+
+          if (typeof bukaModalRiwayatParsialList === 'function') {
+            bukaModalRiwayatParsialList(noSurat);
+          }
+          if (typeof loadRiwayat === 'function') loadRiwayat();
+          if (typeof loadDashboard === 'function') loadDashboard();
+        }
+      } catch(err) {
+        console.warn('Error done partial breakdown:', err);
+      }
+    });
     return;
+  }
+
+  // VALIDASI UNTUK DONE SURAT UTAMA / INDUK:
+  const partialsCheck = getPartialBreakdownsFromDB(noSurat);
+  const hasBreakdownSubmissions = Array.isArray(partialsCheck) && partialsCheck.length > 0;
+
+  if (hasBreakdownSubmissions) {
+    // 1. SEMUA CARD PARSIAL HARUS SUDAH DONE / REJECT
+    const unDonePartials = partialsCheck.filter(p => p && p.status !== 'DONE' && p.status !== 'REJECT');
+    if (unDonePartials.length > 0) {
+      const pids = unDonePartials.map(p => p.partial_id || p.partialId).join(', ');
+      showNotif(`GAGAL SET DONE INDUK! MASIH ADA SURAT PARSIAL (${pids}) YANG BELUM BERSTATUS DONE.`, 'warning');
+      return;
+    }
+    // UPLOAD FOTO INDUK TIDAK WAJIB KARENA SUDAH MEMILIKI SURAT JALAN PARSIAL!
+  } else {
+    // TRANSAKSI BIASA (TIDAK ADA BREAKDOWN): UPLOAD FOTO PROSES WAJIB!
+    if (!Array.isArray(tempArtemisPhotos) || tempArtemisPhotos.length === 0) {
+      showNotif('TIDAK ADA FOTO BUKTI PROSES ARTEMIS YANG DIUPLOAD!', 'warning');
+      return;
+    }
   }
 
   showConfirm(`SELESAIKAN PERMINTAAN #${noSurat} DAN SIMPAN BUKTI PROSES ARTEMIS?`, () => {
@@ -8218,6 +8429,34 @@ function batalApproveDM(noSurat) {
   });
 }
 
+function tolakServiceModal(noSurat, roleType) {
+  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+  const overlay = document.getElementById('rejectOverlay');
+  const elNo = document.getElementById('rejectNoSurat');
+  const elRole = document.getElementById('rejectRoleType');
+  const elTitle = document.getElementById('rejectTitle');
+  const elReason = document.getElementById('rejectReason') || document.getElementById('rejectAlasan');
+
+  if (elNo) elNo.value = noSurat;
+  if (elRole) elRole.value = roleType || 'DM';
+  if (elTitle) elTitle.innerText = `TOLAK PERMINTAAN (${roleType || 'DM'})`;
+  if (elReason) elReason.value = '';
+
+  if (overlay) {
+    overlay.style.setProperty('z-index', '2147483647', 'important');
+    overlay.style.setProperty('display', 'flex', 'important');
+    overlay.classList.add('show');
+  }
+}
+window.tolakServiceModal = tolakServiceModal;
+
+function kirimReject() {
+  const elRole = document.getElementById('rejectRoleType');
+  const roleType = elRole && elRole.value ? elRole.value : 'DM';
+  prosesReject(roleType);
+}
+window.kirimReject = kirimReject;
+
 function tutupRejectModal() {
   const overlay = document.getElementById('rejectOverlay');
   if (overlay) {
@@ -8244,7 +8483,7 @@ window.closeRejectModal = tutupRejectModal;
 
 function prosesReject(roleType) {
   const elNo = document.getElementById('rejectNoSurat');
-  const elAlasan = document.getElementById('rejectAlasan');
+  const elAlasan = document.getElementById('rejectReason') || document.getElementById('rejectAlasan');
   const noSurat = elNo ? elNo.value.trim() : '';
   const alasan = elAlasan ? elAlasan.value.trim() : '';
 
@@ -8814,23 +9053,12 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
     const isHandedOver = !!(statusPartVal.toUpperCase().includes('SUDAH DISERAHKAN') || i.isHandedOver === true);
     const isAdmUserRole = (typeof checkIsAdminUser === 'function') ? checkIsAdminUser() : (currentUser && ((currentUser.category || '').toUpperCase() === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN')));
     const fotoProofUrl = i.fotoBuktiPart || i.fotoPart || '';
-    const hasPhoto = !!(fotoProofUrl && typeof fotoProofUrl === 'string' && fotoProofUrl.trim() !== '' && fotoProofUrl.trim() !== 'null' && fotoProofUrl.trim() !== 'undefined');
-
-    let fotoProofBtnHtml = '';
-    if (hasPhoto) {
-      fotoProofBtnHtml = `
-        <button type="button" onclick="event.stopPropagation(); bukaFotoBuktiPartSingleItem('${req.noSurat}', ${idx});" title="Lihat Foto Bukti Part" style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; background: rgba(2, 132, 199, 0.15); color: #0284c7; border: 1px solid #0284c7; font-size: 11px; font-weight: 800; cursor: pointer; text-transform: uppercase; line-height: 1; height: 26px; box-sizing: border-box;">
-          <span class="material-symbols-rounded" style="font-size: 15px;">image</span>
-          <span>LIHAT FOTO</span>
-        </button>
-      `;
-    }
+    const hasPhoto = isPhotoUrlValid(fotoProofUrl);
 
     let ketPartTdHtml = showKetPartCol ? `
       <td style="${tdStyleLeft} ${strikeStyle}">
         <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
           ${statusPartBadgeHtml}
-          ${fotoProofBtnHtml}
         </div>
       </td>
     ` : '';
@@ -9070,7 +9298,7 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
   }
 
   const thKetPartHtml = showKetPartCol ? `<th style="${canServiceRowActions ? thStyleLeft : thStyleLeftLast}">KETERANGAN PART</th>` : '';
-  const thActionHtml = canServiceRowActions ? `<th style="${thStyleAutofitLast}">AKSI</th>` : '';
+  const thActionHtml = canServiceRowActions ? `<th style="width: 6cm !important; min-width: 6cm !important; max-width: 6cm !important; text-align: center !important;">AKSI</th>` : '';
 
   const tableHeaderHtml = isDus ? `
     <thead>
@@ -10080,107 +10308,6 @@ function tutupPilihanCetakPdf() {
 }
 window.tutupPilihanCetakPdf = tutupPilihanCetakPdf;
 
-function tampilkanPilihanCetakPdf(noSurat) {
-  if (!noSurat) return;
-  const requests = getRequestsFromDB();
-  const targetNo = String(noSurat || '').trim().toUpperCase();
-  const req = requests.find(r => r && (
-    String(r.noSurat || '').trim().toUpperCase() === targetNo ||
-    String(r.id || '').trim().toUpperCase() === targetNo
-  ));
-  if (!req) {
-    showNotif('DOKUMEN TIDAK DITEMUKAN!', 'warning');
-    return;
-  }
-  window._currentActivePdfNoSurat = req.noSurat;
-
-  const userCat = (currentUser && currentUser.category) ? String(currentUser.category).toUpperCase() : '';
-  const isAdmUser = (typeof checkIsAdminUser === 'function') ? checkIsAdminUser() : (userCat === 'ADMIN' || (currentUser && currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
-  if (!isAdmUser && typeof isPdfButtonAllowed === 'function' && !isPdfButtonAllowed(req)) {
-    if (userCat === 'TOKO' || userCat === 'SALES') {
-      showNotif('DOKUMEN BELUM SELESAI DISETUJUI / DIVERIFIKASI OLEH DM!', 'warning');
-      return;
-    }
-  }
-
-  const validPhotos = getReqPhotosList(req);
-  if (validPhotos.length === 0) {
-    // Dokumen tidak memiliki foto, langsung buka cetak tanpa foto
-    bukaPdfModal(noSurat, false);
-    return;
-  }
-
-  // Tampilkan modal pilihan cetak dengan foto atau tanpa foto
-  tutupPilihanCetakPdf();
-
-  const modalHtml = `
-    <div id="pdfPrintChoiceModal" onclick="if (event.target === this) tutupPilihanCetakPdf()" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 99999; display: flex; align-items: center; justify-content: center; padding: 16px; animation: fadeIn 0.15s ease; box-sizing: border-box;">
-      <style>
-        #pdfPrintChoiceModal .pdfChoiceCard {
-          background: var(--bg-box);
-          color: var(--text-main);
-          width: 100%;
-          max-width: 430px;
-          border-radius: 4px;
-          border: 1px solid var(--border-color);
-          box-shadow: 0 16px 36px rgba(0,0,0,0.35);
-          overflow: hidden;
-          box-sizing: border-box;
-        }
-        @media (max-width: 600px) {
-          #pdfPrintChoiceModal {
-            align-items: flex-start !important;
-            padding: 1mm 8px 8px 8px !important;
-          }
-          #pdfPrintChoiceModal .pdfChoiceCard {
-            margin-top: 1mm !important;
-            max-width: 100% !important;
-            border-radius: 4px !important;
-          }
-        }
-      </style>
-      <div class="pdfChoiceCard">
-        <div style="background: var(--primary); color: #ffffff; padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; border-top-left-radius: 4px; border-top-right-radius: 4px;">
-          <div style="font-size: 14px; font-weight: 800; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px;">
-            <span class="material-symbols-rounded" style="font-size: 20px;">print</span>
-            OPSI CETAK DOKUMEN PDF
-          </div>
-          <button type="button" onclick="tutupPilihanCetakPdf()" style="background: rgba(255,255,255,0.2); border: none; color: #ffffff; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; font-size: 14px;">✕</button>
-        </div>
-        <div style="padding: 18px 20px; background: var(--bg-box); color: var(--text-main);">
-          <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">
-            Nomor Surat: <span style="color: var(--primary);">#${req.noSurat}</span>
-          </div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 18px; line-height: 1.5;">
-            Dokumen ini memiliki <b>${validPhotos.length} lampiran foto</b>. Silakan tentukan format cetak yang Anda inginkan:
-          </div>
-
-          <div style="display: flex; flex-direction: column; gap: 10px;">
-            <button type="button" onclick="tutupPilihanCetakPdf(); bukaPdfModal('${req.noSurat}', true);" style="background: var(--primary); color: #ffffff; border: 1px solid var(--primary); padding: 12px 16px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 6px rgba(0,0,0,0.15); transition: 0.15s;">
-              <span style="display: flex; align-items: center; gap: 8px;">
-                <span class="material-symbols-rounded" style="font-size: 20px;">photo_library</span>
-                CETAK DENGAN FOTO (${validPhotos.length} FOTO)
-              </span>
-              <span class="material-symbols-rounded">chevron_right</span>
-            </button>
-
-            <button type="button" onclick="tutupPilihanCetakPdf(); bukaPdfModal('${req.noSurat}', false);" style="background: var(--bg-header); color: var(--text-main); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: 0.15s;">
-              <span style="display: flex; align-items: center; gap: 8px;">
-                <span class="material-symbols-rounded" style="font-size: 20px; color: var(--text-muted);">description</span>
-                CETAK TANPA FOTO (DOKUMEN SAJA)
-              </span>
-              <span class="material-symbols-rounded" style="color: var(--text-muted);">chevron_right</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.insertAdjacentHTML('beforeend', modalHtml);
-  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
-}
-window.tampilkanPilihanCetakPdf = tampilkanPilihanCetakPdf;
-
 function bukaPdfModal(noSurat, includePhotos = null, autoPrint = true) {
   const requests = getRequestsFromDB();
   const targetNo = String(noSurat || '').trim().toUpperCase();
@@ -10204,10 +10331,8 @@ function bukaPdfModal(noSurat, includePhotos = null, autoPrint = true) {
   }
 
   const validPhotos = getReqPhotosList(req);
-  // JIKA includePhotos BELUM DIPILIH & DOKUMEN MEMILIKI FOTO -> TAMPILKAN POPUP PILIHAN
-  if (includePhotos === null && validPhotos.length > 0) {
-    tampilkanPilihanCetakPdf(noSurat);
-    return;
+  if (includePhotos === null) {
+    includePhotos = true;
   }
 
   const pdfContainer = document.getElementById('pdfDocumentContent');
@@ -10556,69 +10681,100 @@ function cetakDokumenPdf() {
   const docTitle = String(rawNoSurat).replace(/[\/\-]/g, '').trim() || 'PERMINTAAN_TOKO';
 
   try {
-    const printWindow = window.open('', '_blank', 'width=900,height=800');
-    if (printWindow) {
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <title>${docTitle}</title>
-            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-            <style>
-              * {
-                box-sizing: border-box;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                color-adjust: exact !important;
-              }
-              @page {
-                size: A4 portrait;
-                margin: 0;
-              }
-              body {
-                margin: 0;
-                padding: 8mm;
-                background: #ffffff;
-                color: #0f172a;
-                font-family: 'Poppins', sans-serif;
-              }
-              .pdf-paper {
-                width: 100% !important;
-                padding-left: 0 !important;
-                padding-right: 0 !important;
-              }
-              .pdf-info-table td {
-                border: none !important;
-              }
-              .pdf-info-table {
-                width: 100% !important;
-                border: none !important;
-                box-shadow: none !important;
-                padding: 0 !important;
-                background: #ffffff !important;
-              }
-              table {
-                width: 100% !important;
-                border-collapse: collapse !important;
-              }
-            </style>
-          </head>
-          <body>
-            ${content.innerHTML}
-          </body>
-        </html>
-      `);
-
-      printWindow.document.close();
-      printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-        printWindow.close();
-      }, 350);
-      return;
+    let printIframe = document.getElementById('hiddenPdfPrintIframe');
+    if (printIframe) {
+      printIframe.remove();
     }
+
+    printIframe = document.createElement('iframe');
+    printIframe.id = 'hiddenPdfPrintIframe';
+    printIframe.style.setProperty('position', 'fixed', 'important');
+    printIframe.style.setProperty('right', '0', 'important');
+    printIframe.style.setProperty('bottom', '0', 'important');
+    printIframe.style.setProperty('width', '0px', 'important');
+    printIframe.style.setProperty('height', '0px', 'important');
+    printIframe.style.setProperty('border', 'none', 'important');
+    printIframe.style.setProperty('opacity', '0', 'important');
+    printIframe.style.setProperty('visibility', 'hidden', 'important');
+    printIframe.style.setProperty('pointer-events', 'none', 'important');
+    printIframe.style.setProperty('z-index', '-999999', 'important');
+
+    document.body.appendChild(printIframe);
+
+    const priWindow = printIframe.contentWindow || printIframe.contentDocument;
+    const priDoc = printIframe.contentDocument || printIframe.contentWindow.document;
+
+    priDoc.open();
+    priDoc.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>${docTitle}</title>
+          <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+          <style>
+            * {
+              box-sizing: border-box;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+            @page {
+              size: A4 portrait;
+              margin: 0;
+            }
+            body {
+              margin: 0;
+              padding: 8mm;
+              background: #ffffff;
+              color: #0f172a;
+              font-family: 'Poppins', sans-serif;
+            }
+            .pdf-paper {
+              width: 100% !important;
+              padding-left: 0 !important;
+              padding-right: 0 !important;
+            }
+            .pdf-info-table td {
+              border: none !important;
+            }
+            .pdf-info-table {
+              width: 100% !important;
+              border: none !important;
+              box-shadow: none !important;
+              padding: 0 !important;
+              background: #ffffff !important;
+            }
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+            }
+          </style>
+        </head>
+        <body>
+          ${content.innerHTML}
+        </body>
+      </html>
+    `);
+    priDoc.close();
+
+    setTimeout(() => {
+      try {
+        priWindow.focus();
+        priWindow.print();
+      } catch (err) {
+        console.warn('Iframe print fallback error:', err);
+        window.print();
+      } finally {
+        setTimeout(() => {
+          if (printIframe && printIframe.parentNode) {
+            printIframe.remove();
+          }
+        }, 1500);
+      }
+    }, 200);
+    return;
   } catch (e) {
-    console.warn('[PRINT WINDOW NOTICE]: Fallback ke window.print()', e);
+    console.warn('[PRINT IFRAME NOTICE]: Fallback ke window.print()', e);
   }
 
   window.print();
@@ -17923,10 +18079,22 @@ function savePartialBreakdownsToDB(newPartials, targetNoSurat) {
     const all = getAllPartialBreakdownsFromDB();
     const targetNs = String(targetNoSurat).trim().toUpperCase();
     
-    let updated = all.filter(p => p && String(p.no_surat_induk || p.noSurat || '').trim().toUpperCase() !== targetNs);
+    const cleanNewPartials = [];
+    const seenPIds = new Set();
     if (Array.isArray(newPartials)) {
-      updated.push(...newPartials);
+      newPartials.forEach(p => {
+        if (p) {
+          const pidKey = String(p.partial_id || p.partialId || p.id || '').toUpperCase();
+          if (pidKey && !seenPIds.has(pidKey)) {
+            seenPIds.add(pidKey);
+            cleanNewPartials.push(p);
+          }
+        }
+      });
     }
+
+    let updated = all.filter(p => p && String(p.no_surat_induk || p.noSurat || '').trim().toUpperCase() !== targetNs);
+    updated.push(...cleanNewPartials);
     
     appStorage.setItem(BREAKDOWN_PARSIAL_KEY, JSON.stringify(updated));
     if (typeof localStorage !== 'undefined') {
@@ -17936,11 +18104,11 @@ function savePartialBreakdownsToDB(newPartials, targetNoSurat) {
     const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
     const rIdx = reqs.findIndex(r => r && String(r.noSurat).trim().toUpperCase() === targetNs);
     if (rIdx !== -1) {
-      reqs[rIdx].partialBreakdowns = newPartials;
+      reqs[rIdx].partialBreakdowns = cleanNewPartials;
       saveRequestsToDB(reqs, reqs[rIdx], 'UPDATE');
     }
 
-    pushPartialBreakdownsToCloud(newPartials, targetNoSurat).catch(() => {});
+    pushPartialBreakdownsToCloud(cleanNewPartials, targetNoSurat).catch(() => {});
 
   } catch(e) {
     console.warn('[SAVE PARTIAL BREAKDOWNS ERROR]:', e);
@@ -17989,30 +18157,40 @@ async function pushPartialBreakdownsToCloud(partials, noSurat) {
         const { error: delErr } = await supabase.from('breakdown_parsial').delete().eq('no_surat_induk', noSurat);
         if (delErr) console.warn('[SUPABASE DELETE BREAKDOWN ERROR]:', delErr);
       } else {
-        const rows = partials.map(p => ({
-          id: p.id || `${nsKey}_${p.partial_id || p.partialId || 'P1'}`,
-          no_surat_induk: noSurat,
-          partial_id: p.partial_id || p.partialId || 'P1',
-          items: Array.isArray(p.items) ? p.items : [],
-          photos: parsePhotosArray(p.photos),
-          status: p.status || 'PENDING',
-          created_by: p.created_by || p.createdBy || '',
-          created_at: formatValidIsoTimestamp(p.created_at || p.createdAt),
-          approved_by: p.approved_by || p.approvedBy || '',
-          approved_at: (p.approved_at || p.approvedAt) ? formatValidIsoTimestamp(p.approved_at || p.approvedAt) : null,
-          reject_reason: p.reject_reason || p.reason || ''
-        }));
-
-        const { error: upErr } = await supabase.from('breakdown_parsial').upsert(rows, { onConflict: 'id' });
-        if (upErr) {
-          console.error('[SUPABASE BREAKDOWN UPSERT ERROR]:', upErr);
-          if (upErr.code === '42P01' || String(upErr.message || '').includes('does not exist')) {
-            if (typeof showNotif === 'function') {
-              showNotif('TABEL breakdown_parsial BELUM DIBUAT DI SUPABASE! Silakan jalankan DDL SQL yang disediakan.', 'warning');
-            }
+        const rowsMap = new Map();
+        partials.forEach(p => {
+          if (p) {
+            const pId = p.partial_id || p.partialId || 'P1';
+            const rowId = p.id || `${nsKey}_${pId}`;
+            rowsMap.set(rowId, {
+              id: rowId,
+              no_surat_induk: noSurat,
+              partial_id: pId,
+              items: Array.isArray(p.items) ? p.items : [],
+              photos: parsePhotosArray(p.photos),
+              status: p.status || 'PENDING',
+              created_by: p.created_by || p.createdBy || '',
+              created_at: formatValidIsoTimestamp(p.created_at || p.createdAt),
+              approved_by: p.approved_by || p.approvedBy || '',
+              approved_at: (p.approved_at || p.approvedAt) ? formatValidIsoTimestamp(p.approved_at || p.approvedAt) : null,
+              reject_reason: p.reject_reason || p.reason || ''
+            });
           }
-        } else {
-          console.log('[SUPABASE BREAKDOWN SUCCESS]: Saved', rows.length, 'partial breakdown rows to cloud.');
+        });
+
+        const rows = Array.from(rowsMap.values());
+        if (rows.length > 0) {
+          const { error: upErr } = await supabase.from('breakdown_parsial').upsert(rows, { onConflict: 'id' });
+          if (upErr) {
+            console.error('[SUPABASE BREAKDOWN UPSERT ERROR]:', upErr);
+            if (upErr.code === '42P01' || String(upErr.message || '').includes('does not exist')) {
+              if (typeof showNotif === 'function') {
+                showNotif('TABEL breakdown_parsial BELUM DIBUAT DI SUPABASE! Silakan jalankan DDL SQL yang disediakan.', 'warning');
+              }
+            }
+          } else {
+            console.log('[SUPABASE BREAKDOWN SUCCESS]: Saved', rows.length, 'partial breakdown rows to cloud.');
+          }
         }
       }
     } catch(spErr) {
@@ -18058,24 +18236,58 @@ async function syncSupabaseBreakdownParsialToLocalCache() {
 }
 window.syncSupabaseBreakdownParsialToLocalCache = syncSupabaseBreakdownParsialToLocalCache;
 
-function tampilkanLoadingProses(pesan = 'MEMPROSES TRANSAKSI & CLOUD...') {
-  const existing = document.getElementById('loadingProsesOverlay');
-  if (existing) existing.remove();
+function kirimNotifDanWaBreakdown(noSurat, partialId, statusType, extra = {}) {
+  if (!noSurat || !partialId) return;
+  
+  const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+  const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
+  const targetArea = req ? (req.area || 'ALL') : 'ALL';
+  const tokoName = req ? (req.toko || 'TOKO') : 'TOKO';
 
-  const loadingHtml = `
-    <div id="loadingProsesOverlay" class="modal-overlay active" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 99999999 !important; align-items: center; justify-content: center;">
-      <div style="background: var(--bg-card); color: var(--text-main); padding: 5mm 8mm !important; border-radius: 4px !important; border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; gap: 3mm !important; text-align: center; max-width: 320px;">
-        <span class="material-symbols-rounded" style="font-size: 42px; color: var(--primary); animation: spinLoader 0.9s linear infinite;">sync</span>
-        <div style="font-size: 13px; font-weight: 800; color: var(--primary); letter-spacing: 0.5px;">${pesan}</div>
-        <div style="font-size: 11px; color: var(--text-muted);">Mohon tunggu sebentar, data sedang disinkronkan ke Supabase Cloud...</div>
+  let msg = '';
+  let targetRoles = ['SERVICE', 'ADMIN', 'DM'];
+
+  if (statusType === 'PENDING') {
+    targetRoles = ['DM', 'ADMIN'];
+    msg = `[BREAKDOWN PARSIAL] MOHON APPROVAL DM - Surat Jalan Parsial #${noSurat}-${partialId} (${tokoName}) telah diajukan.`;
+  } else if (statusType === 'APPROVE') {
+    targetRoles = ['SERVICE', 'ADMIN', 'TOKO', 'GBJ'];
+    msg = `[BREAKDOWN PARSIAL] DISETUJUI DM - Surat Jalan Parsial #${noSurat}-${partialId} (${tokoName}) telah disetujui!`;
+  } else if (statusType === 'REJECT') {
+    targetRoles = ['SERVICE', 'ADMIN', 'TOKO', 'GBJ'];
+    msg = `[BREAKDOWN PARSIAL] DITOLAK DM - Surat Jalan Parsial #${noSurat}-${partialId} (${tokoName}) ditolak DM. Alasan: ${extra.reason || '-'}`;
+  }
+
+  if (msg && typeof tambahNotifikasiSistem === 'function') {
+    tambahNotifikasiSistem(targetRoles, targetArea, msg, noSurat);
+  }
+}
+window.kirimNotifDanWaBreakdown = kirimNotifDanWaBreakdown;
+
+function tampilkanLoadingProses(pesan = 'MOHON TUNGGU...') {
+  if (typeof showLoading === 'function') {
+    showLoading(pesan);
+  } else {
+    const existing = document.getElementById('loadingProsesOverlay');
+    if (existing) existing.remove();
+
+    const loadingHtml = `
+      <div id="loadingProsesOverlay" class="modal-overlay active" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 2147483647 !important; align-items: center; justify-content: center;">
+        <div style="background: rgba(15, 23, 42, 0.95); color: #f8fafc; padding: 22px 28px !important; border-radius: 12px !important; border: 1px solid rgba(255,255,255,0.18); box-shadow: 0 12px 36px rgba(0,0,0,0.6); display: flex; flex-direction: column; align-items: center; gap: 12px !important; text-align: center; max-width: 320px;">
+          <div style="width: 48px; height: 48px; border: 4px solid rgba(255,255,255,0.15); border-top-color: #38bdf8; border-right-color: #818cf8; border-radius: 50%; animation: spin 0.8s linear infinite; filter: drop-shadow(0 0 16px rgba(56, 189, 248, 0.9));"></div>
+          <div style="font-size: 13px; font-weight: 700; color: #f8fafc; letter-spacing: 0.5px; text-transform: uppercase;">${pesan}</div>
+        </div>
       </div>
-    </div>
-  `;
-  document.body.insertAdjacentHTML('beforeend', loadingHtml);
+    `;
+    document.body.insertAdjacentHTML('beforeend', loadingHtml);
+  }
 }
 window.tampilkanLoadingProses = tampilkanLoadingProses;
 
 function tutupLoadingProses() {
+  if (typeof hideLoading === 'function') {
+    hideLoading();
+  }
   const el = document.getElementById('loadingProsesOverlay');
   if (el) el.remove();
 }
@@ -18114,8 +18326,19 @@ window.calcItemRemainingQty = calcItemRemainingQty;
 function isRequestReadyForDone(req) {
   if (!req || !Array.isArray(req.items) || req.items.length === 0) return true;
   const partials = getPartialBreakdownsFromDB(req.noSurat);
-  if (partials.length === 0) return true;
+  
+  // Jika TIDAK ADA breakdown (atau pengajuan breakdown sudah dibatalkan/dihapus):
+  // Ini adalah transaksi biasa -> LANGSUNG BISA DONE KETERANGAN BIASA!
+  if (!Array.isArray(partials) || partials.length === 0) {
+    return true;
+  }
 
+  // Jika TERDAPAT breakdown:
+  // 1. Pastikan semua breakdown parsial sudah DONE / REJECT (tidak ada yang PENDING/APPROVE gantung)
+  const unDonePartials = partials.filter(p => p && p.status !== 'DONE' && p.status !== 'REJECT');
+  if (unDonePartials.length > 0) return false;
+
+  // 2. Pastikan tidak ada sisa Qty yang belum dibreakdown kecuali jika ditandai "TIDAK DIPENUHI"
   const unfulfilledItems = req.items.filter((it, idx) => {
     const remQty = calcItemRemainingQty(req, idx);
     const isUnfulfilled = it.isUnfulfilled || String(it.keterangan || '').toUpperCase() === 'TIDAK DIPENUHI' || String(it.keteranganPart || '').toUpperCase() === 'TIDAK DIPENUHI';
@@ -18126,12 +18349,52 @@ function isRequestReadyForDone(req) {
 }
 window.isRequestReadyForDone = isRequestReadyForDone;
 
+function bukaModalDoneParsial(noSurat, partialId) {
+  if (!noSurat || !partialId) return;
+  window._activeDonePartialNoSurat = noSurat;
+  window._activeDonePartialId = partialId;
+
+  const artemisNoSurat = document.getElementById('artemisNoSurat');
+  if (artemisNoSurat) artemisNoSurat.value = noSurat;
+  const inputKet = document.getElementById('inputKetPartArtemis');
+  if (inputKet) inputKet.value = '';
+
+  const pasteBox = document.getElementById('artemisPasteBox');
+  const previewGrid = document.getElementById('artemisPhotoPreviewGrid');
+  if (pasteBox) pasteBox.style.display = 'block';
+  if (previewGrid) previewGrid.style.display = 'flex';
+
+  const artemisSubTitle = document.getElementById('artemisSubTitle');
+  if (artemisSubTitle) artemisSubTitle.textContent = `UPLOAD FOTO BUKTI PROSES ARTEMIS UNTUK SURAT PARSIAL ${noSurat}-${partialId}:`;
+
+  const titleEl = document.getElementById('artemisTitle');
+  if (titleEl) {
+    titleEl.innerText = `SELESAIKAN SURAT PARSIAL (${noSurat}-${partialId})`;
+  }
+
+  tempArtemisPhotos = [];
+  renderArtemisPhotoPreviews();
+
+  const overlay = document.getElementById('artemisOverlay');
+  if (overlay) {
+    overlay.classList.add('show');
+    overlay.style.setProperty('z-index', '99999999', 'important');
+    overlay.style.setProperty('display', 'flex', 'important');
+    overlay.style.setProperty('visibility', 'visible', 'important');
+    overlay.style.setProperty('opacity', '1', 'important');
+    overlay.style.setProperty('pointer-events', 'auto', 'important');
+    try { history.pushState({ artemisModalOpen: true }, ''); } catch(e) {}
+  }
+}
+window.bukaModalDoneParsial = bukaModalDoneParsial;
+
 // =======================================================================
 // SERVICE BREAKDOWN SUBMISSION (+ AJUKAN BREAKDOWN)
 // =======================================================================
 
 function bukaModalBuatParsial(noSurat) {
   if (!noSurat) return;
+  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
   const userCatUpper = currentUser ? String(currentUser.category || '').toUpperCase() : '';
   const userRoleUpper = currentUser ? String(currentUser.role || '').toUpperCase() : '';
   const isStrictDMUser = currentUser && (userCatUpper.includes('DM') || userRoleUpper.includes('DM'));
@@ -18149,8 +18412,18 @@ function bukaModalBuatParsial(noSurat) {
     return;
   }
 
+  // Reset temporary photos list for new submission
+  window._tempParsialPhotos = [];
+
   const existingModal = document.getElementById('modalBuatParsial');
   if (existingModal) existingModal.remove();
+
+  // Sembunyikan popup detail barang jika sedang terbuka agar tidak tertutup / bertumpuk
+  const detailPopup = document.getElementById('popupDetailBarangV2');
+  if (detailPopup) {
+    detailPopup.style.display = 'none';
+    detailPopup.classList.remove('show');
+  }
 
   // Filter item yang BELUM LUNAS & BELUM DITANDAI "TIDAK DIPENUHI"
   const eligibleItems = [];
@@ -18177,12 +18450,16 @@ function bukaModalBuatParsial(noSurat) {
   }
 
   const existingPartials = getPartialBreakdownsFromDB(noSurat);
-  const nextPartialNum = existingPartials.length + 1;
+  // HANYA HITUNG PARSIAL YANG AKTIF (Bukan status REJECT / (TOLAK)) SEHINGGA NOMOR TETAP URUT 1-XXX
+  const activePartials = existingPartials.filter(p => p && p.status !== 'REJECT' && !String(p.partial_id || p.partialId || '').includes('(TOLAK)'));
+  const nextPartialNum = activePartials.length + 1;
   const nextPartialId = `P${nextPartialNum}`;
 
   window._activeParsialNoSurat = noSurat;
   window._activeNextPartialId = nextPartialId;
   window._tempParsialPhotos = [];
+
+  const rejectedPartials = existingPartials.filter(p => p && p.status === 'REJECT');
 
   const itemsRowsHtml = eligibleItems.map((el, idxSeq) => {
     const i = el.item;
@@ -18190,12 +18467,15 @@ function bukaModalBuatParsial(noSurat) {
     const delQty = calcItemDeliveredQty(req, el.idx);
     const bgRow = idxSeq % 2 === 0 ? 'var(--bg-box)' : 'var(--bg-card)';
     
+    const wasRejectedByDM = rejectedPartials.some(p => Array.isArray(p.items) && p.items.some(pi => pi.itemIdx === el.idx || String(pi.type || pi.tipe || '').trim() === String(i.type || i.tipe || '').trim()));
+    const rejectBadge = wasRejectedByDM ? `<span style="font-size: 10px; background: #ef4444; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 2px;">🔴 DITOLAK DM (BISA DIAJUKAN ULANG)</span>` : '';
+
     return `
-      <tr style="border-bottom: 1px solid var(--border-color); white-space: nowrap !important; transition: background 0.2s; background: ${bgRow} !important; border-radius: 0px !important;" id="parsialRow_${el.idx}">
+      <tr style="border-bottom: 1px solid var(--border-color); white-space: nowrap !important; transition: background 0.2s; background: ${bgRow} !important; border-radius: 0px !important; cursor: pointer;" id="parsialRow_${el.idx}" onclick="toggleParsialRowClick(event, ${el.idx})">
         <td style="padding: 2mm !important; text-align: center; vertical-align: middle; white-space: nowrap !important; border-radius: 0px !important;">
           <input type="checkbox" class="parsial-check" id="chkParsial_${el.idx}" data-idx="${el.idx}" data-rem="${el.remQty}" onchange="syncParsialCheckbox(${el.idx})" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); border-radius: 2px !important;">
         </td>
-        <td style="padding: 2mm !important; font-weight: 600; color: var(--text-main) !important; font-size: 11.5px; vertical-align: middle; white-space: nowrap !important; border-radius: 0px !important;">${i.type || i.tipe || '-'}</td>
+        <td style="padding: 2mm !important; font-weight: 600; color: var(--text-main) !important; font-size: 11.5px; vertical-align: middle; white-space: nowrap !important; border-radius: 0px !important;">${i.type || i.tipe || '-'}${rejectBadge}</td>
         <td style="padding: 2mm !important; color: var(--text-muted) !important; font-size: 11.5px; vertical-align: middle; white-space: nowrap !important; border-radius: 0px !important;">${i.seri || i.sn || '-'}</td>
         <td style="padding: 2mm !important; color: var(--text-main) !important; font-weight: 500; font-size: 11.5px; vertical-align: middle; white-space: nowrap !important; border-radius: 0px !important;">${i.barang || i.permintaan || '-'}</td>
         <td style="padding: 2mm !important; text-align: center; font-weight: 700; color: var(--text-main) !important; font-size: 11.5px; vertical-align: middle; white-space: nowrap !important; border-radius: 0px !important;">${reqQty}</td>
@@ -18209,36 +18489,31 @@ function bukaModalBuatParsial(noSurat) {
   }).join('');
 
   const modalHtml = `
-    <div id="modalBuatParsial" class="modal-overlay active" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 20000000 !important; align-items: center; justify-content: center; padding: 1mm !important; box-sizing: border-box !important;">
-      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100vw - 2mm); height: calc(100vh - 2mm); margin: 1mm !important; border-radius: 0px !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid var(--border-color); animation: popIn 0.2s ease-out;">
+    <div id="modalBuatParsial" data-nosurat="${noSurat}" class="modal-overlay active" onclick="if (event.target === this) tutupModalBuatParsial();" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 95000000 !important; align-items: center; justify-content: center; padding: 1mm 0.5mm !important; box-sizing: border-box !important;">
+      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100vw - 1mm); height: calc(100vh - 2mm); margin: 1mm 0.5mm !important; border-radius: 8px !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid var(--border-color); animation: popIn 0.2s ease-out;">
         
-        <!-- HEADER -->
-        <div style="background: var(--primary) !important; color: #ffffff !important; padding: 2mm !important; display: flex; justify-content: space-between; align-items: center; border-radius: 0px !important; flex-shrink: 0;">
-          <div>
-            <div style="font-weight: 800; font-size: 14px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; color: #ffffff !important;">
+        <!-- HEADER 90 DERAJAT DEGNAN GARIS PEMBATAS RATA TENGAH -->
+        <div style="background: var(--primary) !important; color: #ffffff !important; padding: 12px 16px !important; display: flex; justify-content: space-between; align-items: center; border-radius: 0px !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; flex-shrink: 0; position: relative !important;">
+          <div style="text-align: center !important; width: 100%;">
+            <div style="font-weight: 800; font-size: 14px; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #ffffff !important; text-align: center !important;">
               <span class="material-symbols-rounded" style="color: #ffffff !important;">call_split</span> AJUKAN SURAT JALAN PARSIAL (${nextPartialId})
             </div>
-            <div style="font-size: 11px; opacity: 0.95; margin-top: 2px; color: #ffffff !important;">
+            <div style="font-size: 11px; opacity: 0.95; margin-top: 2px; color: #ffffff !important; text-align: center !important;">
               No. Surat Induk: <strong style="color: #fef08a;">${noSurat}</strong> | Toko: <strong>${req.toko || '-'}</strong>
             </div>
           </div>
-          <button type="button" onclick="tutupModalBuatParsial()" style="background: transparent !important; border: none !important; color: #ffffff !important; padding: 0 !important; margin: 0 !important; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; outline: none !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+          <button type="button" onclick="tutupModalBuatParsial()" title="TUTUP" style="font-size: 28px !important; font-weight: 900 !important; color: #ffffff !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important; outline: none !important; padding: 0 4px !important; margin: 0 !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">&times;</button>
         </div>
 
         <!-- BODY CONTENT -->
-        <div style="padding: 2mm !important; overflow-y: auto; flex: 1; background: var(--bg-card); display: flex; flex-direction: column;">
-          <div style="background: var(--bg-box); border-left: 3px solid var(--primary); padding: 2mm !important; border-radius: 0px !important; margin-bottom: 2mm !important; font-size: 11.5px; color: var(--text-main); font-weight: 600; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <div style="padding: 2mm 0 !important; overflow-y: auto; flex: 1; background: var(--bg-card); display: flex; flex-direction: column;">
+          <div style="background: var(--bg-box); border-left: 3px solid var(--primary); padding: 2mm !important; border-radius: 0px !important; margin: 0 2mm 2mm 2mm !important; font-size: 11.5px; color: var(--text-main); font-weight: 600; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
             <span class="material-symbols-rounded" style="font-size: 16px; color: var(--primary);">info</span>
             Centang barang yang akan diserahkan pada tahap penyerahan <strong>${nextPartialId}</strong> ini, lalu atur Qty yang diserahkan.
           </div>
 
           <!-- KOLOM PENCARIAN & UNGGAH BUKTI FOTO (BERDAMPINGAN DILAYOUT ATAS) -->
-          <div style="margin-bottom: 2mm !important; display: flex; gap: 2mm !important; align-items: center; flex-wrap: wrap; flex-shrink: 0;">
+          <div style="margin: 0 2mm 2mm 2mm !important; display: flex; gap: 2mm !important; align-items: center; flex-wrap: wrap; flex-shrink: 0;">
             <div style="position: relative; flex: 1; min-width: 220px;">
               <span class="material-symbols-rounded" style="position: absolute; left: 8px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--text-muted);">search</span>
               <input type="text" id="inputCariItemParsial" oninput="filterTableItemParsial()" placeholder="Cari Type, Seri Barang, Permintaan..." style="width: 100%; padding: 6px 10px 6px 30px; border-radius: 0px !important; border: 1px solid var(--border-color); background: var(--bg-box); color: var(--text-main); font-size: 11.5px; box-sizing: border-box !important;">
@@ -18247,23 +18522,25 @@ function bukaModalBuatParsial(noSurat) {
             <!-- TOMBOL UNGGAH BUKTI FOTO PARSIAL -->
             <input type="file" id="inputFotoParsialFile" accept="image/*" multiple onchange="handleFotoParsialFileSelected(event)" style="display: none;">
             <button type="button" onclick="document.getElementById('inputFotoParsialFile').click()" style="background: var(--bg-box); border: 1px dashed var(--primary); color: var(--primary); padding: 5px 12px; height: 32px; border-radius: 0px !important; font-weight: 700; font-size: 11px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; white-space: nowrap !important;">
-              <span class="material-symbols-rounded" style="font-size: 15px;">add_a_photo</span> UNGGAH BUKTI FOTO
+              <span class="material-symbols-rounded" style="font-size: 15px;">add_a_photo</span> UNGGAH BUKTI FOTO <span style="color: var(--text-muted); font-weight: 600; font-size: 11px;">(OPSIONAL)</span>
             </button>
             <div id="previewFotoParsialContainer" style="display: flex; gap: 2mm !important; flex-wrap: wrap; align-items: center;"></div>
           </div>
 
-          <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 0px !important; flex: 1;">
+          <div style="overflow-x: auto; width: 100%; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); border-left: none !important; border-right: none !important; margin: 0 !important; border-radius: 0px !important; flex: 1;">
             <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; border-radius: 0px !important;">
-              <thead style="position: sticky; top: 0; z-index: 5; background: var(--primary) !important;">
-                <tr style="background: var(--primary) !important; border-bottom: 1px solid var(--border-color); color: #ffffff !important; white-space: nowrap !important;">
-                  <th style="padding: 2mm !important; width: 40px; text-align: center; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">PILIH</th>
-                  <th style="padding: 2mm !important; text-align: left; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">TYPE</th>
-                  <th style="padding: 2mm !important; text-align: left; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">SERI BARANG</th>
-                  <th style="padding: 2mm !important; text-align: left; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">PERMINTAAN</th>
-                  <th style="padding: 2mm !important; text-align: center; width: 65px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">MINTA</th>
-                  <th style="padding: 2mm !important; text-align: center; width: 65px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">TERKIRIM</th>
-                  <th style="padding: 2mm !important; text-align: center; width: 65px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">SISA</th>
-                  <th style="padding: 2mm !important; text-align: center; width: 80px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">SERAHKAN</th>
+              <thead style="position: sticky; top: 0; z-index: 5; background: var(--primary) !important; border-radius: 0px !important;">
+                <tr style="background: var(--primary) !important; border-bottom: 1px solid var(--border-color); color: #ffffff !important; white-space: nowrap !important; border-radius: 0px !important;">
+                  <th style="padding: 2mm !important; text-align: center !important; width: 35px; white-space: nowrap !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; border-radius: 0px !important; border-right: 1px solid rgba(255,255,255,0.2) !important;">
+          <input type="checkbox" id="chkParsialSelectAll" onchange="toggleSelectAllParsial(this)" title="Centang / Batal Centang Semua" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+        </th>
+                  <th style="padding: 2mm !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; border-right: 1px solid rgba(255,255,255,0.2) !important;">TYPE</th>
+                  <th style="padding: 2mm !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; border-right: 1px solid rgba(255,255,255,0.2) !important;">SERI BARANG</th>
+                  <th style="padding: 2mm !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; border-right: 1px solid rgba(255,255,255,0.2) !important;">PERMINTAAN</th>
+                  <th style="padding: 2mm !important; text-align: center !important; width: 65px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; border-right: 1px solid rgba(255,255,255,0.2) !important;">MINTA</th>
+                  <th style="padding: 2mm !important; text-align: center !important; width: 65px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; border-right: 1px solid rgba(255,255,255,0.2) !important;">TERKIRIM</th>
+                  <th style="padding: 2mm !important; text-align: center !important; width: 65px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; border-right: 1px solid rgba(255,255,255,0.2) !important;">SISA</th>
+                  <th style="padding: 2mm !important; text-align: center !important; width: 80px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important;">SERAHKAN</th>
                 </tr>
               </thead>
               <tbody id="tableBodyBuatParsial" style="background: var(--bg-card) !important; color: var(--text-main) !important; border-radius: 0px !important;">
@@ -18288,6 +18565,30 @@ function bukaModalBuatParsial(noSurat) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 window.bukaModalBuatParsial = bukaModalBuatParsial;
+
+function toggleParsialRowClick(evt, idx) {
+  if (evt && evt.target && (evt.target.tagName === 'INPUT' || evt.target.tagName === 'BUTTON' || evt.target.closest('button') || evt.target.closest('input'))) return;
+  const chk = document.getElementById(`chkParsial_${idx}`);
+  if (chk) {
+    chk.checked = !chk.checked;
+    syncParsialCheckbox(idx);
+  }
+}
+window.toggleParsialRowClick = toggleParsialRowClick;
+
+function toggleSelectAllParsial(masterChk) {
+  const isChecked = masterChk.checked;
+  const modal = document.getElementById('modalBuatParsial');
+  const checkboxes = modal ? modal.querySelectorAll('.parsial-check') : document.querySelectorAll('.parsial-check');
+  checkboxes.forEach(chk => {
+    chk.checked = isChecked;
+    const idx = chk.getAttribute('data-idx');
+    if (idx !== null) {
+      syncParsialCheckbox(idx);
+    }
+  });
+}
+window.toggleSelectAllParsial = toggleSelectAllParsial;
 
 function syncParsialCheckbox(idx) {
   const chk = document.getElementById(`chkParsial_${idx}`);
@@ -18318,7 +18619,16 @@ window.toggleParsialRow = toggleParsialRow;
 
 function tutupModalBuatParsial() {
   const modal = document.getElementById('modalBuatParsial');
+  const ns = modal ? modal.getAttribute('data-nosurat') : null;
   if (modal) modal.remove();
+  
+  if (ns && typeof lihatDetail === 'function') {
+    const mainDetailEl = document.getElementById('popupDetail');
+    const listEl = document.getElementById('modalRiwayatParsialList');
+    if (!mainDetailEl && !listEl) {
+      lihatDetail(ns, true);
+    }
+  }
 }
 window.tutupModalBuatParsial = tutupModalBuatParsial;
 
@@ -18410,8 +18720,9 @@ async function prosesKirimPengajuanBreakdown() {
   const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
   if (!req) return;
 
-  const checkboxes = document.querySelectorAll('.parsial-check:checked');
-  if (checkboxes.length === 0) {
+  const container = document.getElementById('modalBuatParsial');
+  const checkboxes = container ? container.querySelectorAll('.parsial-check:checked') : document.querySelectorAll('.parsial-check:checked');
+  if (!checkboxes || checkboxes.length === 0) {
     if (typeof showNotif === 'function') showNotif('PILIH MINIMAL 1 BARANG UNTUK DIBREAKDOWN!', 'warning');
     return;
   }
@@ -18420,7 +18731,10 @@ async function prosesKirimPengajuanBreakdown() {
   checkboxes.forEach(chk => {
     const idx = Number(chk.getAttribute('data-idx'));
     const inp = document.getElementById(`qtyParsialInput_${idx}`);
-    const qtySerahkan = inp ? Number(inp.value) : Number(chk.getAttribute('data-rem'));
+    let qtySerahkan = inp ? Number(inp.value) : Number(chk.getAttribute('data-rem'));
+    if (isNaN(qtySerahkan) || qtySerahkan <= 0) {
+      qtySerahkan = Number(chk.getAttribute('data-rem') || 1);
+    }
     
     if (idx >= 0 && idx < req.items.length && qtySerahkan > 0) {
       const origItem = req.items[idx];
@@ -18442,7 +18756,7 @@ async function prosesKirimPengajuanBreakdown() {
     return;
   }
 
-  tampilkanLoadingProses('MENGIRIM PENGAJUAN PARSIAL...');
+  tampilkanLoadingProses('MOHON TUNGGU...');
   try {
     const rawPhotos = window._tempParsialPhotos || [];
     const sanitizedPhotos = [];
@@ -18459,36 +18773,55 @@ async function prosesKirimPengajuanBreakdown() {
       }
     }
 
-    const existingPartials = getPartialBreakdownsFromDB(noSurat);
-    const newPartial = {
-      id: `${String(noSurat).replace(/[\/\.]/g, '_')}_${partialId}`,
-      no_surat_induk: noSurat,
-      partial_id: partialId,
-      items: selectedItems,
-      photos: sanitizedPhotos,
-      status: 'PENDING',
-      created_by: currentUser ? currentUser.username : 'SERVICE',
-      created_at: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`,
-      approved_by: '',
-      approved_at: null,
-      reject_reason: ''
-    };
+    const isEditing = Boolean(window._editingPartialId);
+    const targetPartialId = isEditing ? window._editingPartialId : partialId;
 
-    existingPartials.push(newPartial);
-    savePartialBreakdownsToDB(existingPartials, noSurat);
+    const existingPartials = getPartialBreakdownsFromDB(noSurat);
+    if (isEditing) {
+      const pIdx = existingPartials.findIndex(p => p && (p.partial_id === targetPartialId || p.partialId === targetPartialId || String(p.id).endsWith(`_${targetPartialId}`)));
+      if (pIdx !== -1) {
+        existingPartials[pIdx].items = selectedItems;
+        existingPartials[pIdx].photos = sanitizedPhotos;
+        existingPartials[pIdx].created_at = `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')} (Diedit)`;
+      }
+      savePartialBreakdownsToDB(existingPartials, noSurat);
+      await pushPartialBreakdownsToCloud(existingPartials, noSurat);
+      window._editingPartialId = null;
+      window._tempParsialPhotos = [];
+      if (typeof showNotif === 'function') showNotif('PERUBAHAN BERHASIL DI SIMPAN.', 'success');
+    } else {
+      const newPartial = {
+        id: `${String(noSurat).replace(/[\/\.]/g, '_')}_${partialId}`,
+        no_surat_induk: noSurat,
+        partial_id: partialId,
+        items: selectedItems,
+        photos: sanitizedPhotos,
+        status: 'PENDING',
+        created_by: currentUser ? (currentUser.fullName || currentUser.full_name || currentUser.username) : 'SERVICE',
+        created_at: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`,
+        approved_by: '',
+        approved_at: null,
+        reject_reason: ''
+      };
+      existingPartials.push(newPartial);
+      savePartialBreakdownsToDB(existingPartials, noSurat);
+      await pushPartialBreakdownsToCloud(existingPartials, noSurat);
+      window._tempParsialPhotos = [];
+      if (typeof showNotif === 'function') showNotif('PENGAJUAN BERHASIL DI KIRIM.', 'success');
+    }
 
     tutupModalBuatParsial();
 
     if (typeof kirimNotifDanWaBreakdown === 'function') {
-      kirimNotifDanWaBreakdown(noSurat, partialId, 'PENDING');
+      kirimNotifDanWaBreakdown(noSurat, targetPartialId, 'PENDING');
     }
 
     if (typeof broadcastRealtimeDataChange === 'function') {
       broadcastRealtimeDataChange(noSurat, req, 'UPDATE');
     }
 
-    if (typeof showNotif === 'function') {
-      showNotif(`PENGAJUAN BREAKDOWN SURAT PARSIAL ${partialId} BERHASIL DIKIRIM KE DM!`, 'success');
+    if (document.getElementById('modalRiwayatParsialList')) {
+      bukaModalRiwayatParsialList(noSurat);
     }
 
     if (typeof lihatDetail === 'function') {
@@ -18507,22 +18840,45 @@ window.prosesKirimPengajuanBreakdown = prosesKirimPengajuanBreakdown;
 // DM APPROVAL & CARD DISPLAY WORKFLOW (PERMINTAAN BREAKDOWN)
 // =======================================================================
 
-function bukaModalRiwayatParsialList(noSurat) {
+async function bukaModalRiwayatParsialList(noSurat) {
   if (!noSurat) return;
-  window._activeRiwayatParsialNoSurat = noSurat;
+  const cleanNoSurat = String(noSurat).replace(/[-_]P\d+.*$/i, '').replace(/^#/, '').trim();
+  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+  window._activeRiwayatParsialNoSurat = cleanNoSurat;
   
   const existingModal = document.getElementById('modalRiwayatParsialList');
   if (existingModal) existingModal.remove();
 
+  // Sembunyikan popup detail barang jika sedang terbuka agar tidak bertumpuk
+  const detailPopup = document.getElementById('popupDetailBarangV2');
+  if (detailPopup) {
+    detailPopup.style.display = 'none';
+    detailPopup.classList.remove('show');
+  }
+
   const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
-  const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
+  const req = reqs.find(r => r && (
+    String(r.noSurat || '').trim().toUpperCase() === cleanNoSurat.toUpperCase() ||
+    String(r.id || '').trim().toUpperCase() === cleanNoSurat.toUpperCase()
+  ));
   if (!req) {
     if (typeof showNotif === 'function') showNotif('SURAT TIDAK DITEMUKAN!', 'warning');
     return;
   }
 
-  const partials = getPartialBreakdownsFromDB(noSurat);
-  if (partials.length === 0) {
+  let partials = getPartialBreakdownsFromDB(cleanNoSurat);
+  if (!Array.isArray(partials) || partials.length === 0) {
+    if (req && Array.isArray(req.partialBreakdowns) && req.partialBreakdowns.length > 0) {
+      partials = req.partialBreakdowns;
+    }
+  }
+
+  if ((!Array.isArray(partials) || partials.length === 0) && typeof syncSupabaseBreakdownParsialToLocalCache === 'function') {
+    await syncSupabaseBreakdownParsialToLocalCache().catch(() => {});
+    partials = getPartialBreakdownsFromDB(cleanNoSurat);
+  }
+
+  if (!Array.isArray(partials) || partials.length === 0) {
     if (typeof showNotif === 'function') showNotif('BELUM ADA PENGAJUAN SURAT PARSIAL / BREAKDOWN UNTUK SURAT INI.', 'info');
     return;
   }
@@ -18541,7 +18897,10 @@ function bukaModalRiwayatParsialList(noSurat) {
     
     let badgeBg = '#f59e0b';
     let badgeText = '⏳ PENDING (MENUNGGU APPROVAL DM)';
-    if (pStatus === 'APPROVE' || pStatus === 'DONE') {
+    if (pStatus === 'DONE') {
+      badgeBg = '#059669';
+      badgeText = '🟢 SELESAI (DONE)';
+    } else if (pStatus === 'APPROVE') {
       badgeBg = '#10b981';
       badgeText = '🟢 DISETUJUI DM';
     } else if (pStatus === 'REJECT') {
@@ -18553,85 +18912,112 @@ function bukaModalRiwayatParsialList(noSurat) {
     const totalQtySerah = Array.isArray(p.items) ? p.items.reduce((acc, curr) => acc + Number(curr.qtyDiserahkan || curr.qty || 1), 0) : 0;
     
     return `
-        <div style="background: var(--bg-card); border-radius: 4px !important; border: 1px solid var(--border-color); margin-bottom: 2mm !important; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-          <div style="background: var(--bg-header); padding: 2mm !important; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-            <div>
-              <div style="font-weight: 800; font-size: 13.5px; color: var(--primary); display: flex; align-items: center; gap: 5px;">
-                <span class="material-symbols-rounded" style="font-size: 16px;">receipt_long</span>
-                SURAT JALAN PARSIAL (${noSurat}-${pid})
-              </div>
-              <div style="font-size: 10.5px; color: var(--text-muted); margin-top: 2px;">
-                Diajukan oleh: <strong>${p.created_by || p.createdBy || 'SERVICE'}</strong> | Waktu: <strong>${p.created_at || p.createdAt || '-'}</strong>
-              </div>
-            </div>
-
-            <div style="background: ${badgeBg}; color: #ffffff; padding: 3px 10px; border-radius: 4px !important; font-size: 10.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;">
-              ${badgeText}
-            </div>
-          </div>
-
-          <div style="padding: 2mm !important; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <div style="font-size: 12px; color: var(--text-main); font-weight: 600;">
-              Total Barang Diserahkan: <span style="color: var(--primary); font-weight: 800;">${itemsCount} Jenis Barang (${totalQtySerah} Qty)</span>
-            </div>
-
-            <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-              <button type="button" onclick="bukaDetailSuratParsial('${req.noSurat}', '${pid}')" style="background: #334155; color: #ffffff; border: none; border-radius: 4px !important; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                <span class="material-symbols-rounded" style="font-size: 14px;">visibility</span> VIEW DATA
+        <div style="background: var(--bg-card); border-radius: 4px !important; border: 1px solid var(--border-color); margin-bottom: 2mm !important; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06); padding: 2mm 3mm !important;">
+          <div style="display: flex; align-items: center; justify-content: flex-start; gap: 12px; flex-wrap: wrap; text-align: left;">
+            
+            <!-- 1. TOMBOL AKSI TERLETAK DI PALING KIRI (PATEN 4CM) -->
+            <div style="width: 4cm !important; min-width: 4cm !important; max-width: 4cm !important; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; flex-shrink: 0; justify-content: flex-start; box-sizing: border-box !important;">
+              <!-- ICON ONLY BUTTONS WITH TITLE TOOLTIPS -->
+              <button type="button" onclick="bukaDetailSuratParsial('${req.noSurat}', '${pid}')" style="background: #334155; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="LIHAT DATA PARSIAL (${pid})">
+                <span class="material-symbols-rounded" style="font-size: 18px;">visibility</span>
               </button>
 
               ${hasPhotos ? `
-                <button type="button" onclick="bukaModalArtemisParsial('${req.noSurat}', '${pid}')" style="background: #0284c7; color: #ffffff; border: none; border-radius: 4px !important; padding: 5px 10px; font-size: 11px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                  <span class="material-symbols-rounded" style="font-size: 14px;">photo_library</span> VIEW FOTO (${photosList.length})
+                <button type="button" onclick="bukaModalArtemisParsial('${req.noSurat}', '${pid}')" style="background: #0284c7; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="LIHAT BUKTI FOTO (${photosList.length})">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">photo_library</span>
+                </button>
+              ` : ''}
+
+              ${(pStatus === 'PENDING' && !isStrictDMUser) ? `
+                <!-- EDIT BUTTON FOR PENDING BREAKDOWN (NON-DM ONLY) -->
+                <button type="button" onclick="editSuratParsialPending('${req.noSurat}', '${pid}')" style="background: #f59e0b; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(245,158,11,0.3);" title="UBAH / EDIT PENGAJUAN PARSIAL (${pid})">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">edit</span>
+                </button>
+
+                <!-- BATAL / HAPUS BUTTON FOR PENDING BREAKDOWN (NON-DM ONLY) -->
+                <button type="button" onclick="batalSuratParsial('${req.noSurat}', '${pid}')" style="background: #ef4444; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(239,68,68,0.3);" title="BATALKAN / HAPUS PENGAJUAN PARSIAL (${pid})">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
                 </button>
               ` : ''}
 
               ${(pStatus === 'PENDING' && canDMApprove) ? `
-                <button type="button" onclick="prosesKirimApproveBreakdownDM('${req.noSurat}', '${pid}')" style="background: #10b981; color: #ffffff; border: none; border-radius: 4px !important; padding: 5px 12px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(16,185,129,0.3);">
-                  <span class="material-symbols-rounded" style="font-size: 14px;">check_circle</span> APPROVE DM
+                <button type="button" onclick="bukaModalKonfirmasiApproveBreakdown('${req.noSurat}', '${pid}')" style="background: #10b981; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(16,185,129,0.3);" title="APPROVE DM (${pid})">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">check_circle</span>
                 </button>
-                <button type="button" onclick="bukaModalRejectBreakdown('${req.noSurat}', '${pid}')" style="background: #ef4444; color: #ffffff; border: none; border-radius: 4px !important; padding: 5px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
-                  <span class="material-symbols-rounded" style="font-size: 14px;">cancel</span> TOLAK DM
+                <button type="button" onclick="bukaModalRejectBreakdown('${req.noSurat}', '${pid}')" style="background: #ef4444; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="TOLAK DM (${pid})">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">cancel</span>
+                </button>
+              ` : ''}
+
+              ${(pStatus === 'APPROVE') ? `
+                <button type="button" onclick="bukaModalDoneParsial('${req.noSurat}', '${pid}')" style="background: #0284c7; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(2,132,199,0.3);" title="SELESAIKAN (DONE) SURAT PARSIAL ${pid}">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">task_alt</span>
                 </button>
               ` : ''}
 
               ${(pStatus === 'APPROVE' || pStatus === 'DONE') ? `
-                <button type="button" onclick="cetakPdfSuratParsial('${req.noSurat}', '${pid}')" style="background: #059669; color: #ffffff; border: none; border-radius: 4px !important; padding: 5px 12px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(5,150,105,0.3);">
-                  <span class="material-symbols-rounded" style="font-size: 14px;">picture_as_pdf</span> CETAK PDF PARSIAL
+                <button type="button" onclick="cetakPdfSuratParsial('${req.noSurat}', '${pid}')" style="background: #059669; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(5,150,105,0.3);" title="CETAK PDF PARSIAL (${pid})">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">picture_as_pdf</span>
                 </button>
               ` : ''}
 
-              ${isStrictAdminUser ? `
-                <button type="button" onclick="batalSuratParsial('${req.noSurat}', '${pid}')" style="background: #dc2626; color: #ffffff; border: none; border-radius: 4px !important; padding: 5px 8px; font-size: 10.5px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;" title="BATALKAN & HAPUS PARSIAL INI">
-                  <span class="material-symbols-rounded" style="font-size: 13px;">delete</span> BATAL
+              ${(isStrictAdminUser && pStatus !== 'PENDING') ? `
+                <button type="button" onclick="batalSuratParsial('${req.noSurat}', '${pid}')" style="background: #dc2626; color: #ffffff; border: none; border-radius: 4px !important; width: 32px; height: 32px; padding: 0; font-size: 16px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;" title="BATALKAN / HAPUS PARSIAL (${pid})">
+                  <span class="material-symbols-rounded" style="font-size: 18px;">delete</span>
                 </button>
               ` : ''}
             </div>
-          </div>
 
+            <!-- 2. TULISAN / INFO DI SEBELAH KANAN TOMBOL DENGAN JARAK & ATAS BAWAH RATA -->
+            <div style="display: flex; flex-direction: column; justify-content: center; gap: 3px; flex: 1 1 auto; min-width: 220px; text-align: left; border-left: 2px solid var(--border-color); padding-left: 12px;">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <div style="background: ${badgeBg}; color: #ffffff; padding: 3px 10px; border-radius: 4px !important; font-size: 10.5px; font-weight: 800; display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                  ${badgeText}
+                </div>
+                <div style="font-weight: 800; font-size: 13px; color: var(--primary); display: flex; align-items: center; gap: 5px;">
+                  <span class="material-symbols-rounded" style="font-size: 16px;">receipt_long</span>
+                  SURAT PARSIAL (${noSurat}-${pid})
+                </div>
+              </div>
+
+              <div style="font-size: 11.5px; color: var(--text-main); font-weight: 700;">
+                Total Diserahkan: <span style="color: var(--primary); font-weight: 800;">${itemsCount} Jenis Barang (${totalQtySerah} Qty)</span>
+              </div>
+
+              <div style="font-size: 10.5px; color: var(--text-muted);">
+                Diajukan oleh: <strong>${(function(cVal){
+                  if (!cVal) return '-';
+                  const v = String(cVal).trim();
+                  const usersList = typeof getUsersFromDB === 'function' ? getUsersFromDB() : [];
+                  const u = usersList.find(usr => usr && (
+                    String(usr.username || '').toUpperCase() === v.toUpperCase() ||
+                    String(usr.id || '').toUpperCase() === v.toUpperCase() ||
+                    String(usr.fullName || usr.full_name || '').toUpperCase() === v.toUpperCase()
+                  ));
+                  return (u && (u.fullName || u.full_name)) ? (u.fullName || u.full_name) : v;
+                })(p.created_by || p.createdBy || 'SERVICE')}</strong> | Waktu: <strong>${p.created_at || p.createdAt || '-'}</strong>
+              </div>
+            </div>
+
+          </div>
         </div>
       `;
   }).join('');
 
   const modalFullscreenHtml = `
-    <div id="modalRiwayatParsialList" class="modal-overlay active" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 20000001 !important; align-items: center; justify-content: center; padding: 1mm !important; box-sizing: border-box !important;">
-      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100% - 2mm); height: calc(100vh - 2mm); border-radius: 4px !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color);">
+    <div id="modalRiwayatParsialList" data-nosurat="${noSurat}" class="modal-overlay active" onclick="if (event.target === this) tutupModalRiwayatParsialList('${noSurat}');" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(5px); z-index: 90000000 !important; align-items: center; justify-content: center; padding: 1mm 0.5mm !important; box-sizing: border-box !important;">
+      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100vw - 1mm); height: calc(100vh - 2mm); margin: 1mm 0.5mm !important; border-radius: 8px !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid var(--border-color); animation: popIn 0.2s ease-out;">
         
-        <div style="background: var(--primary) !important; color: #ffffff !important; padding: 2mm !important; display: flex; justify-content: space-between; align-items: center; border-radius: 4px 4px 0 0 !important;">
-          <div>
-            <div style="font-weight: 800; font-size: 15px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; color: #ffffff !important;">
-              <span class="material-symbols-rounded" style="color: #ffffff !important;">call_split</span> KUMPULAN SURAT JALAN PARSIAL / BREAKDOWN
+        <div style="background: var(--primary) !important; color: #ffffff !important; padding: 12px 16px !important; display: flex; justify-content: space-between; align-items: center; border-radius: 0px !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; flex-shrink: 0; position: relative !important;">
+          <div style="text-align: center !important; width: 100%;">
+            <div style="font-weight: 800; font-size: 15px; letter-spacing: 0.5px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; color: #ffffff !important; text-align: center !important;">
+              <span class="material-symbols-rounded" style="color: #ffffff !important;">call_split</span> DETAIL PENGAJUAN BREAKDOWN SURAT
             </div>
-            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px; color: #ffffff !important;">
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 2px; color: #ffffff !important; text-align: center !important;">
               Surat Induk: <strong style="color: #fef08a;">${noSurat}</strong> | Toko: <strong>${req.toko || '-'}</strong> | Total Breakdown: <strong>${partials.length} Transaksi</strong>
             </div>
           </div>
-          <button type="button" onclick="document.getElementById('modalRiwayatParsialList').remove()" style="background: transparent !important; border: none !important; color: #ffffff !important; padding: 0 !important; margin: 0 !important; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; outline: none !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+          <button type="button" onclick="tutupModalRiwayatParsialList('${noSurat}')" title="TUTUP" style="font-size: 28px !important; font-weight: 900 !important; color: #ffffff !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important; outline: none !important; padding: 0 4px !important; margin: 0 !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">&times;</button>
         </div>
 
         <div style="padding: 2mm !important; overflow-y: auto; flex: 1; background: var(--bg-box);">
@@ -18644,12 +19030,39 @@ function bukaModalRiwayatParsialList(noSurat) {
 
   document.body.insertAdjacentHTML('beforeend', modalFullscreenHtml);
 }
-window.bukaModalRiwayatParsialList = bukaModalRiwayatParsialList;
+function tutupModalRiwayatParsialList(noSurat) {
+  const el = document.getElementById('modalRiwayatParsialList');
+  const ns = noSurat || (el ? el.getAttribute('data-nosurat') : null);
+  if (el) el.remove();
+  
+  if (ns && typeof lihatDetail === 'function') {
+    const mainDetailEl = document.getElementById('popupDetail');
+    if (!mainDetailEl || mainDetailEl.style.display === 'none') {
+      lihatDetail(ns, true);
+    }
+  }
+}
+function bukaModalKonfirmasiApproveBreakdown(noSurat, partialId) {
+  if (typeof showConfirm === 'function') {
+    showConfirm(
+      `APPROVE PENGAJUAN BREAKDOWN PARSIAL #${noSurat}-${partialId}?`,
+      () => {
+        prosesKirimApproveBreakdownDM(noSurat, partialId);
+      },
+      null,
+      'YA, APPROVE',
+      'BATAL'
+    );
+  } else {
+    prosesKirimApproveBreakdownDM(noSurat, partialId);
+  }
+}
+window.bukaModalKonfirmasiApproveBreakdown = bukaModalKonfirmasiApproveBreakdown;
 
 async function prosesKirimApproveBreakdownDM(noSurat, partialId) {
   if (!noSurat || !partialId) return;
 
-  tampilkanLoadingProses('MENYETUJUI PENGAJUAN PARSIAL...');
+  tampilkanLoadingProses('MOHON TUNGGU...');
   try {
     const partials = getPartialBreakdownsFromDB(noSurat);
     const pIdx = partials.findIndex(p => (p.partial_id === partialId || p.partialId === partialId || p.id.includes(partialId)));
@@ -18726,6 +19139,7 @@ async function prosesKirimApproveBreakdownDM(noSurat, partialId) {
 window.prosesKirimApproveBreakdownDM = prosesKirimApproveBreakdownDM;
 
 function bukaModalRejectBreakdown(noSurat, partialId) {
+  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
   window._activeRejectNoSurat = noSurat;
   window._activeRejectPartialId = partialId;
 
@@ -18733,19 +19147,31 @@ function bukaModalRejectBreakdown(noSurat, partialId) {
   if (existing) existing.remove();
 
   const modalHtml = `
-    <div id="modalRejectBreakdown" class="modal-overlay active" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 20000002 !important; align-items: center; justify-content: center; padding: 1mm !important; box-sizing: border-box !important;">
-      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100% - 2mm); max-width: 450px; border-radius: 4px !important; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.4); border: 1px solid var(--border-color);">
-        <div style="background: #ef4444; color: #fff; padding: 2mm !important; font-weight: 800; font-size: 13.5px; display: flex; align-items: center; gap: 6px; border-radius: 4px 4px 0 0 !important;">
-          <span class="material-symbols-rounded">cancel</span> PENOLAKAN BREAKDOWN PARSIAL (${partialId})
+    <div id="modalRejectBreakdown" class="popupOverlay show" onclick="if (event.target === this) tutupModalRejectBreakdown();" style="display: flex !important; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 2147483647 !important; align-items: center; justify-content: center;">
+      <div class="rejectBoxPopup">
+        
+        <!-- HEADER POPUP (SAMA PERSIS DENGAN REJECT OVERLAY PERSIS) -->
+        <div class="rejectHeaderPopup" style="display: flex !important; justify-content: space-between !important; align-items: center !important;">
+          <span style="display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: #ffffff;">
+            <span class="material-symbols-rounded" style="font-size: 20px;">cancel</span>
+            <span>TOLAK PENGAJUAN BREAKDOWN (${partialId})</span>
+          </span>
+          <button type="button" class="popupClose" onclick="tutupModalRejectBreakdown()" style="background: transparent; border: none; color: #ffffff; font-size: 26px; font-weight: 900; line-height: 1; cursor: pointer; padding: 0 4px; margin: 0; outline: none;" title="TUTUP">&times;</button>
         </div>
-        <div style="padding: 2mm !important;">
-          <label style="font-size: 11.5px; font-weight: 700; color: var(--text-main); display: block; margin-bottom: 1mm !important;">ALASAN PENOLAKAN DM:</label>
-          <textarea id="inputAlasanRejectParsial" rows="3" placeholder="Masukkan alasan penolakan..." style="width: 100%; padding: 6px; border-radius: 4px !important; border: 1px solid var(--border-color); background: var(--bg-box); color: var(--text-main); font-size: 11.5px; box-sizing: border-box;"></textarea>
+
+        <!-- BODY POPUP -->
+        <div class="rejectBodyPopup">
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px; font-weight: 700; text-transform: uppercase;">MASUKKAN ALASAN PENOLAKAN DM:</p>
+          
+          <textarea id="inputAlasanRejectParsial" rows="3" placeholder="Tuliskan alasan penolakan..."></textarea>
+
+          <!-- TOMBOL BATAL & YA (SAMA PERSIS DENGAN CONFIRMBUTTON REJECT OVERLAY) -->
+          <div class="confirmButton">
+            <button type="button" class="btnBatal" onclick="tutupModalRejectBreakdown()">BATAL</button>
+            <button type="button" class="btnHapus" onclick="prosesKirimTolakBreakdownDM()" style="background: #ef4444 !important; color: #ffffff !important;">YA, KIRIM</button>
+          </div>
         </div>
-        <div style="padding: 2mm !important; background: var(--bg-header); display: flex; justify-content: flex-end; gap: 6px; border-top: 1px solid var(--border-color); border-radius: 0 0 4px 4px !important;">
-          <button type="button" onclick="tutupModalRejectBreakdown()" style="background: #64748b; color: #fff; border: none; padding: 5px 12px; border-radius: 4px !important; font-weight: 700; font-size: 11.5px; cursor: pointer;">BATAL</button>
-          <button type="button" onclick="prosesKirimTolakBreakdownDM()" style="background: #ef4444; color: #fff; border: none; padding: 5px 14px; border-radius: 4px !important; font-weight: 800; font-size: 11.5px; cursor: pointer;">KIRIM PENOLAKAN</button>
-        </div>
+
       </div>
     </div>
   `;
@@ -18769,14 +19195,20 @@ async function prosesKirimTolakBreakdownDM() {
     return;
   }
 
-  tampilkanLoadingProses('MENYIMPAN PENOLAKAN PARSIAL...');
+  tampilkanLoadingProses('MOHON TUNGGU...');
   try {
     const partials = getPartialBreakdownsFromDB(noSurat);
     const pIdx = partials.findIndex(p => (p.partial_id === partialId || p.partialId === partialId || p.id.includes(partialId)));
     if (pIdx !== -1) {
+      const origPid = partials[pIdx].partial_id || partials[pIdx].partialId || partialId;
+      const rejectedPid = origPid.includes('(TOLAK)') ? origPid : `${origPid}(TOLAK)`;
+
+      partials[pIdx].partial_id = rejectedPid;
+      partials[pIdx].partialId = rejectedPid;
       partials[pIdx].status = 'REJECT';
       partials[pIdx].reject_reason = reason;
       savePartialBreakdownsToDB(partials, noSurat);
+      pushPartialBreakdownsToCloud(partials, noSurat);
     }
 
     tutupModalRejectBreakdown();
@@ -18786,7 +19218,7 @@ async function prosesKirimTolakBreakdownDM() {
     }
 
     if (typeof showNotif === 'function') {
-      showNotif(`PENGAJUAN BREAKDOWN ${partialId} TELAH DITOLAK DM!`, 'info');
+      showNotif(`PENGAJUAN BREAKDOWN ${partialId} TELAH DITOLAK DM! NOMOR ${partialId} DAPAT DIAJUKAN KEMBALI.`, 'info');
     }
 
     if (document.getElementById('modalRiwayatParsialList')) {
@@ -18798,21 +19230,97 @@ async function prosesKirimTolakBreakdownDM() {
 }
 window.prosesKirimTolakBreakdownDM = prosesKirimTolakBreakdownDM;
 
-async function batalSuratParsial(noSurat, partialId) {
+async function editSuratParsialPending(noSurat, partialId) {
   if (!noSurat || !partialId) return;
-  const isStrictAdminUser = currentUser && (String(currentUser.category || '').toUpperCase() === 'ADMIN' || String(currentUser.role || '').toUpperCase() === 'ADMIN' || String(currentUser.username).toUpperCase() === 'ADMIN');
-  
-  if (!isStrictAdminUser) {
-    if (typeof showNotif === 'function') showNotif('HANYA ADMIN YANG DAPAT MEMBATALKAN SURAT PARSIAL!', 'warning');
+  const partials = getPartialBreakdownsFromDB(noSurat);
+  const p = partials.find(item => item && (item.partial_id === partialId || item.partialId === partialId || String(item.id).endsWith(`_${partialId}`)));
+  if (!p) {
+    if (typeof showNotif === 'function') showNotif('DATA PENGAJUAN BREAKDOWN TIDAK DITEMUKAN!', 'warning');
     return;
   }
 
-  showConfirm(`YAKIN INGIN MEMBATALKAN & MENGHAPUS TOTAL TRANSAKSI BREAKDOWN PARSIAL ${partialId}?`, async function() {
-    tampilkanLoadingProses('MEMBATALKAN PARSIAL...');
+  if (p.status !== 'PENDING') {
+    if (typeof showNotif === 'function') showNotif('PENGAJUAN PARSIAL YANG SUDAH DISETUJUI / DITOLAK TIDAK DAPAT DIEDIT!', 'warning');
+    return;
+  }
+
+  window._editingPartialNoSurat = noSurat;
+  window._editingPartialId = partialId;
+  window._tempParsialPhotos = parsePhotosArray(p.photos);
+
+  bukaModalBuatParsial(noSurat);
+
+  const modal = document.getElementById('modalBuatParsial');
+  if (modal) {
+    const titleEl = modal.querySelector('div[style*="font-weight: 800"]');
+    if (titleEl) {
+      titleEl.innerHTML = `<span class="material-symbols-rounded" style="color: #ffffff !important;">edit</span> UBAH PENGAJUAN SURAT JALAN PARSIAL (${partialId})`;
+    }
+
+    if (Array.isArray(p.items)) {
+      setTimeout(() => {
+        p.items.forEach(pItem => {
+          let chk = null;
+          if (pItem.itemIdx !== undefined) {
+            chk = document.getElementById(`chkParsial_${pItem.itemIdx}`);
+          }
+          if (!chk && (pItem.type || pItem.barang)) {
+            const allChks = document.querySelectorAll('#modalBuatParsial .parsial-check');
+            allChks.forEach(c => {
+              const cIdx = Number(c.getAttribute('data-idx'));
+              const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+              const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
+              if (req && req.items && req.items[cIdx]) {
+                const orig = req.items[cIdx];
+                if ((orig.type || orig.tipe) === (pItem.type || pItem.tipe) && (orig.barang || orig.permintaan) === (pItem.barang || pItem.permintaan)) {
+                  chk = c;
+                }
+              }
+            });
+          }
+          if (chk) {
+            chk.checked = true;
+            const targetIdx = chk.getAttribute('data-idx');
+            syncParsialCheckbox(targetIdx);
+            const inp = document.getElementById(`qtyParsialInput_${targetIdx}`);
+            if (inp) {
+              inp.value = pItem.qtyDiserahkan || pItem.qty || 1;
+            }
+          }
+        });
+      }, 50);
+    }
+
+    renderTempFotoParsialPreviews();
+
+    const submitBtn = modal.querySelector('button[onclick="prosesKirimPengajuanBreakdown()"]');
+    if (submitBtn) {
+      submitBtn.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px;">save</span> SIMPAN PERUBAHAN PARSIAL (${partialId})`;
+    }
+  }
+}
+window.editSuratParsialPending = editSuratParsialPending;
+
+async function batalSuratParsial(noSurat, partialId) {
+  if (!noSurat || !partialId) return;
+  
+  const partials = getPartialBreakdownsFromDB(noSurat);
+  const targetP = partials.find(p => p && (p.partial_id === partialId || p.partialId === partialId || String(p.id).endsWith(`_${partialId}`)));
+  const isPending = targetP && targetP.status === 'PENDING';
+  const isStrictAdminUser = currentUser && (String(currentUser.category || '').toUpperCase() === 'ADMIN' || String(currentUser.role || '').toUpperCase() === 'ADMIN' || String(currentUser.username).toUpperCase() === 'ADMIN');
+  
+  if (!isPending && !isStrictAdminUser) {
+    if (typeof showNotif === 'function') showNotif('SURAT PARSIAL YANG SUDAH DISETUJUI HANYA DAPAT DIBATALKAN OLEH ADMIN!', 'warning');
+    return;
+  }
+
+  showConfirm(`YAKIN INGIN MEMBATALKAN & MENGHAPUS PENGAJUAN PARSIAL ${partialId}?`, async function() {
+    tampilkanLoadingProses('MOHON TUNGGU...');
     try {
-      let partials = getPartialBreakdownsFromDB(noSurat);
-      partials = partials.filter(p => p && (p.partial_id !== partialId && p.partialId !== partialId && !p.id.endsWith(`_${partialId}`)));
-      savePartialBreakdownsToDB(partials, noSurat);
+      let updatedPartials = getPartialBreakdownsFromDB(noSurat);
+      updatedPartials = updatedPartials.filter(p => p && (p.partial_id !== partialId && p.partialId !== partialId && !p.id.endsWith(`_${partialId}`)));
+      savePartialBreakdownsToDB(updatedPartials, noSurat);
+      pushPartialBreakdownsToCloud(updatedPartials, noSurat);
 
       const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
       const rIdx = reqs.findIndex(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
@@ -18829,20 +19337,21 @@ async function batalSuratParsial(noSurat, partialId) {
             }
           });
         }
-        req.status = 'APPROVE';
         reqs[rIdx] = req;
         saveRequestsToDB(reqs, req, 'UPDATE');
-        if (typeof pushCentralCloudDB === 'function') {
-          await pushCentralCloudDB(req).catch(() => {});
-        }
       }
 
       if (typeof showNotif === 'function') {
-        showNotif(`TRANSAKSI PARSIAL ${partialId} BERHASIL DIBATALKAN & DIHAPUS TOTAL!`, 'success');
+        showNotif(`PENGAJUAN PARSIAL ${partialId} BERHASIL DIBATALKAN!`, 'info');
       }
 
       if (document.getElementById('modalRiwayatParsialList')) {
-        bukaModalRiwayatParsialList(noSurat);
+        const remaining = getPartialBreakdownsFromDB(noSurat);
+        if (remaining.length > 0) {
+          bukaModalRiwayatParsialList(noSurat);
+        } else {
+          document.getElementById('modalRiwayatParsialList').remove();
+        }
       }
       if (typeof lihatDetail === 'function') {
         lihatDetail(noSurat, true);
@@ -18856,6 +19365,7 @@ window.batalSuratParsial = batalSuratParsial;
 
 function bukaDetailSuratParsial(noSurat, partialId) {
   if (!noSurat || !partialId) return;
+  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 
   const partials = getPartialBreakdownsFromDB(noSurat);
   const targetPartial = partials.find(p => p && (p.partial_id === partialId || p.partialId === partialId || p.id.endsWith(`_${partialId}`)));
@@ -18868,6 +19378,8 @@ function bukaDetailSuratParsial(noSurat, partialId) {
   const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase())) || {};
 
   const items = Array.isArray(targetPartial.items) ? targetPartial.items : [];
+  const subPhotos = parsePhotosArray(targetPartial.photos);
+  const hasSubPhotos = subPhotos.length > 0;
 
   const rowsHtml = items.map((it, i) => `
     <tr style="border-bottom: 1px solid var(--border-color); white-space: nowrap !important; background: ${i % 2 === 0 ? 'var(--bg-box)' : 'transparent'};">
@@ -18886,33 +19398,40 @@ function bukaDetailSuratParsial(noSurat, partialId) {
   `).join('');
 
   const modalHtml = `
-    <div id="modalDetailParsialSub" class="modal-overlay active" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 20000003 !important; align-items: center; justify-content: center; padding: 1mm !important; box-sizing: border-box !important;">
-      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100% - 2mm); max-width: 1050px !important; max-height: calc(95vh - 2mm); border-radius: 0px !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid var(--border-color);">
+    <div id="modalDetailParsialSub" data-nosurat="${noSurat}" class="modal-overlay active" onclick="if (event.target === this) tutupModalDetailParsialSub('${noSurat}');" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 99000000 !important; align-items: center; justify-content: center; padding: 1mm 0.5mm !important; box-sizing: border-box !important;">
+      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100vw - 1mm); height: calc(100vh - 2mm); margin: 1mm 0.5mm !important; border-radius: 8px !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid var(--border-color); animation: popIn 0.2s ease-out;">
         
-        <div style="background: var(--primary) !important; color: #ffffff !important; padding: 2mm !important; display: flex; justify-content: space-between; align-items: center; border-radius: 0px !important;">
-          <div style="font-weight: 800; font-size: 14.5px; display: flex; align-items: center; gap: 6px; color: #ffffff !important;">
-            <span class="material-symbols-rounded" style="color: #ffffff !important;">visibility</span> DETAIL ITEM SURAT JALAN PARSIAL (${noSurat}-${partialId})
+        <div style="background: var(--primary) !important; color: #ffffff !important; padding: 12px 16px !important; display: flex; justify-content: space-between; align-items: center; border-radius: 0px !important; border-bottom: 1px solid rgba(255,255,255,0.25) !important; flex-shrink: 0; position: relative !important;">
+          <div style="font-weight: 800; font-size: 14.5px; color: #ffffff !important; text-align: center !important; width: 100%;">
+            DETAIL PERMINTAAN BREAKDOWN
           </div>
-          <button type="button" onclick="document.getElementById('modalDetailParsialSub').remove()" style="background: transparent !important; border: none !important; color: #ffffff !important; padding: 0 !important; margin: 0 !important; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; outline: none !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            ${hasSubPhotos ? `
+              <button type="button" onclick="bukaModalArtemisParsial('${noSurat}', '${partialId}')" style="background: #ffffff; color: var(--primary); border: none; border-radius: 4px !important; padding: 4px 10px; font-size: 11px; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+                <span class="material-symbols-rounded" style="font-size: 14px;">photo_library</span> VIEW FOTO (${subPhotos.length})
+              </button>
+            ` : ''}
+            <button type="button" onclick="tutupModalDetailParsialSub('${noSurat}')" title="TUTUP" style="font-size: 28px !important; font-weight: 900 !important; color: #ffffff !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important; outline: none !important; padding: 0 4px !important; margin: 0 !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">&times;</button>
+          </div>
         </div>
 
-        <div style="padding: 2mm !important; overflow-y: auto; flex: 1; background: var(--bg-card);">
-          <div style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: 0px !important;">
+        <div style="padding: 1mm 0 0 0 !important; overflow-y: auto; flex: 1; background: var(--bg-card); display: flex; flex-direction: column;">
+          <!-- NO SURAT BREAKDOWN RATA KIRI DENGAN DEKAT DENGAN TABEL -->
+          <div style="background: var(--bg-box); border: none !important; border-left: none !important; padding: 4px 8px !important; margin: 0 2mm 1mm 2mm !important; font-size: 12px; color: var(--text-main); font-weight: 700; text-align: left !important; flex-shrink: 0; border-radius: 0px !important;">
+            NO SURAT : <strong style="color: var(--primary); font-size: 12.5px; font-weight: 800;">${noSurat}-${partialId}</strong>
+          </div>
+
+          <div style="overflow-x: auto; width: 100%; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); border-left: none !important; border-right: none !important; margin: 0 !important; border-radius: 0px !important; flex: 1;">
             <table style="width: 100%; border-collapse: collapse; font-size: 11.5px; border-radius: 0px !important;">
-              <thead style="position: sticky; top: 0; z-index: 5; background: var(--primary) !important;">
-                <tr style="background: var(--primary) !important; border-bottom: 1px solid var(--border-color); color: #ffffff !important; white-space: nowrap !important;">
-                  <th style="padding: 2mm !important; text-align: center; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">NO</th>
-                  <th style="padding: 2mm !important; text-align: left; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">TYPE</th>
-                  <th style="padding: 2mm !important; text-align: left; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">SERI BARANG</th>
-                  <th style="padding: 2mm !important; text-align: left; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">PERMINTAAN</th>
-                  <th style="padding: 2mm !important; text-align: left; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">ALASAN</th>
-                  <th style="padding: 2mm !important; text-align: center; width: 75px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">QTY</th>
-                  <th style="padding: 2mm !important; text-align: center; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important;">KETERANGAN PART</th>
+              <thead style="position: sticky; top: 0; z-index: 5; background: var(--primary) !important; border-radius: 0px !important;">
+                <tr style="background: var(--primary) !important; border-bottom: 1px solid var(--border-color); color: #ffffff !important; white-space: nowrap !important; font-weight: 900 !important; border-radius: 0px !important;">
+                  <th style="padding: 10px 8px !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; letter-spacing: 0.5px; border-right: 1px solid rgba(255,255,255,0.2) !important;">NO</th>
+                  <th style="padding: 10px 8px !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; letter-spacing: 0.5px; border-right: 1px solid rgba(255,255,255,0.2) !important;">TYPE</th>
+                  <th style="padding: 10px 8px !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; letter-spacing: 0.5px; border-right: 1px solid rgba(255,255,255,0.2) !important;">SERI BARANG</th>
+                  <th style="padding: 10px 8px !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; letter-spacing: 0.5px; border-right: 1px solid rgba(255,255,255,0.2) !important;">PERMINTAAN</th>
+                  <th style="padding: 10px 8px !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; letter-spacing: 0.5px; border-right: 1px solid rgba(255,255,255,0.2) !important;">ALASAN</th>
+                  <th style="padding: 10px 8px !important; text-align: center !important; width: 75px; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; letter-spacing: 0.5px; border-right: 1px solid rgba(255,255,255,0.2) !important;">QTY</th>
+                  <th style="padding: 10px 8px !important; text-align: center !important; white-space: nowrap !important; border-radius: 0px !important; background: var(--primary) !important; color: #ffffff !important; font-weight: 900 !important; letter-spacing: 0.5px;">KETERANGAN PART</th>
                 </tr>
               </thead>
               <tbody>
@@ -18929,6 +19448,20 @@ function bukaDetailSuratParsial(noSurat, partialId) {
   document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 window.bukaDetailSuratParsial = bukaDetailSuratParsial;
+
+function tutupModalDetailParsialSub(noSurat) {
+  const el = document.getElementById('modalDetailParsialSub');
+  const ns = noSurat || (el ? el.getAttribute('data-nosurat') : null);
+  if (el) el.remove();
+  
+  if (ns && typeof bukaModalRiwayatParsialList === 'function') {
+    const listEl = document.getElementById('modalRiwayatParsialList');
+    if (!listEl) {
+      bukaModalRiwayatParsialList(ns);
+    }
+  }
+}
+window.tutupModalDetailParsialSub = tutupModalDetailParsialSub;
 
 function bukaModalArtemisParsial(noSurat, partialId) {
   const partials = getPartialBreakdownsFromDB(noSurat);
@@ -18991,16 +19524,25 @@ function cetakPdfSuratParsial(noSurat, partialId) {
 
   const users = typeof getUsersFromDB === 'function' ? getUsersFromDB() : [];
   const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area) || users.find(u => u.category === 'SERVICE');
+  const dmUser = users.find(u => u.category === 'DM') || users.find(u => u.username === 'ADMIN');
   const serviceName = req.serviceUserName || (serviceUser ? serviceUser.fullName : 'SERVICE SUPERVISOR');
-  const dmName = targetPartial.approved_by || (typeof getNamaDM === 'function' ? getNamaDM() : 'DISTRICT MANAGER');
+  const dmName = typeof getNamaDM === 'function' ? getNamaDM() : 'FERRY EDIYANTO';
 
   let serviceTTD = req.serviceTTD || '';
-  if (serviceUser && typeof getUserRealSignature === 'function') {
-    serviceTTD = getUserRealSignature('SERVICE', req.area, serviceUser.username, serviceUser.fullName) || serviceTTD;
+  const reqSrvName = req.serviceUserName || (serviceUser ? serviceUser.fullName : '');
+  if (reqSrvName && typeof getUserRealSignature === 'function') {
+    const exactSig = getUserRealSignature('SERVICE', req.area, '', reqSrvName);
+    serviceTTD = exactSig || serviceTTD;
+  } else if ((!serviceTTD || (typeof isValidSig === 'function' && !isValidSig(serviceTTD))) && serviceUser && typeof getUserRealSignature === 'function') {
+    serviceTTD = getUserRealSignature('SERVICE', req.area, serviceUser.username, serviceUser.fullName);
   }
-  let dmTTD = '';
-  if (typeof getUserRealSignature === 'function') {
-    dmTTD = getUserRealSignature('DM', '', '', dmName);
+
+  let dmTTD = req.dmTTD || '';
+  if ((!dmTTD || (typeof isValidSig === 'function' && !isValidSig(dmTTD))) && typeof getUserRealSignature === 'function') {
+    dmTTD = getUserRealSignature('DM', '', '', dmName) || (dmUser ? dmUser.ttd : '');
+  }
+  if (typeof isValidSig === 'function' && !isValidSig(dmTTD)) {
+    dmTTD = '';
   }
 
   const isReqFromGBJ = (
@@ -19190,32 +19732,26 @@ function tampilkanPilihanCetakPdf(noSurat) {
             <span style="display: flex; align-items: center; gap: 6px;">
               <span class="material-symbols-rounded" style="color: #10b981; font-size: 16px;">receipt_long</span> SURAT JALAN PARSIAL (${noSurat}-${pid})
             </span>
-            <span style="background: #10b981; color: #fff; padding: 2px 6px; border-radius: 4px !important; font-size: 10.5px; font-weight: 800;">DISETUJUI DM</span>
+            <span class="material-symbols-rounded" style="font-size: 16px; color: #10b981;">chevron_right</span>
           </button>
         </div>
       `;
     }).join('')}
   `;
 
+  if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+
   const modalHtml = `
-    <div id="modalPilihanCetakPdf" class="modal-overlay active" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 20000004 !important; align-items: center; justify-content: center; padding: 1mm !important; box-sizing: border-box !important;">
-      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100% - 2mm); max-width: 480px; border-radius: 4px !important; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid var(--border-color);">
-        <div style="background: linear-gradient(135deg, var(--primary), #0284c7); color: #fff; padding: 2mm !important; display: flex; justify-content: space-between; align-items: center; border-radius: 4px 4px 0 0 !important;">
-          <div style="font-weight: 800; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
-            <span class="material-symbols-rounded">picture_as_pdf</span> PILIH DOKUMEN PDF UNTUK DICETAK
+    <div id="modalPilihanCetakPdf" class="modal-overlay active" onclick="if (event.target === this) this.remove();" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 20000004 !important; align-items: center; justify-content: center; padding: 12px !important; box-sizing: border-box !important;">
+      <div style="background: var(--bg-card); color: var(--text-main); width: calc(100% - 24px); max-width: 460px; border-radius: 8px !important; margin: auto !important; overflow: hidden; box-shadow: 0 20px 45px rgba(0,0,0,0.45); border: 1px solid var(--border-color); animation: popIn 0.2s ease-out;">
+        <div style="background: var(--primary) !important; color: #ffffff !important; padding: 12px 16px !important; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0 !important; flex-shrink: 0; position: relative !important;">
+          <div style="font-weight: 800; font-size: 13.5px; display: flex; align-items: center; gap: 6px; color: #ffffff !important;">
+            <span class="material-symbols-rounded" style="color: #ffffff !important;">picture_as_pdf</span> PILIH DOKUMEN PDF UNTUK DICETAK
           </div>
-          <button type="button" onclick="document.getElementById('modalPilihanCetakPdf').remove()" style="background: transparent !important; border: none !important; color: #ffffff !important; padding: 0 !important; margin: 0 !important; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; outline: none !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" style="display: block;">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
+          <button type="button" onclick="document.getElementById('modalPilihanCetakPdf').remove()" title="TUTUP" style="font-size: 28px !important; font-weight: 900 !important; color: #ffffff !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important; outline: none !important; padding: 0 4px !important; margin: 0 !important; opacity: 0.95;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.95'">&times;</button>
         </div>
         <div style="padding: 2mm !important;">
           ${optionsHtml}
-        </div>
-        <div style="padding: 2mm !important; background: var(--bg-header); display: flex; justify-content: flex-end; border-top: 1px solid var(--border-color); border-radius: 0 0 4px 4px !important;">
-          <button type="button" onclick="document.getElementById('modalPilihanCetakPdf').remove()" style="background: #64748b; color: #fff; border: none; padding: 5px 12px; border-radius: 4px !important; font-weight: 700; font-size: 11.5px; cursor: pointer;">BATAL</button>
         </div>
       </div>
     </div>
@@ -19225,6 +19761,31 @@ function tampilkanPilihanCetakPdf(noSurat) {
 }
 window.tampilkanPilihanCetakPdf = tampilkanPilihanCetakPdf;
 
+function isPhotoUrlValid(val) {
+  if (!val) return false;
+  if (Array.isArray(val)) {
+    return val.some(item => isPhotoUrlValid(item));
+  }
+  if (typeof val === 'object') {
+    return isPhotoUrlValid(val.url || val.src || val.link || '');
+  }
+  if (typeof val === 'string') {
+    const s = val.trim();
+    if (!s || s === 'null' || s === 'undefined' || s === '[]' || s === '{}' || s === '""' || s === "''") return false;
+    if (s.startsWith('[') && s.endsWith(']')) {
+      try {
+        const parsed = JSON.parse(s);
+        return isPhotoUrlValid(parsed);
+      } catch (e) {
+        return false;
+      }
+    }
+    return (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('data:image/') || s.length > 20);
+  }
+  return false;
+}
+window.isPhotoUrlValid = isPhotoUrlValid;
+
 function parsePhotosArray(photos) {
   if (!photos) return [];
   let list = [];
@@ -19233,10 +19794,11 @@ function parsePhotosArray(photos) {
   } else if (typeof photos === 'string') {
     try { list = JSON.parse(photos || '[]'); } catch(e) { list = []; }
   }
+  if (!Array.isArray(list)) list = [list];
   return list.map(p => {
     if (typeof p === 'string') return p;
     if (p && typeof p === 'object') return p.url || p.src || p.link || '';
     return '';
-  }).filter(Boolean);
+  }).filter(p => isPhotoUrlValid(p));
 }
 window.parsePhotosArray = parsePhotosArray;

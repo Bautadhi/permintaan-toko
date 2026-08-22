@@ -8839,9 +8839,12 @@ div[id*="Modal"] {
   display: none !important;
 }
 
-/* PC / LAPTOP STRETCH (1MM JARAK KANAN KIRI ATAS BAWAH) FOR DETAIL DATA POPUP (#popupDetailBarangV2) */
+/* PC / LAPTOP & HP STRETCH (1MM JARAK KANAN KIRI ATAS BAWAH) FOR FULL SIZE POPUPS */
 html body #popupDetailBarangV2.popupOverlay,
-html body #popupDetail.popupOverlay {
+html body #popupDetail.popupOverlay,
+html body #modalRiwayatParsialList.modal-overlay,
+html body #modalDetailParsialSub.modal-overlay,
+html body #modalBuatParsial.modal-overlay {
   padding: 1mm !important;
   box-sizing: border-box !important;
   overflow: hidden !important;
@@ -8862,25 +8865,33 @@ html body .popupBoxDetailV2 {
   padding: 0 !important;
 }
 
-/* HP / MOBILE (MAX-WIDTH 768PX) STRETCH FOR DETAIL DATA POPUP (#popupDetailBarangV2) */
+/* HP / MOBILE (MAX-WIDTH 768PX) STRETCH FOR FULL SIZE POPUPS (EXACTLY 1MM TOP/BOTTOM, 0.5MM LEFT/RIGHT) */
 @media (max-width: 768px) {
   html body #popupDetailBarangV2.popupOverlay,
-  html body #popupDetail.popupOverlay {
+  html body #popupDetail.popupOverlay,
+  html body #modalRiwayatParsialList.modal-overlay,
+  html body #modalDetailParsialSub.modal-overlay,
+  html body #modalBuatParsial.modal-overlay {
     padding-top: 1mm !important;
-    padding-bottom: 0.6cm !important;
-    padding-left: 4px !important;
-    padding-right: 4px !important;
+    padding-bottom: 1mm !important;
+    padding-left: 0.5mm !important;
+    padding-right: 0.5mm !important;
   }
 
   html body #popupDetailBarangV2 .popupBoxDetailV2,
-  html body .popupBoxDetailV2 {
-    width: calc(100vw - 8px) !important;
-    min-width: calc(100vw - 8px) !important;
-    max-width: calc(100vw - 8px) !important;
-    height: calc(100vh - 0.6cm - 1mm) !important;
-    height: calc(100dvh - 0.6cm - 1mm) !important;
-    max-height: calc(100vh - 0.6cm - 1mm) !important;
-    max-height: calc(100dvh - 0.6cm - 1mm) !important;
+  html body #popupDetail .popupBoxDetail,
+  html body #modalRiwayatParsialList > div,
+  html body #modalDetailParsialSub > div,
+  html body #modalBuatParsial > div {
+    width: calc(100vw - 1mm) !important;
+    min-width: calc(100vw - 1mm) !important;
+    max-width: calc(100vw - 1mm) !important;
+    height: calc(100vh - 2mm) !important;
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
   }
 }
 
@@ -8924,8 +8935,14 @@ html body .tableCardV2 {
   overflow-y: auto !important;
   overflow-x: auto !important;
   background: var(--bg-box) !important;
-  border: 1px solid var(--border-color) !important;
-  border-radius: 5px !important;
+  border-top: 1px solid var(--border-color) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-radius: 0 !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
   -webkit-clip-path: none !important;
   clip-path: none !important;
 }
@@ -8933,6 +8950,37 @@ html body .tableCardV2 {
 html body #popupDetailBarangV2 .detailTableV2 {
   width: 100% !important;
   min-width: 100% !important;
+}
+
+/* HEADER 90 DERAJAT & GARIS PEMBATAS HEADER TABEL / POPUP */
+html body .modal-overlay .popupHeader,
+html body .modal-overlay [style*="background: var(--primary)"],
+html body #popupDetailBarangV2 .popupHeaderV2,
+html body #modalDetailParsialSub .popupHeader,
+html body #modalBuatParsial .popupHeader,
+html body #modalRiwayatParsialList .popupHeader {
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+html body .modal-overlay table thead,
+html body .modal-overlay table thead tr,
+html body .modal-overlay table thead th,
+html body #popupDetailBarangV2 table thead th,
+html body #modalDetailParsialSub table thead th,
+html body #modalBuatParsial table thead th {
+  border-radius: 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.2) !important;
+  font-weight: 900 !important;
+  text-align: center !important;
+}
+
+html body .modal-overlay table thead th:last-child,
+html body #popupDetailBarangV2 table thead th:last-child,
+html body #modalDetailParsialSub table thead th:last-child,
+html body #modalBuatParsial table thead th:last-child {
+  border-right: none !important;
 }
 
 html body #popupDetailBarangV2 .popupDetailActionsV2,
@@ -9050,35 +9098,37 @@ html body #inputPage #judulDetailPermintaan,
   padding-right: 4px !important;
 }
 
-/* POPUP DETAIL BARANG V2 (#popupDetailBarangV2) - PC / DESKTOP VIEW DEFAULT (FULL 1MM JARA KANAN KIRI ATAS BAWAH) */
+/* POPUP DETAIL BARANG V2 (#popupDetailBarangV2) - PC & MOBILE VIEW (TOP/BOTTOM 1MM, LEFT/RIGHT 0.5MM GAP, SOFT 8PX CORNERS) */
 #popupDetailBarangV2 {
-  padding: 1mm !important;
+  padding: 1mm 0.5mm !important;
 }
 
 #popupDetailBarangV2 .popupBoxDetailV2 {
-  width: calc(100vw - 2mm) !important;
-  min-width: calc(100vw - 2mm) !important;
-  max-width: calc(100vw - 2mm) !important;
+  width: calc(100vw - 1mm) !important;
+  min-width: calc(100vw - 1mm) !important;
+  max-width: calc(100vw - 1mm) !important;
   height: calc(100vh - 2mm) !important;
   max-height: calc(100vh - 2mm) !important;
+  margin: 1mm 0.5mm !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
 }
 
 /* POPUP DETAIL BARANG V2 - TAMPILAN HP / MOBILE (MAX-WIDTH 768PX) */
 @media (max-width: 768px) {
   #popupDetailBarangV2 {
-    padding-top: 1mm !important;
-    padding-bottom: 0.6cm !important;
-    padding-left: 4px !important;
-    padding-right: 4px !important;
+    padding: 1mm 0.5mm !important;
   }
 
   #popupDetailBarangV2 .popupBoxDetailV2 {
-    width: calc(100vw - 8px) !important;
-    min-width: calc(100vw - 8px) !important;
-    max-width: calc(100vw - 8px) !important;
-    height: calc(100vh - 0.6cm - 1mm) !important;
-    max-height: calc(100vh - 0.6cm - 1mm) !important;
-    max-height: calc(100dvh - 0.6cm - 1mm) !important;
+    width: calc(100vw - 1mm) !important;
+    min-width: calc(100vw - 1mm) !important;
+    max-width: calc(100vw - 1mm) !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    margin: 1mm 0.5mm !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
   }
 }
 
@@ -9330,7 +9380,7 @@ html body #popupEditKeteranganPartSingle .popupContent {
 #artemisOverlay,
 html body #artemisOverlay {
   display: none;
-  z-index: 600000 !important;
+  z-index: 99999999 !important;
   box-sizing: border-box !important;
 }
 
@@ -9346,6 +9396,7 @@ html body #artemisOverlay[style*="display: none"] {
   html body #artemisOverlay[style*="display: flex"],
   html body #artemisOverlay[style*="display:flex"] {
     display: flex !important;
+    z-index: 99999999 !important;
     align-items: center !important;
     justify-content: center !important;
     padding: 16px !important;
@@ -10209,5 +10260,15 @@ html body #inputPage .inputPageHeader {
 
 #tableBodyBuatParsial tr:nth-child(odd) {
   background: var(--bg-box) !important;
+}
+
+/* REJECTION & CONFIRMATION POPUPS ALWAYS ON TOP (FRONTMOST Z-INDEX OVERRIDE) */
+html body #rejectOverlay,
+html body #modalRejectBreakdown,
+html body #modalRejectParsial,
+html body #confirmOverlay,
+html body .popupOverlay#rejectOverlay,
+html body .popupOverlay#modalRejectBreakdown {
+  z-index: 2147483647 !important;
 }
 
