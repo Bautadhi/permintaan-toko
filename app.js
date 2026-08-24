@@ -7991,7 +7991,7 @@ function gantiFotoViewer(arah) {
 
 function approveService(noSurat) {
   showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, async () => {
-    showLoading('MEMERIKSA DATA TERBARU SERVER...');
+    showLoading('MOHON TUNGGU...');
     const isValid = await validatePreApprovalData(noSurat, 'SERVICE');
     hideLoading();
     if (!isValid) return;
@@ -8084,7 +8084,7 @@ function approveDM(noSurat) {
   }
 
   showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, async () => {
-    showLoading('MEMERIKSA DATA TERBARU SERVER...');
+    showLoading('MOHON TUNGGU...');
     const isValid = await validatePreApprovalData(noSurat, 'DM');
     hideLoading();
     if (!isValid) return;
@@ -20435,7 +20435,7 @@ async function validatePreApprovalData(noSurat, expectedType) {
 
     if (hasMismatch) {
       if (typeof showNotif === 'function') {
-        showNotif('PERHATIAN: ' + mismatchMsg + ' SILAKAN KLIK TOMBOL REFRESH (IKON PUTAR DI ATAS) SEBELUM APPROVAL.', 'warning');
+        showNotif('ADA PERUBAHAN DATA DI SURAT INI, REFRESH TERLEBIH DAHULU', 'warning');
       }
       const btnRefresh = document.getElementById('btnRefreshDetailV2');
       if (btnRefresh) {

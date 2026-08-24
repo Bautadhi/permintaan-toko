@@ -14206,3 +14206,33 @@ html body .login-card p,
 html body #loginPage .login-card p {
   margin-bottom: 5mm !important;
 }
+
+
+/* =============================================================================
+   DASHBOARD LEFT PADDING: 1MM ON MOBILE HP, 0 ON LAPTOP / PC
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #dashboardPage,
+  #dashboardPage.page,
+  #dashboardPage.active,
+  #dashboardPage.page.active,
+  html body #dashboardPage,
+  html body #dashboardPage.active,
+  html body section#dashboardPage.page.active {
+    padding-left: 1mm !important;
+    box-sizing: border-box !important;
+  }
+}
+
+@media screen and (min-width: 769px) {
+  #dashboardPage,
+  #dashboardPage.page,
+  #dashboardPage.active,
+  #dashboardPage.page.active,
+  html body #dashboardPage,
+  html body #dashboardPage.active,
+  html body section#dashboardPage.page.active {
+    padding-left: 0px !important;
+    box-sizing: border-box !important;
+  }
+}
