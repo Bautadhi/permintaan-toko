@@ -257,7 +257,7 @@ button .material-symbols-rounded,
   z-index: 50 !important;
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   padding: 10px 8px !important;
   white-space: nowrap !important;
   border-bottom: 2px solid rgba(0, 0, 0, 0.15) !important;
@@ -464,8 +464,8 @@ body.light-mode .aesthetic-orb-3 {
 
 .page.active {
   display: block !important;
-  height: calc(100vh - 60px) !important;
-  max-height: calc(100vh - 60px) !important;
+  height: calc(100vh - 44px - 1mm) !important;
+  max-height: calc(100vh - 44px - 1mm) !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y !important;
@@ -475,8 +475,8 @@ body.light-mode .aesthetic-orb-3 {
 
 #userManagementPage.active {
   display: block !important;
-  height: calc(100vh - 60px) !important;
-  max-height: calc(100vh - 60px) !important;
+  height: calc(100vh - 44px - 1mm) !important;
+  max-height: calc(100vh - 44px - 1mm) !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y !important;
@@ -486,8 +486,8 @@ body.light-mode .aesthetic-orb-3 {
 
 #inputPage.active {
   display: block !important;
-  height: calc(100vh - 60px) !important;
-  max-height: calc(100vh - 60px) !important;
+  height: calc(100vh - 44px - 1mm) !important;
+  max-height: calc(100vh - 44px - 1mm) !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y !important;
@@ -564,7 +564,7 @@ section#masterDbPage.page.active,
   padding: 0 14px !important;
   border-radius: 5px !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 12.5px !important;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
   line-height: 1.2 !important;
@@ -1343,7 +1343,7 @@ input:focus, select:focus, textarea:focus {
 
 .header small, #areaUser {
   font-size: 13px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   color: var(--adaptive-header-color, #000000) !important;
   text-align: left !important;
   display: block !important;
@@ -1625,7 +1625,7 @@ input:focus, select:focus, textarea:focus {
 #detailDashboard #dashboardRecentTitle {
   margin: 1mm 0 1mm 0 !important;
   font-size: 14px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   text-align: left !important;
   color: var(--text-main) !important;
 }
@@ -1879,7 +1879,7 @@ input:focus, select:focus, textarea:focus {
 .lastHeader {
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 12px !important;
   letter-spacing: 0.5px !important;
   text-transform: uppercase !important;
@@ -1904,7 +1904,7 @@ input:focus, select:focus, textarea:focus {
   padding-left: 4px !important;
   padding-right: 4px !important;
   box-sizing: border-box !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   white-space: nowrap !important;
 }
 
@@ -1951,7 +1951,7 @@ input:focus, select:focus, textarea:focus {
 .rowWaitingDmBlink td,
 .rowWaitingDmBlink div {
   color: var(--text-main) !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 /* CENTER ALIGNED HEADERS FOR DASHBOARD & DETAIL POPUP */
@@ -2011,8 +2011,8 @@ html body #inputPage {
   html body #inputPage.active {
     width: calc(100vw - 1mm) !important;
     max-width: calc(100vw - 1mm) !important;
-    height: calc(100vh - 58px) !important;
-    max-height: calc(100vh - 58px) !important;
+    height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
     overflow-y: auto !important;
     padding-bottom: 5mm !important;
     margin-bottom: 0 !important;
@@ -2059,7 +2059,7 @@ html body #inputPage {
     margin-right: auto !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
-    padding-bottom: calc(58px + 3.5cm) !important;
+    padding-bottom: calc(44px + 1mm) !important;
     margin-bottom: 0 !important;
   }
 
@@ -2139,7 +2139,7 @@ html body #inputPage {
   z-index: 10 !important;
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   text-align: left !important;
   border-top: none !important;
   border-left: none !important;
@@ -2233,7 +2233,7 @@ tr.blink-row-red td strong,
 
 .historyTable tr:last-child td, #tableMasterDb tr:last-child td, #tableUserMgmt tr:last-child td, .dashboardTable tr:last-child td, .detailTable2 tr:last-child td {
   border-bottom: none !important;
-  padding-bottom: 1cm !important;
+  padding-bottom: 0px !important;
 }
 
 .historyTable tbody tr:hover td, #tableMasterDb tbody tr:hover td, #tableUserMgmt tbody tr:hover td {
@@ -2566,7 +2566,7 @@ section#masterDbPage.page.active {
   background-image: none !important;
   opacity: 1 !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 13px !important;
   letter-spacing: normal !important;
   text-transform: uppercase !important;
@@ -2696,7 +2696,7 @@ body.design-mode-3d-isometric .dashboardTable th {
   justify-content: center !important;
   color: rgba(255, 255, 255, 0.7) !important;
   font-size: 10px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   letter-spacing: 0.4px !important;
   flex: 1 !important;
   height: 100% !important;
@@ -2902,7 +2902,7 @@ div[id*="Modal"] {
 
   #dashboardPage .cardStat .judul {
     font-size: 9px !important;
-    font-weight: 700 !important;
+    font-weight: 500 !important;
     letter-spacing: 0.5px !important;
   }
 
@@ -3054,7 +3054,7 @@ div[id*="Modal"] {
 
 #popupAkun .akunGrid label {
   font-size: 10.5px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   margin-bottom: 3px !important;
 }
 
@@ -3066,7 +3066,7 @@ div[id*="Modal"] {
 }
 
 /* ALL BUTTONS IN POPUP AKUN: UNIFORM EQUAL SHORT HEIGHT (35px), EQUAL FONT SIZE, EQUAL BORDER RADIUS */
-#popupAkun button:not(.popupClose):not(.btnSapuLokal),
+#popupAkun button:not(.popupClose),
 #popupAkun .btnTambahBarang,
 #popupAkun .refresh-icon-btn,
 #popupAkun .theme-icon-btn,
@@ -3077,7 +3077,7 @@ div[id*="Modal"] {
   min-height: 35px !important;
   max-height: 35px !important;
   font-size: 11.5px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   border-radius: 5px !important;
   padding: 0 10px !important;
   display: flex !important;
@@ -3399,7 +3399,7 @@ div[id*="Modal"] {
 .popupBoxDetail,
 .popupBoxDetailV2,
 #detailContentContainer {
-  padding-bottom: 1cm !important;
+  padding-bottom: 0px !important;
 }
 
 /* ENFORCE SINGLE LINE 1-ROW (NO WRAPTEXT) WITH HORIZONTAL SCROLL */
@@ -3697,7 +3697,7 @@ html body #popupUserForm .popupBox {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 .akunButton .btnBatal {
@@ -3715,7 +3715,7 @@ html body #popupUserForm .popupBox {
   margin-top: 10px !important;
   height: 38px !important;
   font-size: 12.5px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   background: #dc2626 !important;
   color: #fff !important;
   border: none !important;
@@ -3795,7 +3795,7 @@ html body #popupUserForm .popupBox {
   border: none !important;
   cursor: pointer !important;
   font-size: 12.5px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -4467,8 +4467,8 @@ html body #popupUserForm .popupBox {
   #dashboardPage {
     overflow: hidden !important;
     overflow-y: hidden !important;
-    height: calc(100vh - 60px) !important;
-    max-height: calc(100vh - 60px) !important;
+    height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
     display: flex !important;
     flex-direction: column !important;
     padding-top: 4px !important;
@@ -5063,7 +5063,7 @@ html body #popupUserForm .popupBox {
 /* DASHBOARD RECENT TITLE: SAME FONT SIZE AS OTHER TITLE HEADINGS (13.5PX) */
 #dashboardRecentTitle {
   font-size: 13.5px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   letter-spacing: 0.5px !important;
   margin-bottom: 8px !important;
   text-align: center !important;
@@ -5197,8 +5197,8 @@ button.btnKembali {
     max-width: 100% !important;
     overflow: hidden !important;
     overflow-y: hidden !important;
-    height: calc(100vh - 60px - 1mm) !important;
-    max-height: calc(100vh - 60px - 1mm) !important;
+    height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
     box-sizing: border-box !important;
     margin-bottom: 0 !important;
   }
@@ -5259,7 +5259,7 @@ button.btnKembali {
     flex: 0 0 auto !important;
     margin: 1mm 0 1mm 2px !important;
     font-size: 13.5px !important;
-    font-weight: 700 !important;
+    font-weight: 500 !important;
     color: var(--text-main) !important;
     display: flex !important;
     align-items: center !important;
@@ -5631,7 +5631,7 @@ div.rowHighlightOrange {
 #popupDetail .popupHeader {
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   padding: 12px 18px !important;
   margin: 0 !important;
   border-radius: 0 !important;
@@ -5641,14 +5641,14 @@ div.rowHighlightOrange {
   filter: none !important;
   flex-shrink: 0 !important;
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
 }
 
 #popupDetail .popupHeader span,
 #popupDetail #popupTitle {
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 14px !important;
   letter-spacing: 0.5px !important;
   text-transform: uppercase !important;
@@ -5661,7 +5661,7 @@ div.rowHighlightOrange {
   background: transparent !important;
   border: none !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 24px !important;
   cursor: pointer !important;
   line-height: 1 !important;
@@ -5727,11 +5727,11 @@ div.rowHighlightOrange {
 
 .detailHeaderInfo .noSuratVal {
   color: var(--primary) !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 .detailHeaderInfo .tokoVal {
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   color: var(--text-main) !important;
 }
 
@@ -6022,11 +6022,11 @@ div.rowHighlightOrange {
 
 .detailHeaderInfoV2 .noSuratValV2 {
   color: var(--primary) !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
 }
 
 .detailHeaderInfoV2 .tokoValV2 {
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   color: var(--text-color, #0f172a) !important;
 }
 
@@ -6383,7 +6383,7 @@ div.rowHighlightOrange {
   color: #ffffff !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   border-radius: 5px 5px 0 0 !important;
 }
 
@@ -6636,7 +6636,7 @@ html body .lastHeader,
 html body .lastHeader > div {
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 12px !important;
   letter-spacing: 0.5px !important;
   text-transform: uppercase !important;
@@ -6848,7 +6848,7 @@ html body .dashboardTable thead tr {
 #riwayatPage table th {
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 12px !important;
   letter-spacing: 0.5px !important;
   text-transform: uppercase !important;
@@ -6890,8 +6890,8 @@ html body .dashboardTable thead tr {
   html body .page#inputPage {
     width: calc(100vw - 1mm) !important;
     max-width: calc(100vw - 1mm) !important;
-    height: calc(100vh - 58px) !important;
-    max-height: calc(100vh - 58px) !important;
+    height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
     overflow-y: auto !important;
     padding-bottom: 5mm !important;
     margin-bottom: 0 !important;
@@ -6927,7 +6927,7 @@ html body .dashboardTable thead tr {
 @media (max-width: 768px) {
   html body #inputPage,
   html body .page#inputPage {
-    padding-bottom: calc(58px + 1mm) !important;
+    padding-bottom: calc(44px + 1mm) !important;
     margin-bottom: 0 !important;
   }
 
@@ -6974,8 +6974,8 @@ body:has(#masterDbPage.active) {
 #masterDbPage.page.active {
   display: flex !important;
   flex-direction: column !important;
-  height: calc(100vh - 60px - 1mm) !important;
-  max-height: calc(100vh - 60px - 1mm) !important;
+  height: calc(100vh - 44px - 1mm) !important;
+  max-height: calc(100vh - 44px - 1mm) !important;
   overflow: hidden !important;
   overflow-y: hidden !important;
   touch-action: auto !important;
@@ -7220,7 +7220,7 @@ body:has(#masterDbPage.active) {
     align-items: center !important;
     justify-content: center !important;
     padding: 12px !important;
-    padding-bottom: calc(52px + 2cm) !important;
+    padding-bottom: calc(44px + 1mm) !important;
   }
   #confirmOverlay {
     align-items: center !important;
@@ -7651,8 +7651,8 @@ html body .cardStat .icon {
   html body section#dashboardPage.page.active,
   html body section#riwayatPage.page.active,
   html body section#masterDbPage.page.active {
-    height: calc(100vh - 60px - 1mm) !important;
-    max-height: calc(100vh - 60px - 1mm) !important;
+    height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
     display: flex !important;
     flex-direction: column !important;
     padding-bottom: 0 !important;
@@ -7664,7 +7664,7 @@ html body .cardStat .icon {
   html body .page#inputPage {
     height: auto !important;
     max-height: none !important;
-    padding-bottom: calc(58px + 3.5cm) !important; /* Safe 3.5cm gap above bottomMenu */
+    padding-bottom: calc(44px + 1mm) !important; /* Safe 3.5cm gap above bottomMenu */
     box-sizing: border-box !important;
     overflow-y: auto !important;
   }
@@ -7692,7 +7692,7 @@ html body .cardStat .icon {
     align-items: center !important;
     justify-content: center !important;
     padding: 12px !important;
-    padding-bottom: calc(52px + 1cm) !important;
+    padding-bottom: calc(44px + 1mm) !important;
   }
 
   #popupNotifList .popupNotifCard {
@@ -7727,9 +7727,9 @@ html body #masterDbPage.page.active,
 html body section#masterDbPage {
   display: flex !important;
   flex-direction: column !important;
-  height: calc(100vh - 60px - 1mm) !important;
-  max-height: calc(100vh - 60px - 1mm) !important;
-  min-height: calc(100vh - 60px - 1mm) !important;
+  height: calc(100vh - 44px - 1mm) !important;
+  max-height: calc(100vh - 44px - 1mm) !important;
+  min-height: calc(100vh - 44px - 1mm) !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
 }
@@ -7989,7 +7989,7 @@ button.btnBatal {
   background: #ef4444 !important;
   color: #ffffff !important;
   border: none !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   cursor: pointer !important;
   border-radius: 5px !important;
   transition: background 0.2s, transform 0.1s !important;
@@ -8081,7 +8081,7 @@ button.btnBatal:active {
   z-index: 50 !important;
   background: var(--primary) !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   padding: 10px 8px !important;
   white-space: nowrap !important;
   border-bottom: 2px solid rgba(0, 0, 0, 0.15) !important;
@@ -8159,7 +8159,7 @@ button.btnBatal:active {
   color: #ffffff !important;
   border: none !important;
   border-radius: 5px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 13px !important;
   cursor: pointer !important;
   box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3) !important;
@@ -8259,7 +8259,7 @@ html body #rejectOverlay .confirmButton,
   html body #rejectOverlay,
   #rejectOverlay {
     padding: 2mm !important;
-    padding-bottom: calc(52px + 2mm) !important;
+    padding-bottom: calc(44px + 1mm) !important;
     align-items: center !important;
     justify-content: center !important;
     box-sizing: border-box !important;
@@ -8374,7 +8374,7 @@ html body .rejectHeaderPopup,
 html body #rejectOverlay .rejectHeaderPopup,
 .rejectHeaderPopup {
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -8442,7 +8442,7 @@ html body #rejectOverlay .rejectHeaderPopup .popupClose,
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 6px !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
   }
   #modalGeminiApiKey .btnKosongkanKey {
     padding: 8px 10px !important;
@@ -8565,7 +8565,7 @@ html body .rejectHeaderPopup,
 html body #rejectOverlay .rejectHeaderPopup,
 .rejectHeaderPopup {
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -8638,7 +8638,7 @@ html body #rejectOverlay .rejectHeaderPopup .popupClose,
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 6px !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
   }
   #modalGeminiApiKey .btnKosongkanKey {
     padding: 8px 10px !important;
@@ -8761,7 +8761,7 @@ html body .rejectHeaderPopup,
 html body #rejectOverlay .rejectHeaderPopup,
 .rejectHeaderPopup {
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   width: 100% !important;
   box-sizing: border-box !important;
@@ -8828,7 +8828,7 @@ html body #rejectOverlay .rejectHeaderPopup .popupClose,
     display: flex !important;
     flex-wrap: wrap !important;
     gap: 6px !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
   }
   #modalGeminiApiKey .btnKosongkanKey {
     padding: 8px 10px !important;
@@ -8960,7 +8960,7 @@ html body .popupCardBodyContainerV2 {
   min-height: 0 !important;
   padding: 4px 0 0 0 !important;
   margin: 0 !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
 }
 
 html body #popupDetailBarangV2 .tableCardV2.tableWrap,
@@ -9066,7 +9066,7 @@ div[id*="Modal"] {
 
 .userManagementHeader {
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   padding: 8px 12px !important;
   background: var(--bg-body) !important;
@@ -9117,7 +9117,7 @@ div[id*="Modal"] {
 .userManagementToolbar {
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   gap: 8px !important;
   padding: 8px 12px !important;
   background: var(--bg-box) !important;
@@ -9286,7 +9286,7 @@ div[id*="Modal"] {
     overflow-y: auto !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
   }
 
   /* 2. POPUP LAIN NYA (EDIT KET & STATUS PART) */
@@ -9312,7 +9312,7 @@ div[id*="Modal"] {
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     overflow-y: auto !important;
   }
 
@@ -10180,7 +10180,7 @@ html body #artemisOverlay[style*="display: none"] {
   }
 }
 
-/* MOBILE / HP VIEW (MAX-WIDTH: 768PX): FULL SAMPAI LAYAR DENGAN PADDING 1MM PRESISI KELILING */
+/* MOBILE / HP VIEW (MAX-WIDTH: 768PX): SHORTENED COMPACT HEIGHT CENTERED IN THE MIDDLE OF HP SCREEN */
 @media (max-width: 768px) {
   #artemisOverlay.show,
   html body #artemisOverlay.show,
@@ -10191,48 +10191,59 @@ html body #artemisOverlay[style*="display: none"] {
     justify-content: center !important;
     padding: 1mm !important;
     box-sizing: border-box !important;
+    margin: auto !important;
   }
 
   #artemisOverlay .artemisBoxPopup,
-  html body #artemisOverlay .artemisBoxPopup,
-  #popupTTD .ttdBox,
-  html body #popupTTD .ttdBox,
-  #popupUserForm .userFormCard,
-  html body #popupUserForm .userFormCard,
-  .userFormCard,
-  html body .userFormCard,
-  #popupTambahToko .popupBox,
-  html body #popupTambahToko .popupBox {
+  html body #artemisOverlay .artemisBoxPopup {
     width: calc(100vw - 2mm) !important;
     max-width: calc(100vw - 2mm) !important;
-    height: calc(100vh - 2mm) !important;
-    max-height: calc(100vh - 2mm) !important;
-    margin: 0 auto !important;
+    height: auto !important;
+    max-height: 88vh !important;
+    max-height: 88dvh !important;
+    margin: auto !important;
     padding: 0 !important;
-    border-radius: 6px !important;
+    border-radius: 8px !important;
     box-sizing: border-box !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
-    overflow-y: auto !important;
+    justify-content: flex-start !important;
+    overflow: hidden !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
   }
 
   #artemisOverlay .artemisBodyPopup,
   html body #artemisOverlay .artemisBodyPopup {
-    flex: 1 1 100% !important;
+    flex: 1 1 auto !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     overflow-y: auto !important;
+    padding: 10px 12px !important;
     box-sizing: border-box !important;
+  }
+
+  #artemisOverlay #artemisPasteBox,
+  html body #artemisOverlay #artemisPasteBox {
+    padding: 8px 10px !important;
+    margin-bottom: 6px !important;
+    font-size: 11px !important;
+  }
+
+  #artemisOverlay #inputKetPartArtemis,
+  html body #artemisOverlay #inputKetPartArtemis {
+    height: 52px !important;
+    padding: 6px 10px !important;
+    font-size: 11.5px !important;
+    margin-bottom: 6px !important;
   }
 
   #artemisOverlay #artemisPhotoPreviewGrid,
   html body #artemisOverlay #artemisPhotoPreviewGrid {
-    flex: 1 1 auto !important;
-    max-height: none !important;
-    min-height: 100px !important;
+    max-height: 160px !important;
+    min-height: 40px !important;
     overflow-y: auto !important;
+    margin-bottom: 6px !important;
   }
 }
 
@@ -10298,7 +10309,7 @@ html body #popupTTD.popupOverlay,
     align-items: center !important;
     justify-content: center !important;
     padding-top: 1cm !important;
-    padding-bottom: 1cm !important;
+    padding-bottom: 0px !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
     box-sizing: border-box !important;
@@ -10835,13 +10846,13 @@ html body #userManagementPage.active,
 html body section#userManagementPage,
 html body section#userManagementPage.active {
   display: block !important;
-  height: calc(100vh - 60px) !important;
-  max-height: calc(100vh - 60px) !important;
+  height: calc(100vh - 44px - 1mm) !important;
+  max-height: calc(100vh - 44px - 1mm) !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   touch-action: pan-y !important;
   padding-top: 1mm !important;
-  padding-bottom: calc(58px + 2mm) !important;
+  padding-bottom: calc(44px + 1mm) !important;
   box-sizing: border-box !important;
 }
 
@@ -11038,7 +11049,7 @@ html body #popupBantuan #adminRoomsContainer {
     overflow-y: auto !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
   }
 }
 
@@ -11262,7 +11273,7 @@ html body .popupNotifCard,
     box-sizing: border-box !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     background: var(--primary) !important;
     color: #ffffff !important;
   }
@@ -11367,7 +11378,7 @@ html body .popupNotifCard,
     box-sizing: border-box !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     background: var(--primary) !important;
     color: #ffffff !important;
   }
@@ -11565,7 +11576,7 @@ html body .popupNotifCard,
   html body #popupAkun .akunBox {
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     overflow-y: auto !important;
     padding: 1mm !important;
     padding-top: 1mm !important;
@@ -11610,7 +11621,7 @@ html body .rejectHeaderPopup,
 .rejectHeaderPopup {
   position: relative !important;
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   width: 100% !important;
   padding: 10px 14px !important;
@@ -11759,7 +11770,7 @@ html body .rejectHeaderPopup .popupClose,
   #popupAkun .akunBox {
     display: flex !important;
     flex-direction: column !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     overflow-y: auto !important;
     padding: 4mm 16px !important;
   }
@@ -12054,7 +12065,7 @@ html body #modalGeminiApiKey .modalKeyBody,
 #modalGeminiApiKey .modalKeyActions button {
   height: 38px !important;
   border-radius: 5px !important;
-  font-weight: 700 !important;
+  font-weight: 500 !important;
   font-size: 12.5px !important;
   box-sizing: border-box !important;
 }
@@ -12335,7 +12346,7 @@ html body #popupUserManagementModal .userManagementHeader,
 #popupUserManagementModal .userManagementHeader,
 .userManagementHeader {
   display: flex !important;
-  justify-content: space-between !important;
+  justify-content: flex-start !important;
   align-items: center !important;
   position: relative !important;
   padding: 10px 14px !important;
@@ -12716,24 +12727,34 @@ html body #popupTTD.popupOverlay {
   }
 }
 
-/* MOBILE HP VIEW (max-width: 768px): 1MM LEFT/RIGHT GAP & COMPACT SHORTENED HEIGHT */
+/* MOBILE HP VIEW (max-width: 768px): 1MM LEFT/RIGHT PADDING & COMPACT SHORTENED HEIGHT FOR POPUP TTD */
 @media screen and (max-width: 768px) {
+  #popupTTD,
+  #popupTTD.popupTTD,
+  #popupTTD.popupOverlay,
+  html body #popupTTD {
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
   #popupTTD .ttdBox,
   html body #popupTTD .ttdBox {
     width: calc(100vw - 2mm) !important;
     max-width: calc(100vw - 2mm) !important;
     height: auto !important;
-    max-height: calc(100vh - 3cm) !important;
-    margin: auto 1mm !important;
-    margin-left: 1mm !important;
-    margin-right: 1mm !important;
+    max-height: calc(100vh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin: auto !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
     border-radius: 6px !important;
     box-sizing: border-box !important;
   }
 
   #popupTTD #canvasTTD,
   html body #popupTTD #canvasTTD {
-    height: 165px !important;
+    height: 170px !important;
   }
 }
 
@@ -12763,14 +12784,1351 @@ html body #popupAkun .akunGrid > div {
 
 
 /* =============================================================================
-   STRICT NO-SCROLLBAR FIX FOR POPUP PROFIL AKUN (#popupAkun .akunBox)
+   ALLOW SCROLLBAR FOR POPUP PROFIL AKUN (#popupAkun .akunBox) WHEN NEEDED
    ============================================================================= */
 #popupAkun .akunBox,
 .popupAkun .akunBox,
 html body #popupAkun .akunBox,
 html body .popupAkun .akunBox {
-  overflow: hidden !important;
-  overflow-y: hidden !important;
+  overflow-y: auto !important;
   overflow-x: hidden !important;
   max-height: 98vh !important;
+}
+
+
+/* =============================================================================
+   ULTRA-WIDE (980PX), SPACIOUS & TALLER LANDSCAPE CARD FOR POPUP AKUN (#popupAkun)
+   UNIFORM BUTTON SIZING (HEIGHT: 32PX)
+   ============================================================================= */
+@media screen and (min-width: 769px) {
+  #popupAkun.show,
+  #popupAkun[style*="display: flex"],
+  #popupAkun[style*="display: block"],
+  html body #popupAkun.show,
+  html body #popupAkun[style*="display: flex"],
+  html body #popupAkun[style*="display: block"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #popupAkun[style*="display: none"],
+  #popupAkun:not(.show):not([style*="display: flex"]):not([style*="display: block"]) {
+    display: none !important;
+  }
+
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox {
+    width: 980px !important;
+    max-width: 96vw !important;
+    height: auto !important;
+    margin: auto !important;
+    padding: 20px 32px !important;
+    border-radius: 10px !important;
+    box-shadow: 0 35px 85px rgba(0, 0, 0, 0.55) !important;
+    overflow: hidden !important;
+    overflow-y: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun h2,
+  html body #popupAkun h2 {
+    font-size: 16px !important;
+    margin-top: 0 !important;
+    margin-bottom: 12px !important;
+    text-align: center !important;
+  }
+
+  #popupAkun .akunGrid,
+  html body #popupAkun .akunGrid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px 6mm !important;
+    width: 100% !important;
+    margin-bottom: 5px !important;
+  }
+
+  #popupAkun .akunGrid > div,
+  html body #popupAkun .akunGrid > div {
+    grid-column: span 1 !important;
+    width: 100% !important;
+  }
+
+  #popupAkun .akunGrid input,
+  html body #popupAkun .akunGrid input {
+    height: 32px !important;
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun .akunGrid label,
+  html body #popupAkun .akunGrid label {
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    margin-bottom: 2px !important;
+    color: var(--text-muted) !important;
+  }
+
+  .akunRowPair,
+  #popupAkun .akunRowPair,
+  html body #popupAkun .akunRowPair {
+    display: flex !important;
+    gap: 6mm !important;
+    width: 100% !important;
+    margin-top: 5px !important;
+    margin-bottom: 5px !important;
+  }
+
+  #popupAkun button:not(.popupClose),
+  #popupAkun .btnTambahBarang,
+  #popupAkun .bg-icon-btn,
+  #popupAkun .theme-icon-btn,
+  #popupAkun .btnSimpan,
+  #popupAkun .btnSapuLokal,
+  #popupAkun .btnLogout,
+  html body #popupAkun button:not(.popupClose) {
+    height: 32px !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+    padding: 0 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun button .material-symbols-rounded,
+  html body #popupAkun button .material-symbols-rounded {
+    font-size: 16px !important;
+  }
+
+  #containerKelolaTokoTTD,
+  #containerGeminiLogout {
+    gap: 6mm !important;
+  }
+}
+
+/* =============================================================================
+   STRICT HIDE OVERRIDE FOR POPUP AKUN (#popupAkun) WHEN NOT ACTIVE
+   ============================================================================= */
+#popupAkun[style*="display: none"],
+#popupAkun:not(.show):not([style*="display: flex"]):not([style*="display: block"]),
+html body #popupAkun:not(.show):not([style*="display: flex"]):not([style*="display: block"]) {
+  display: none !important;
+}
+
+
+/* =============================================================================
+   POPUP KELOLA TTD (#popupTTD) 2MM PADDING ON ALL INNER ELEMENTS & POPUP WALL
+   ============================================================================= */
+#popupTTD,
+#popupTTD.popupTTD,
+#popupTTD.popupOverlay,
+html body #popupTTD {
+  padding: 2mm !important;
+  box-sizing: border-box !important;
+}
+
+#popupTTD .ttdBox,
+html body #popupTTD .ttdBox {
+  padding: 2mm !important;
+  box-sizing: border-box !important;
+  border-radius: 6px !important;
+}
+
+#popupTTD .ttdHeader,
+html body #popupTTD .ttdHeader {
+  padding: 2mm !important;
+  box-sizing: border-box !important;
+}
+
+#popupTTD .ttdBody,
+html body #popupTTD .ttdBody {
+  padding: 2mm !important;
+  box-sizing: border-box !important;
+  gap: 2mm !important;
+}
+
+#popupTTD .ttdInfo,
+html body #popupTTD .ttdInfo {
+  margin-bottom: 2mm !important;
+}
+
+#popupTTD .confirmButton,
+html body #popupTTD .confirmButton {
+  gap: 2mm !important;
+  margin-top: 2mm !important;
+}
+
+
+/* =============================================================================
+   MOBILE HP VIEW (MAX-WIDTH: 768PX):
+   - PASSWORD INPUT + SIMPAN BUTTON IN 1 ROW
+   - PAIRED BUTTONS IN 2 COLUMNS WITH 5PX GAP BETWEEN LEFT AND RIGHT BUTTONS
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun.show,
+  #popupAkun[style*="display: flex"],
+  #popupAkun[style*="display: block"],
+  html body #popupAkun.show,
+  html body #popupAkun[style*="display: flex"],
+  html body #popupAkun[style*="display: block"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 1mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun[style*="display: none"],
+  #popupAkun:not(.show):not([style*="display: flex"]):not([style*="display: block"]),
+  html body #popupAkun:not(.show):not([style*="display: flex"]):not([style*="display: block"]) {
+    display: none !important;
+  }
+
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: auto !important;
+    max-height: calc(100vh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin: 1mm !important;
+    padding: 10px 12px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+    border-radius: 8px !important;
+  }
+
+  #popupAkun .akunGrid,
+  html body #popupAkun .akunGrid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    width: 100% !important;
+    margin-bottom: 4px !important;
+  }
+
+  #popupAkun .akunGrid > div,
+  html body #popupAkun .akunGrid > div {
+    width: 100% !important;
+  }
+
+  #popupAkun .akunRowPair,
+  html body #popupAkun .akunRowPair,
+  #containerKelolaTokoTTD,
+  #containerGeminiLogout {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 5px !important;
+    width: 100% !important;
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  #popupAkun .akunRowPair > div,
+  #popupAkun .akunRowPair > button,
+  html body #popupAkun .akunRowPair > div,
+  html body #popupAkun .akunRowPair > button {
+    flex: 1 1 50% !important;
+    min-width: 0 !important;
+    width: 50% !important;
+  }
+
+  #popupAkun button:not(.popupClose),
+  html body #popupAkun button:not(.popupClose) {
+    height: 32px !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+    padding: 0 4px !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun button .material-symbols-rounded,
+  html body #popupAkun button .material-symbols-rounded {
+    font-size: 15px !important;
+  }
+}
+
+
+/* =============================================================================
+   STRICT MOBILE HP VIEW (MAX-WIDTH: 768PX) 1MM PADDING OVERRIDE FOR POPUP TTD
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupTTD,
+  #popupTTD.popupTTD,
+  #popupTTD.popupOverlay,
+  html body #popupTTD {
+    padding-top: 2mm !important;
+    padding-bottom: 2mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupTTD .ttdBox,
+  html body #popupTTD .ttdBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   ENLARGE ICON ONLY FOR CLASS .btnDownload (DOWNLOAD EXCEL BUTTON)
+   ============================================================================= */
+.btnDownload .material-symbols-rounded,
+.btnDownload svg,
+.btnDownload i {
+  font-size: 22px !important;
+  line-height: 1 !important;
+}
+
+
+/* =============================================================================
+   STRICT MOBILE HP VIEW (MAX-WIDTH: 768PX):
+   100% FULL SCREEN WITH 1MM PADDING ON ALL SIDES FOR:
+   1. POPUP TAMBAH TOKO (#popupTambahToko)
+   2. POPUP PROFIL AKUN (#popupAkun)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  /* 1. POPUP TAMBAH TOKO (#popupTambahToko) */
+  #popupTambahToko.show,
+  #popupTambahToko[style*="display: flex"],
+  #popupTambahToko[style*="display: block"],
+  html body #popupTambahToko.show,
+  html body #popupTambahToko[style*="display: flex"],
+  html body #popupTambahToko[style*="display: block"] {
+    padding: 1mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  #popupTambahToko[style*="display: none"],
+  #popupTambahToko:not(.show):not([style*="display: flex"]):not([style*="display: block"]) {
+    display: none !important;
+  }
+
+  #popupTambahToko .popupBox,
+  html body #popupTambahToko .popupBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 2mm) !important;
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin: 1mm !important;
+    padding: 0 !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. POPUP PROFIL AKUN (#popupAkun) */
+  #popupAkun.show,
+  #popupAkun[style*="display: flex"],
+  #popupAkun[style*="display: block"],
+  html body #popupAkun.show,
+  html body #popupAkun[style*="display: flex"],
+  html body #popupAkun[style*="display: block"] {
+    padding: 1mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 2mm) !important;
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin: 1mm !important;
+    padding: 10px 1mm 10px 1mm !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+  }
+}
+
+
+/* =============================================================================
+   STRICT HIDE OVERRIDE FOR POPUP TAMBAH TOKO (#popupTambahToko) WHEN NOT ACTIVE
+   ============================================================================= */
+#popupTambahToko[style*="display: none"],
+#popupTambahToko:not(.show):not([style*="display: flex"]):not([style*="display: block"]),
+html body #popupTambahToko:not(.show):not([style*="display: flex"]):not([style*="display: block"]) {
+  display: none !important;
+}
+
+
+/* =============================================================================
+   FULL WIDTH ROW (1 BARIS FULL 100%) FOR PASSWORD INPUT & SIMPAN BUTTON
+   ============================================================================= */
+@media screen and (min-width: 769px) {
+  #popupAkun .akunGrid > div.full-width-field,
+  html body #popupAkun .akunGrid > div.full-width-field {
+    grid-column: span 2 !important;
+    width: 100% !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP POPUP AKUN: JUSTIFY FLEX-START TO KEEP ALL ROWS & LOGOUT CLOSE TOGETHER
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+  }
+}
+
+
+/* =============================================================================
+   LOGOUT BUTTON PROMINENT SIZING FOR POPUP AKUN
+   ============================================================================= */
+#popupAkun .btnLogout,
+html body #popupAkun .btnLogout {
+  height: 36px !important;
+  min-height: 36px !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+  border-radius: 6px !important;
+  padding: 0 10px !important;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35) !important;
+}
+
+
+/* =============================================================================
+   MOBILE HP POPUP AKUN: PREVENT FLEX COMPRESSION / SQUISHING OF TRANSPARANSI BG
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    padding: 10px 10px 14px 10px !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #popupAkun .akunBox > div,
+  #popupAkun .akunGrid > div,
+  #popupAkun .akunRowPair,
+  #popupAkun .btnLogout {
+    flex-shrink: 0 !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP POPUP AKUN: 1MM VERTICAL MARGIN/PADDING BETWEEN ALL BUTTON ROWS
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 1mm !important;
+    padding: 8px 1mm 12px 1mm !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #popupAkun .akunRowPair,
+  #popupAkun #containerKelolaTokoTTD,
+  #popupAkun #containerGeminiLogout {
+    margin-top: 1mm !important;
+    margin-bottom: 1mm !important;
+    gap: 5px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP POPUP AKUN: ENLARGED KOTAK TULISAN (INPUT BOXES 34PX) & PROPORTIONATE BUTTONS
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun .akunBox,
+  .popupAkun .akunBox,
+  html body #popupAkun .akunBox,
+  html body .popupAkun .akunBox {
+    overflow: auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding: 10px 1mm 20px 1mm !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 3mm !important;
+  }
+
+  #popupAkun .akunGrid input,
+  html body #popupAkun .akunGrid input {
+    height: 34px !important;
+    padding: 4px 10px !important;
+    font-size: 11.5px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun .akunGrid label,
+  html body #popupAkun .akunGrid label {
+    font-size: 10px !important;
+    font-weight: 800 !important;
+    margin-bottom: 2px !important;
+    color: var(--text-muted) !important;
+  }
+
+  #popupAkun button:not(.popupClose):not(.btnLogout),
+  html body #popupAkun button:not(.popupClose):not(.btnLogout) {
+    height: 34px !important;
+    font-size: 10.5px !important;
+    font-weight: 800 !important;
+    border-radius: 6px !important;
+    padding: 0 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun .btnLogout,
+  html body #popupAkun .btnLogout {
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    border-radius: 6px !important;
+    margin-bottom: 16px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP POPUP AKUN: EXACT 1.5MM VERTICAL SPACING BETWEEN BUTTON ROWS
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun .akunBox,
+  .popupAkun .akunBox,
+  html body #popupAkun .akunBox,
+  html body .popupAkun .akunBox {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 1.5mm !important;
+    padding: 10px 1mm 20px 1mm !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #popupAkun .akunRowPair,
+  #popupAkun #containerKelolaTokoTTD,
+  #popupAkun #containerGeminiLogout {
+    margin-top: 1.5mm !important;
+    margin-bottom: 1.5mm !important;
+    gap: 5px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP POPUP AKUN: EXACT 1.5MM GAP FOR ALL ELEMENTS STACKED DOWNWARDS
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun .akunBox,
+  .popupAkun .akunBox,
+  html body #popupAkun .akunBox,
+  html body .popupAkun .akunBox {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    gap: 1.5mm !important;
+    padding: 10px 1mm 20px 1mm !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  #popupAkun .akunGrid,
+  html body #popupAkun .akunGrid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.5mm !important;
+    margin-bottom: 0 !important;
+  }
+
+  #popupAkun .akunRowPair,
+  #popupAkun #containerKelolaTokoTTD,
+  #popupAkun #containerGeminiLogout {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    gap: 5px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP POPUP AKUN: RAISE LOGOUT KELUAR BUTTON UP BY 1MM
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun .btnLogout,
+  html body #popupAkun .btnLogout {
+    margin-top: -0.5mm !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP: SHORT COMPACT BOTTOM MENU BAR (HEIGHT: 40PX) - ICONS ONLY
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #bottomMenu,
+  html body #bottomMenu {
+    height: 40px !important;
+    min-height: 40px !important;
+    max-height: 40px !important;
+    padding: 0 4px !important;
+    bottom: 4px !important;
+    display: flex !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+  }
+
+  #bottomMenu button,
+  html body #bottomMenu button {
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+    padding: 0 6px !important;
+    font-size: 0 !important;
+    color: transparent !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+  }
+
+  #bottomMenu button .nav-label-desktop,
+  #bottomMenu button .nav-label-mobile,
+  #bottomMenu button span:not(.material-symbols-rounded) {
+    display: none !important;
+    font-size: 0 !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  #bottomMenu button .material-symbols-rounded,
+  html body #bottomMenu button .material-symbols-rounded {
+    font-size: 22px !important;
+    color: inherit !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    display: block !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP: STRICT 1MM GAP ABOVE BOTTOM MENU FOR ALL PAGES (DASHBOARD, RIWAYAT, MASTER, INPUT, USER MGMT)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  .page,
+  .page.active,
+  #dashboardPage,
+  #inputPage,
+  #riwayatPage,
+  #masterDbPage,
+  #userManagementPage,
+  html body .page,
+  html body .page.active,
+  html body #dashboardPage,
+  html body #inputPage,
+  html body #riwayatPage,
+  html body #masterDbPage,
+  html body #userManagementPage,
+  section.page.active {
+    padding-bottom: calc(44px + 1mm) !important;
+    margin-bottom: 0 !important;
+  }
+
+  .box,
+  .table-container,
+  .table-responsive,
+  html body .box,
+  html body .table-container {
+    margin-bottom: 1mm !important;
+  }
+
+  #inputPage #btnSimpan,
+  #btnSimpan,
+  .btn-primary#btnSimpan {
+    margin-top: 10px !important;
+    margin-bottom: 1mm !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP: EXACT 1MM GAP BETWEEN BOTTOM OF CONTENT/TABLE AND BOTTOM MENU (HEIGHT: 40PX + 4PX)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  html body .page.active,
+  html body #dashboardPage.active,
+  html body #riwayatPage.active,
+  html body #masterDbPage.active,
+  html body #userManagementPage.active,
+  html body section#dashboardPage.page.active,
+  html body section#riwayatPage.page.active,
+  html body section#masterDbPage.page.active,
+  html body section#userManagementPage.page.active,
+  html body #riwayatPage,
+  html body #masterDbPage,
+  html body #userManagementPage {
+    height: calc(100vh - 44px - 1mm) !important;
+    height: calc(100dvh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100dvh - 44px - 1mm) !important;
+    min-height: calc(100vh - 44px - 1mm) !important;
+    min-height: calc(100dvh - 44px - 1mm) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    padding-bottom: 0 !important;
+    margin-bottom: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #inputPage,
+  html body .page#inputPage {
+    height: auto !important;
+    max-height: none !important;
+    padding-bottom: calc(44px + 1mm) !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+  }
+
+  #riwayatPage .tableWrap,
+  #masterDbPage .tableWrap,
+  #dashboardPage .tableWrap,
+  #userManagementPage .tableWrap,
+  .table-container,
+  .tableWrap {
+    flex: 1 1 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+
+/* =============================================================================
+   LOGIN PAGE MOBILE HP FULL SCROLLABILITY & CENTERING FIX
+   ============================================================================= */
+#loginPage,
+#loginPage.page,
+#loginPage.active,
+#loginPage.page.active,
+html body #loginPage,
+html body #loginPage.active,
+html body section#loginPage.page.active {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  box-sizing: border-box !important;
+  padding: 16px 1mm !important;
+}
+
+.login-card,
+#loginPage .login-card,
+html body .login-card,
+html body #loginPage .login-card {
+  margin: auto !important;
+  flex-shrink: 0 !important;
+}
+
+
+/* =============================================================================
+   MOBILE HP: EXPLICIT VIEWPORT SCROLLABLE CONTAINER FOR INPUT PAGE (#inputPage)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #inputPage,
+  #inputPage.page,
+  #inputPage.active,
+  #inputPage.page.active,
+  html body #inputPage,
+  html body #inputPage.active,
+  html body section#inputPage.page.active {
+    display: block !important;
+    height: calc(100vh - 44px - 1mm) !important;
+    height: calc(100dvh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100dvh - 44px - 1mm) !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 0px !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    z-index: 5 !important;
+  }
+
+  #inputPage .box,
+  html body #inputPage .box,
+  #inputPage form,
+  html body #inputPage form {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 20px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP: EXPLICIT VIEWPORT SCROLLABLE CONTAINER FOR USER MANAGEMENT PAGE (#userManagementPage)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #userManagementPage,
+  #userManagementPage.page,
+  #userManagementPage.active,
+  #userManagementPage.page.active,
+  html body #userManagementPage,
+  html body #userManagementPage.active,
+  html body section#userManagementPage.page.active {
+    display: block !important;
+    height: calc(100vh - 44px - 1mm) !important;
+    height: calc(100dvh - 44px - 1mm) !important;
+    max-height: calc(100vh - 44px - 1mm) !important;
+    max-height: calc(100dvh - 44px - 1mm) !important;
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 0px !important;
+    margin-bottom: 0 !important;
+    box-sizing: border-box !important;
+    position: relative !important;
+    z-index: 5 !important;
+  }
+
+  #userManagementPage .box,
+  html body #userManagementPage .box,
+  #userManagementPage .boxCard,
+  html body #userManagementPage .boxCard,
+  #userManagementPage .tableWrap,
+  html body #userManagementPage .tableWrap {
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding-bottom: 16px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP: EXACT 1CM BOTTOM PADDING FOR INPUT PAGE & USER MANAGEMENT PAGE
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #inputPage,
+  #inputPage.page,
+  #inputPage.active,
+  #inputPage.page.active,
+  html body #inputPage,
+  html body #inputPage.active,
+  html body section#inputPage.page.active,
+  #userManagementPage,
+  #userManagementPage.page,
+  #userManagementPage.active,
+  #userManagementPage.page.active,
+  html body #userManagementPage,
+  html body #userManagementPage.active,
+  html body section#userManagementPage.page.active {
+    padding-bottom: 0px !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP: FORCE ALL BOTTOM MENU ICONS TO BE 100% VISIBLE & 0.5CM BOTTOM PADDING
+   ============================================================================= */
+#bottomMenu button,
+html body #bottomMenu button,
+#bottomMenu button[style*="display: none"],
+#bottomMenu button[style*="display:none"],
+#btnMasterDbNav,
+#btnUserNav,
+#btnMasterDbNav.hidden-admin-btn,
+#btnUserNav.hidden-admin-btn {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+@media screen and (max-width: 768px) {
+  #inputPage,
+  #inputPage.page,
+  #inputPage.active,
+  #inputPage.page.active,
+  html body #inputPage,
+  html body #inputPage.active,
+  html body section#inputPage.page.active,
+  #userManagementPage,
+  #userManagementPage.page,
+  #userManagementPage.active,
+  #userManagementPage.page.active,
+  html body #userManagementPage,
+  html body #userManagementPage.active,
+  html body section#userManagementPage.page.active {
+    padding-bottom: 0px !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+
+/* =============================================================================
+   BOTTOM MENU DYNAMIC ACTIVE PAGE COLOR HIGHLIGHT & ALL 6 ICONS VISIBLE
+   ============================================================================= */
+#bottomMenu button,
+html body #bottomMenu button,
+#btnMasterDbNav,
+#btnUserNav {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+
+
+
+
+@media screen and (max-width: 768px) {
+  #inputPage,
+  #inputPage.page,
+  #inputPage.active,
+  #inputPage.page.active,
+  html body #inputPage,
+  html body #inputPage.active,
+  html body section#inputPage.page.active,
+  #userManagementPage,
+  #userManagementPage.page,
+  #userManagementPage.active,
+  #userManagementPage.page.active,
+  html body #userManagementPage,
+  html body #userManagementPage.active,
+  html body section#userManagementPage.page.active {
+    padding-bottom: 0px !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+
+/* =============================================================================
+   1. BOLD INPUT PAGE TITLE (FORM PERMINTAAN TOKO)
+   2. DEFAULT WHITE BOTTOM MENU ICONS (#FFFFFF)
+   3. ACTIVE PAGE GREEN HIGHLIGHT ICON (#10B981)
+   4. STRICT HIDE BOTTOM MENU ON LOGIN PAGE
+   ============================================================================= */
+
+#inputPage .inputPageHeader h3,
+html body #inputPage .inputPageHeader h3 {
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+  font-size: 13.5px !important;
+}
+
+#bottomMenu button,
+html body #bottomMenu button,
+#bottomMenu button .material-symbols-rounded,
+html body #bottomMenu button .material-symbols-rounded {
+  color: #ffffff !important;
+}
+
+
+
+
+
+/* STRICT HIDE BOTTOM MENU ON LOGIN PAGE ONLY */
+#loginPage.active ~ #bottomMenu,
+.page#loginPage.active ~ #bottomMenu,
+body:has(#loginPage.active) #bottomMenu,
+#bottomMenu.login-hidden {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+
+/* =============================================================================
+   BOLD SIMPAN PERMINTAAN BUTTON (#btnSimpan)
+   ============================================================================= */
+#btnSimpan,
+#inputPage #btnSimpan,
+.btn-primary#btnSimpan,
+html body #btnSimpan,
+html body #inputPage #btnSimpan {
+  font-weight: 900 !important;
+  letter-spacing: 0.5px !important;
+}
+
+
+/* =============================================================================
+   COMPACT & SHORTENED LOGIN CARD POPUP WITH SMALLER LOGO ICON
+   ============================================================================= */
+.login-card,
+#loginPage .login-card,
+html body .login-card,
+html body #loginPage .login-card {
+  width: 360px !important;
+  max-width: calc(100vw - 20px) !important;
+  padding: 12px 16px 14px 16px !important;
+  border-radius: 8px !important;
+  box-sizing: border-box !important;
+  margin: auto !important;
+}
+
+.login-card .logo,
+#loginPage .login-card .logo,
+html body .login-card .logo {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  min-height: 36px !important;
+  margin: 0 auto 4px auto !important;
+  border-radius: 8px !important;
+}
+
+.login-card .logo .material-symbols-rounded,
+#loginPage .login-card .logo .material-symbols-rounded,
+html body .login-card .logo .material-symbols-rounded {
+  font-size: 20px !important;
+}
+
+.login-card h2,
+#loginPage .login-card h2,
+html body .login-card h2 {
+  font-size: 14.5px !important;
+  margin: 0 0 2px 0 !important;
+  font-weight: 800 !important;
+}
+
+.login-card p,
+#loginPage .login-card p,
+html body .login-card p {
+  font-size: 10.5px !important;
+  margin: 0 0 10px 0 !important;
+}
+
+.login-card .input-group,
+#loginPage .login-card .input-group,
+html body .login-card .input-group {
+  height: 38px !important;
+  min-height: 38px !important;
+  margin-bottom: 8px !important;
+  border-radius: 6px !important;
+}
+
+.login-card .input-group span,
+#loginPage .login-card .input-group span {
+  width: 38px !important;
+}
+
+.login-card .input-group span .material-symbols-rounded {
+  font-size: 18px !important;
+}
+
+.login-card .input-group input,
+#loginPage .login-card .input-group input {
+  font-size: 12px !important;
+  padding: 6px 10px !important;
+}
+
+#btnLogin,
+.login-card button.btn-primary,
+.login-card #btnLogin,
+html body .login-card #btnLogin {
+  height: 38px !important;
+  min-height: 38px !important;
+  margin-top: 8px !important;
+  padding: 0 14px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  border-radius: 6px !important;
+}
+
+
+/* =============================================================================
+   TABLE HEADER BORDERS ONLY (NO VERTICAL BORDERS IN DATA BODY) & AUTO-FIT ROWS
+   ============================================================================= */
+table,
+.historyTable,
+.masterDbTable,
+.table-container table,
+.tableWrap table,
+html body table {
+  border-collapse: collapse !important;
+}
+
+table tr,
+.historyTable tr,
+.masterDbTable tr,
+#riwayatPage tr,
+#riwayatPage .historyTable tr,
+#masterDbPage tr,
+#masterDbPage .masterDbTable tr,
+html body table tr,
+html body #riwayatPage .historyTable tr {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+table th,
+.historyTable th,
+.masterDbTable th,
+.tableWrap th,
+#riwayatPage th,
+#riwayatPage .historyTable th,
+#masterDbPage th,
+#masterDbPage .masterDbTable th,
+html body table th,
+html body #riwayatPage .historyTable th {
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 6px 8px !important;
+  vertical-align: middle !important;
+  border: 1px solid var(--border-color, #cbd5e1) !important;
+  line-height: 1.35 !important;
+  box-sizing: border-box !important;
+}
+
+table td,
+.historyTable td,
+.masterDbTable td,
+.tableWrap td,
+#riwayatPage td,
+#riwayatPage .historyTable td,
+#masterDbPage td,
+#masterDbPage .masterDbTable td,
+html body table td,
+html body #riwayatPage .historyTable td {
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 5px 8px !important;
+  vertical-align: middle !important;
+  border-top: 1px solid var(--border-color, #cbd5e1) !important;
+  border-bottom: 1px solid var(--border-color, #cbd5e1) !important;
+  border-left: none !important;
+  border-right: none !important;
+  line-height: 1.35 !important;
+  box-sizing: border-box !important;
+}
+
+
+/* =============================================================================
+   CENTER ALIGNED AKSI COLUMN HEADER TITLE FOR DETAIL DATA / RIWAYAT PAGE
+   ============================================================================= */
+th.th-aksi-col,
+#riwayatPage .historyTable th.th-aksi-col,
+#riwayatPage .historyTable th:first-child,
+#historyPage .historyTable th.th-aksi-col,
+#popupDetailBarangV2 table.detailTableV2 th.th-aksi-col,
+#popupDetailBarangV2 table.detailTableV2 th:last-child,
+html body #riwayatPage .historyTable th.th-aksi-col,
+html body #riwayatPage .historyTable th:first-child,
+html body #historyPage .historyTable th.th-aksi-col,
+html body #popupDetailBarangV2 table.detailTableV2 th.th-aksi-col,
+html body #popupDetailBarangV2 table.detailTableV2 th:last-child {
+  text-align: center !important;
+  justify-content: center !important;
+}
+
+
+/* =============================================================================
+   UNIFIED SOFT, ELEGANT NON-GLARING GREEN ACTIVE RULE FOR BOTTOM MENU
+   ============================================================================= */
+#bottomMenu button.active,
+html body #bottomMenu button.active,
+#bottomMenu button.active .material-symbols-rounded,
+html body #bottomMenu button.active .material-symbols-rounded {
+  color: #10b981 !important;
+}
+
+#bottomMenu button.active,
+html body #bottomMenu button.active {
+  background: rgba(16, 185, 129, 0.15) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.15) !important;
+}
+
+#bottomMenu button.active .material-symbols-rounded,
+html body #bottomMenu button.active .material-symbols-rounded {
+  transform: scale(1.08) !important;
+  filter: none !important;
+}
+
+
+/* =============================================================================
+   LAPTOP / PC VIEW (min-width: 769px):
+   ONLY ACTIVE BOTTOM MENU TEXT LABEL IS BOLD (INACTIVE ARE NORMAL 500 WEIGHT)
+   ============================================================================= */
+@media screen and (min-width: 769px) {
+  #bottomMenu button,
+  html body #bottomMenu button,
+  #bottomMenu button span,
+  html body #bottomMenu button span {
+    font-weight: 500 !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  #bottomMenu button.active,
+  html body #bottomMenu button.active,
+  #bottomMenu button.active span,
+  html body #bottomMenu button.active span {
+    font-weight: 900 !important;
+    letter-spacing: 0.6px !important;
+  }
+}
+
+
+
+
+
+
+
+
+/* =============================================================================
+   INVISIBLE EMPTY DUMMY ROWS:
+   BORDER IS TRANSPARENT & BACKGROUND MATCHES TABLE CONTAINER (GARIS TIDAK TERLIHAT)
+   ============================================================================= */
+tr.empty-grid-row,
+.empty-grid-row,
+.empty-toko-row,
+html body tr.empty-grid-row,
+html body .empty-grid-row,
+html body .empty-toko-row {
+  background: var(--bg-card, transparent) !important;
+  background-color: var(--bg-card, transparent) !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+tr.empty-grid-row td,
+.empty-grid-row td,
+.empty-toko-row td,
+html body tr.empty-grid-row td,
+html body .empty-grid-row td,
+html body .empty-toko-row td {
+  background: var(--bg-card, transparent) !important;
+  background-color: var(--bg-card, transparent) !important;
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-color: transparent !important;
+  color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+/* =============================================================================
+   DASHBOARD & RIWAYAT PAGE TABLES:
+   INVISIBLE LINES & MATCHING BACKGROUND COLOR WHEN THERE IS NO DATA / EMPTY ROWS
+   ============================================================================= */
+#dashboardPage tr.empty-grid-row,
+#dashboardPage .empty-grid-row,
+#detailDashboard tr.empty-grid-row,
+#detailDashboard .empty-grid-row,
+#riwayatPage tr.empty-grid-row,
+#riwayatPage .empty-grid-row,
+#riwayatPage .historyTable tr.empty-grid-row,
+#riwayatPage .historyTable .empty-grid-row,
+.table-container tr.empty-grid-row,
+.table-container .empty-grid-row,
+.tableWrap tr.empty-grid-row,
+.tableWrap .empty-grid-row {
+  background: var(--bg-card, transparent) !important;
+  background-color: var(--bg-card, transparent) !important;
+  border: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+#dashboardPage tr.empty-grid-row td,
+#dashboardPage .empty-grid-row td,
+#detailDashboard tr.empty-grid-row td,
+#detailDashboard .empty-grid-row td,
+#riwayatPage tr.empty-grid-row td,
+#riwayatPage .empty-grid-row td,
+#riwayatPage .historyTable tr.empty-grid-row td,
+#riwayatPage .historyTable .empty-grid-row td,
+.table-container tr.empty-grid-row td,
+.table-container .empty-grid-row td,
+.tableWrap tr.empty-grid-row td,
+.tableWrap .empty-grid-row td {
+  background: var(--bg-card, transparent) !important;
+  background-color: var(--bg-card, transparent) !important;
+  border: none !important;
+  border-top: none !important;
+  border-bottom: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-color: transparent !important;
+  color: transparent !important;
+  box-shadow: none !important;
+}
+
+
+/* =============================================================================
+   TABLE ROW HOVER HIGHLIGHT FOR DASHBOARD & RIWAYAT PAGE TABLES (MATCHING STYLING)
+   ============================================================================= */
+#dashboardPage tbody tr:not(.empty-grid-row):hover td,
+#detailDashboard tbody tr:not(.empty-grid-row):hover td,
+.dashboardTable tbody tr:not(.empty-grid-row):hover td,
+#recentRequestsTableBody tr:not(.empty-grid-row):hover td,
+.table-container tbody tr:not(.empty-grid-row):hover td,
+#riwayatPage tbody tr:not(.empty-grid-row):hover td,
+#riwayatData tr:not(.empty-grid-row):hover td,
+.historyTable tbody tr:not(.empty-grid-row):hover td,
+html body #dashboardPage table tbody tr:not(.empty-grid-row):hover td,
+html body #detailDashboard table tbody tr:not(.empty-grid-row):hover td,
+html body #riwayatPage table tbody tr:not(.empty-grid-row):hover td {
+  background: var(--table-hover, rgba(16, 185, 129, 0.1)) !important;
+  cursor: pointer !important;
 }

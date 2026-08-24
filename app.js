@@ -6096,7 +6096,9 @@ function updateBottomMenuHighlight(pageId) {
     'inputPage': "showPage('inputPage')",
     'riwayatPage': "bukaMenuRiwayat()",
     'masterDbPage': "showPage('masterDbPage')",
-    'userManagementPage': "showPage('userManagementPage')"
+    'userManagementPage': "showPage('userManagementPage')",
+    'popupAkun': "bukaAkun()",
+    'akun': "bukaAkun()"
   };
 
   const buttons = bottomNav.querySelectorAll('button');
@@ -6116,16 +6118,19 @@ let lastScrollTopPosition = 0;
 function setupBottomMenuAutoHide() {
   const bottomMenu = document.getElementById('bottomMenu');
   if (!bottomMenu) return;
-  const isLoginPage = (document.getElementById('loginPage') && document.getElementById('loginPage').classList.contains('active')) || (typeof currentUser === 'undefined' || !currentUser);
-  if (isLoginPage) {
+  const loginPage = document.getElementById('loginPage');
+  const isLoginPageActive = loginPage && (loginPage.classList.contains('active') || loginPage.style.display !== 'none');
+  const isLoggedIn = (typeof currentUser !== 'undefined' && currentUser !== null && !isLoginPageActive);
+
+  if (!isLoggedIn) {
     bottomMenu.classList.add('login-hidden');
     bottomMenu.classList.add('hide-bottom-menu');
     bottomMenu.style.setProperty('display', 'none', 'important');
-    return;
+  } else {
+    bottomMenu.classList.remove('login-hidden');
+    bottomMenu.classList.remove('hide-bottom-menu');
+    bottomMenu.style.setProperty('display', 'flex', 'important');
   }
-  bottomMenu.classList.remove('login-hidden');
-  bottomMenu.classList.remove('hide-bottom-menu');
-  bottomMenu.style.display = 'flex';
 }
 
 function pindahHalaman(pageId, pushHistory = true) {
@@ -14493,6 +14498,7 @@ function prosesUploadExcelLookup(event) {
 }
 
 function bukaAkun() {
+  if (typeof updateBottomMenuHighlight === "function") updateBottomMenuHighlight("popupAkun");
   if (!currentUser) return;
 
   if (typeof tutupPdfModal === 'function') tutupPdfModal();
@@ -14556,23 +14562,12 @@ function prosesBukaAkun() {
   if (elPass) elPass.value = '';
 
   const isToko = (currentUser.category === 'TOKO' || currentUser.category === 'GBJ');
-  const showTTD = (currentUser.category === 'SERVICE' || currentUser.category === 'DM' || currentUser.category === 'GBJ');
-  const showKelolaToko = !isToko;
-
   const menuTTD = document.getElementById('menuTTD');
-  if (menuTTD) {
-    menuTTD.style.display = showTTD ? 'block' : 'none';
-  }
-  
+  if (menuTTD) { menuTTD.style.display = 'flex'; }
   const menuKelolaTokoAkun = document.getElementById('menuKelolaTokoAkun');
-  if (menuKelolaTokoAkun) {
-    menuKelolaTokoAkun.style.display = showKelolaToko ? 'block' : 'none';
-  }
-
+  if (menuKelolaTokoAkun) { menuKelolaTokoAkun.style.display = 'flex'; }
   const containerKelolaTokoTTD = document.getElementById('containerKelolaTokoTTD');
-  if (containerKelolaTokoTTD) {
-    containerKelolaTokoTTD.style.display = (showTTD || showKelolaToko) ? 'flex' : 'none';
-  }
+  if (containerKelolaTokoTTD) { containerKelolaTokoTTD.style.display = 'flex'; }
 
   const adminWrap = document.getElementById('adminHapusNotifWrap');
   if (adminWrap) {
@@ -14628,9 +14623,9 @@ function isAkunDirty() {
 window.isAkunDirty = isAkunDirty;
 
 function tutupAkun(force = false) {
-  if (force !== true && isAkunDirty()) {
+  if (force !== true && typeof isAkunDirty === 'function' && isAkunDirty()) {
     showConfirm(
-      'SIMPAN PERUBAHAN AKUN?',
+      'APAKAH ANDA INGIN MENYIMPAN PERUBAHAN AKUN?',
       () => {
         simpanAkun(true);
       },
@@ -14646,7 +14641,7 @@ function tutupAkun(force = false) {
   const modal = document.getElementById('popupAkun');
   if (modal) {
     modal.classList.remove('show');
-    modal.style.display = 'none';
+    modal.style.setProperty('display', 'none', 'important');
   }
 }
 window.tutupAkun = tutupAkun;
@@ -15664,7 +15659,7 @@ function showConfirm(msg, callback, cancelCallback = null, customYesText = 'YA, 
     btnBatal.innerText = customNoText;
     btnBatal.onclick = function(e) {
       if (e) { e.preventDefault(); e.stopPropagation(); }
-      closeConfirm();
+      confirmNo();
     };
   }
   if (btnOk) {
@@ -15697,6 +15692,25 @@ function closeConfirm() {
   confirmCancelCallback = null;
 }
 window.closeConfirm = closeConfirm;
+
+function confirmNo() {
+  const cancelCb = confirmCancelCallback;
+  confirmCallback = null;
+  confirmCancelCallback = null;
+  const modal = document.getElementById('confirmOverlay');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('show');
+  }
+  if (typeof cancelCb === 'function') {
+    try {
+      cancelCb();
+    } catch(err) {
+      console.error('Error in confirmCancelCallback:', err);
+    }
+  }
+}
+window.confirmNo = confirmNo;
 
 function confirmYes() {
   const cb = confirmCallback;
@@ -18971,7 +18985,7 @@ function bukaModalBuatParsial(noSurat) {
         <div style="padding: 2mm 0 !important; overflow-y: auto; flex: 1; background: var(--bg-card); display: flex; flex-direction: column;">
           <div style="background: var(--bg-box); border-left: 3px solid var(--primary); padding: 2mm !important; border-radius: 0px !important; margin: 0 2mm 2mm 2mm !important; font-size: 11.5px; color: var(--text-main); font-weight: 600; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
             <span class="material-symbols-rounded" style="font-size: 16px; color: var(--primary);">info</span>
-            Centang barang yang akan diserahkan pada tahap penyerahan <strong>${nextPartialId}</strong> ini, lalu atur Qty yang diserahkan.
+            <strong>CENTANG BARANG YANG AKAN DISERAHKAN PADA TAHAP INI.</strong>
           </div>
 
           <!-- KOLOM PENCARIAN & UNGGAH BUKTI FOTO (BERDAMPINGAN DILAYOUT ATAS) -->
