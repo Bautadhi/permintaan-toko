@@ -13763,8 +13763,8 @@ html body #bottomMenu button,
 
 #inputPage .inputPageHeader h3,
 html body #inputPage .inputPageHeader h3 {
-  font-weight: 900 !important;
-  letter-spacing: 0.5px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.2px !important;
   font-size: 13.5px !important;
 }
 
@@ -14131,4 +14131,67 @@ html body #detailDashboard table tbody tr:not(.empty-grid-row):hover td,
 html body #riwayatPage table tbody tr:not(.empty-grid-row):hover td {
   background: var(--table-hover, rgba(16, 185, 129, 0.1)) !important;
   cursor: pointer !important;
+}
+
+
+/* =============================================================================
+   MOBILE HP (max-width: 768px):
+   INPUT PAGE HEADER UPLOAD PDF, JPG, EXCEL BUTTONS RATA KANAN (RIGHT ALIGNED)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #inputPage .inputPageHeader,
+  html body #inputPage .inputPageHeader {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #inputPage .inputPageHeader > div,
+  html body #inputPage .inputPageHeader > div {
+    margin-left: auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP ONLY (max-width: 768px):
+   INPUT PAGE HEADER TITLE IS NOT BOLD (NORMAL REGULAR WEIGHT 500)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #inputPage .inputPageHeader h3,
+  html body #inputPage .inputPageHeader h3 {
+    font-weight: 500 !important;
+    letter-spacing: 0.2px !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP (max-width: 768px):
+   STRICT RATA KANAN (RIGHT ALIGNED) FOR UPLOAD PDF, JPG, EXCEL BUTTONS
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #inputPage .inputPageHeader,
+  html body #inputPage .inputPageHeader {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #inputPage .inputPageHeader > div,
+  html body #inputPage .inputPageHeader > div {
+    margin-left: auto !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 6px !important;
+  }
 }
