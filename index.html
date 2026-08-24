@@ -31,8 +31,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260824_v1787564263">
-  <script src="app.js?v=20260824_v1787564263"></script>
+  <link rel="stylesheet" href="styles.css?v=20260824_v1787576394">
+  <script src="app.js?v=20260824_v1787576394"></script>
 
   <!-- Global Failsafe Gemini AI Key Handler -->
   <script>
@@ -112,7 +112,7 @@
       };
       if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 
-      modal.style.cssText = 'display: flex !important; position: fixed !important; top: 0px !important; left: 0px !important; right: 0px !important; bottom: 0px !important; width: 100vw !important; height: 100vh !important; height: 100dvh !important; background: rgba(0, 0, 0, 0.85) !important; z-index: 2147483647 !important; justify-content: center !important; align-items: center !important; padding: 1mm !important; padding-left: 1mm !important; padding-right: 1mm !important; box-sizing: border-box !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important;';
+      modal.style.cssText = 'display: flex !important; position: fixed !important; top: 0px !important; left: 0px !important; right: 0px !important; bottom: 0px !important; width: 100vw !important; height: 100vh !important; height: 100dvh !important; background: rgba(0, 0, 0, 0.85) !important; z-index: 2147483647 !important; justify-content: center !important; align-items: center !important; padding: 1mm !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important;';
 
       modal.innerHTML = `
         <div class="modalKeyBox" onclick="event.stopPropagation()" style="background: #ffffff !important; color: #0f172a !important; border-radius: 6px !important; width: calc(100vw - 2mm) !important; max-width: 380px !important; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important; border: 2.5px solid #f59e0b !important; overflow: hidden !important; box-sizing: border-box !important; margin: auto !important; font-family: system-ui, -apple-system, sans-serif !important;">
@@ -498,7 +498,7 @@
         <!-- Baris Pilihan Toko & Kolom Pencarian Toko Cepat (Rata Kanan Sempurna 100% Lebar) -->
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; width: 100%; box-sizing: border-box;">
           <select id="toko" style="flex: 3; min-width: 0; height: 44px; margin: 0; border-radius: 5px; box-sizing: border-box;"></select>
-          <div id="wrapperCariToko" style="flex: 1; min-width: 120px; max-width: 25%; position: relative; height: 44px; box-sizing: border-box; margin: 0;">
+          <div id="wrapperCariToko" style="flex: 0 0 95px; min-width: 85px; max-width: 100px; position: relative; height: 44px; box-sizing: border-box; margin: 0;">
             <span class="material-symbols-rounded" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-muted); pointer-events: none;">search</span>
             <input type="text" id="cariTokoInput" placeholder="CARI TOKO" style="width: 100%; height: 44px; padding: 0 28px 0 34px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 12px; text-transform: uppercase; box-sizing: border-box; margin: 0;" oninput="filterDropdownToko(this.value)">
             <button type="button" id="btnHapusCariToko" onclick="resetCariToko()" title="Hapus Pencarian" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; display: none; padding: 2px; align-items: center;">
@@ -962,7 +962,7 @@
   </div>
 
   <!-- POPUP VERIFIKASI PASSWORD KEAMANAN HAPUS PENYIMPANAN LOKAL -->
-  <div id="popupSecurityPinHapusLokal" class="popupOverlay" style="display: none; z-index: 2147483648 !important; padding-left: 1mm !important; padding-right: 1mm !important; box-sizing: border-box !important;" onclick="if(event.target === this) { event.preventDefault(); event.stopPropagation(); tutupModalPinHapusLokal(); }">
+  <div id="popupSecurityPinHapusLokal" class="popupOverlay" style="display: none; z-index: 2147483648 !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;" onclick="if(event.target === this) { event.preventDefault(); event.stopPropagation(); tutupModalPinHapusLokal(); }">
     <div class="popupBox" style="background: var(--bg-card) !important; border-radius: 6px !important; box-shadow: 0 25px 60px rgba(0,0,0,0.5) !important; border: 1px solid var(--border-color) !important; overflow: hidden !important; animation: spinnerPop 0.25s cubic-bezier(0.16, 1, 0.3, 1); margin: auto !important;">
       
       <!-- HEADER (SESUAI DENGAN TEMA AKTIF) -->
@@ -1088,7 +1088,7 @@
   </div>
 
   <!-- 3. POPUP CONFIRMATION MODAL (YES/NO CENTERED SCREEN CARD) -->
-  <div id="confirmOverlay" class="popupOverlay" style="display: none; z-index: 2000000000 !important; align-items: center !important; justify-content: center !important; padding-left: 1mm !important; padding-right: 1mm !important; box-sizing: border-box !important;" onclick="if(event.target === this) { event.preventDefault(); event.stopPropagation(); if (typeof triggerConfirmBoxFlash === 'function') triggerConfirmBoxFlash(); }">
+  <div id="confirmOverlay" class="popupOverlay" onclick="if(event.target===this){ confirmNo(); }" style="display: none; z-index: 2000000000 !important; align-items: center !important; justify-content: center !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;">
     <div class="popupNotifCard" id="confirmBoxCard" class="popupNotifCard" style="border-radius: 5px !important; overflow: hidden !important; margin: auto !important;" onclick="event.stopPropagation()">
       <div class="popupNotifBody" style="padding: 16px 18px 12px 18px; text-align: center;">
         <span class="material-symbols-rounded" style="font-size: 32px; color: var(--primary); margin-bottom: 4px; display: block;">help</span>
@@ -1102,7 +1102,7 @@
   </div>
 
   <!-- 4. CLEAN & ATTRACTIVE NOTIFICATION DIALOG MODAL (OK CENTERED SCREEN CARD) -->
-  <div id="popupNotif" class="popupOverlay" style="display: none; z-index: 9999999999 !important; align-items: center !important; justify-content: center !important; padding-left: 1mm !important; padding-right: 1mm !important; box-sizing: border-box !important;">
+  <div id="popupNotif" class="popupOverlay" onclick="if(event.target===this){ closePopup(); }" style="display: none; z-index: 9999999999 !important; align-items: center !important; justify-content: center !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;">
     <div class="popupNotifCard" id="popupNotifCard" class="popupNotifCard" style="border-radius: 5px !important; overflow: hidden !important; margin: auto !important;">
       <div class="popupNotifBody" style="padding: 16px 18px 12px 18px; text-align: center;">
         <span id="popupNotifIcon" class="material-symbols-rounded" style="font-size: 32px; color: var(--primary); margin-bottom: 4px; display: block;">info</span>
@@ -1115,7 +1115,7 @@
   </div>
 
   <!-- 5. OFFLINE / NETWORK SAFETY MODAL (#popupOfflineSafetyModal) -->
-  <div id="popupOfflineSafetyModal" class="popupOverlay" style="display: none; z-index: 2147483648 !important; align-items: center !important; justify-content: center !important; padding-left: 1mm !important; padding-right: 1mm !important; box-sizing: border-box !important;">
+  <div id="popupOfflineSafetyModal" class="popupOverlay" style="display: none; z-index: 2147483648 !important; align-items: center !important; justify-content: center !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;">
     <div class="popupNotifCard" id="popupOfflineSafetyCard" class="popupNotifCard" style="border-radius: 5px !important; overflow: hidden !important; margin: auto !important;">
       <div class="popupNotifBody" style="padding: 16px 18px 12px 18px; text-align: center;">
         <span class="material-symbols-rounded" style="font-size: 34px; color: #ef4444; margin-bottom: 6px; display: block;">wifi_off</span>
@@ -1461,7 +1461,7 @@
 
         <div>
           <label style="font-size: 10px; font-weight: 800; color: var(--text-muted) !important; margin-bottom: 2px; display: block; text-transform: uppercase;">KODE TOKO (FORMAT SURAT)</label>
-          <input type="text" id="uFormStoreCode" placeholder="KODE TOKO" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 600; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; text-transform: uppercase; box-sizing: border-box;">
+          <input type="text" id="uFormStoreCode" maxlength="2" placeholder="KODE TOKO (2 DIGIT)" oninput="this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 2)" style="width: 100%; height: 32px; padding: 0 10px; border-radius: 6px; border: 1px solid var(--border-color) !important; font-weight: 600; font-size: 11.5px; background: var(--input-bg, var(--bg-body)) !important; color: var(--input-text, var(--text-main)) !important; text-transform: uppercase; box-sizing: border-box;">
         </div>
 
         <!-- ROW 2: PASSWORD & NO. HP / WHATSAPP -->
@@ -1559,11 +1559,12 @@
     <!-- CONTROL BAR BAWAH: COUNTER, DOWNLOAD & ZOOM -->
     <div class="viewerBottomBar" style="position: fixed !important; bottom: 25px !important; top: auto !important; left: 50% !important; transform: translateX(-50%) !important; display: flex !important; align-items: center !important; gap: 14px !important; background: rgba(15, 23, 42, 0.9) !important; backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important; padding: 8px 18px !important; border-radius: 30px !important; border: 1px solid rgba(255, 255, 255, 0.25) !important; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6) !important; z-index: 100000005 !important;">
       <div id="viewerCounter" style="color: #ffffff; font-size: 13px; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap;">1 / 1</div>
-      <div class="zoomControls" style="display: flex; align-items: center; gap: 8px;">
-        <button type="button" onclick="unduhFotoViewerAktif()" title="Unduh / Download Foto" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1.5px solid rgba(52, 211, 153, 0.5); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">download</span></button>
-        <button type="button" onclick="zoomImage(-0.25)" title="Zoom Out" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">zoom_out</span></button>
-        <button type="button" onclick="resetZoom()" title="Reset Zoom" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">restart_alt</span></button>
-        <button type="button" onclick="zoomImage(0.25)" title="Zoom In" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: none; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">zoom_in</span></button>
+            <div class="zoomControls" style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" onclick="unduhFotoViewerAktif()" title="Unduh / Download Foto" style="background: rgba(16, 185, 129, 0.35); color: #34d399; border: 1px solid rgba(52, 211, 153, 0.4); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">download</span></button>
+        <button type="button" onclick="rotateImage()" title="Putar Posisi Foto (Portrait / Landscape)" style="background: rgba(59, 130, 246, 0.35); color: #60a5fa; border: 1px solid rgba(96, 165, 250, 0.4); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">rotate_right</span></button>
+        <button type="button" onclick="zoomImage(-0.25)" title="Zoom Out" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">remove</span></button>
+        <button type="button" onclick="resetZoom()" title="Reset Ukuran & Posisi" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">restart_alt</span></button>
+        <button type="button" onclick="zoomImage(0.25)" title="Zoom In" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer;"><span class="material-symbols-rounded" style="font-size: 20px;">add</span></button>
       </div>
     </div>
   </div>
@@ -1605,7 +1606,7 @@
   </div>
 
   <!-- 10. POPUP PDF DOCUMENT PREVIEW MODAL -->
-  <div id="pdfModal" class="popupOverlay" onclick="if(event.target === this) tutupPdfModal();" style="display:none; padding-top: 1mm !important; padding-bottom: 1mm !important; padding-left: 1mm !important; padding-right: 1mm !important; justify-content: center !important; align-items: center !important; box-sizing: border-box !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important;">
+  <div id="pdfModal" class="popupOverlay" onclick="if(event.target === this) tutupPdfModal();" style="display:none; padding-top: 1mm !important; padding-bottom: 1mm !important; padding-left: 3mm !important; padding-right: 3mm !important; justify-content: center !important; align-items: center !important; box-sizing: border-box !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important;">
     <div class="popupBox" style="position: relative !important; width: 780px !important; max-width: calc(100vw - 2mm) !important; height: calc(100vh - 2mm) !important; height: calc(100dvh - 2mm) !important; max-height: calc(100vh - 2mm) !important; max-height: calc(100dvh - 2mm) !important; margin: 1mm auto !important; border-radius: 0px !important; display: flex !important; flex-direction: column !important; touch-action: pan-y !important; -webkit-overflow-scrolling: touch !important; -webkit-clip-path: none !important; clip-path: none !important;">
       <div class="popupHeader" style="background: var(--primary) !important; background-color: var(--primary) !important; background-image: none !important; color: #ffffff !important; position: relative !important; display: flex !important; align-items: center !important; justify-content: space-between !important; padding: 10px 18px !important; min-height: 50px !important; flex-shrink: 0 !important; border-radius: 0px !important; width: 100% !important; box-sizing: border-box !important;">
         <button type="button" class="btnPrintHeader" onclick="cetakDokumenPdf()" title="CETAK PDF / PRINT" style="display: inline-flex !important; align-items: center !important; gap: 8px !important; padding: 8px 18px !important; height: 38px !important; background: #ffffff !important; color: var(--primary) !important; border: 2px solid #ffffff !important; border-radius: 0px !important; font-weight: 800 !important; font-size: 14px !important; cursor: pointer !important;"><span class="material-symbols-rounded" style="font-size: 24px !important; font-weight: 900 !important;">print</span> PRINT</button>
@@ -1636,38 +1637,39 @@
 
 
   <!-- POPUP UBAH STATUS SUPABASE (KHUSUS ADMIN) -->
-  <div id="popupUbahStatusAdminModal" class="popupOverlay" style="z-index: 2147483648 !important; display: none;">
-    <div class="rejectBoxPopup" style="width: 380px !important; max-width: calc(100vw - 2mm) !important; background: var(--bg-box) !important; border-radius: 6px !important; overflow: hidden !important; border: 1px solid var(--border-color) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important; box-sizing: border-box !important; margin: auto !important;">
-      <div class="rejectHeaderPopup" style="background: #8b5cf6 !important; color: #ffffff !important; padding: 12px 16px !important; border-radius: 6px 6px 0 0 !important; display: flex !important; align-items: center !important; justify-content: space-between !important; box-sizing: border-box !important;">
+    <div id="popupUbahStatusAdminModal" class="popupOverlay" onclick="if(event.target===this){ tutupModalUbahStatusAdmin(); }" style="z-index: 2147483648 !important; display: none;">
+    <div class="rejectBoxPopup" style="width: 380px !important; max-width: calc(100vw - 2mm) !important; background: var(--bg-card, var(--bg-box)) !important; border-radius: 6px !important; overflow: hidden !important; border: 1px solid var(--border-color) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important; box-sizing: border-box !important; margin: auto !important;" onclick="event.stopPropagation()">
+      <div class="rejectHeaderPopup" style="background: var(--primary) !important; color: #ffffff !important; padding: 12px 16px !important; border-radius: 6px 6px 0 0 !important; display: flex !important; align-items: center !important; justify-content: space-between !important; box-sizing: border-box !important;">
         <div style="display: flex; align-items: center; gap: 8px;">
           <span class="material-symbols-rounded" style="font-size: 22px; font-weight: 900; color: #ffffff !important;">published_with_changes</span>
           <span style="font-size: 14px; font-weight: 900; color: #ffffff !important; text-transform: uppercase;">UBAH STATUS SUPABASE</span>
         </div>
         <button type="button" class="btnHeaderCloseX" onclick="tutupModalUbahStatusAdmin()" style="background: none !important; border: none !important; color: #ffffff !important; font-size: 26px !important; font-weight: 900 !important; cursor: pointer !important; line-height: 1 !important; padding: 0 4px !important;" title="TUTUP">&times;</button>
       </div>
-      <div class="rejectBodyPopup" style="padding: 16px !important; box-sizing: border-box !important;">
+      <div class="rejectBodyPopup" style="padding: 16px !important; box-sizing: border-box !important; background: var(--bg-card) !important; color: var(--text-main) !important;">
         <input type="hidden" id="adminStatusNoSurat">
-        
+
         <div id="adminStatusInfoBox" style="background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 5px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; font-weight: 700; color: var(--primary); line-height: 1.4;">
           <!-- Info surat -->
         </div>
 
         <label style="display: block; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase;">PILIK STATUS BARU (SUPABASE):</label>
         <select id="selectStatusAdmin" style="width: 100% !important; height: 42px !important; padding: 8px 12px !important; border-radius: 5px !important; border: 1px solid var(--border-color) !important; background: var(--bg-body) !important; color: var(--text-main) !important; font-size: 13px !important; font-weight: 700 !important; outline: none !important; margin-bottom: 16px !important; box-sizing: border-box !important;">
-          <option value="PENDING">PENDING (MENUNGGU VERIFIKASI)</option>
-          <option value="APPROVE_SERVICE">APPROVE SERVICE (DISETUJUI SERVICE)</option>
-          <option value="APPROVE">APPROVE (DISETUJUI DM / FULL APPROVE)</option>
-          <option value="REJECT">REJECT (DITOLAK / REJECT)</option>
-          <option value="DONE">DONE (SELESAI / DIPENUHI)</option>
-          <option value="BATAL">BATAL (DIBATALKAN)</option>
+          <option value="PENDING" style="background: var(--bg-card); color: var(--text-main);">PENDING (MENUNGGU VERIFIKASI)</option>
+          <option value="APPROVE_SERVICE" style="background: var(--bg-card); color: var(--text-main);">APPROVE SERVICE (DISETUJUI SERVICE)</option>
+          <option value="APPROVE" style="background: var(--bg-card); color: var(--text-main);">APPROVE (DISETUJUI DM / FULL APPROVE)</option>
+          <option value="REJECT" style="background: var(--bg-card); color: var(--text-main);">REJECT (DITOLAK / REJECT)</option>
+          <option value="DONE" style="background: var(--bg-card); color: var(--text-main);">DONE (SELESAI / DIPENUHI)</option>
+          <option value="BATAL" style="background: var(--bg-card); color: var(--text-main);">BATAL (DIBATALKAN)</option>
         </select>
 
         <div class="confirmButton" style="display: flex; gap: 8px; margin-top: 8px;">
-          <button type="button" class="btnBatal" onclick="tutupModalUbahStatusAdmin()" style="flex: 1; height: 38px; border-radius: 5px; font-weight: 700;">BATAL</button>
-          <button type="button" class="btnOkNotif" onclick="simpanUbahStatusAdmin()" style="flex: 1; height: 38px; border-radius: 5px; background: #8b5cf6 !important; color: #ffffff !important; font-weight: 800;">SIMPAN STATUS</button>
+          <button type="button" class="btnBatal" onclick="tutupModalUbahStatusAdmin()" style="flex: 1; height: 38px; border-radius: 5px; font-weight: 700; background: var(--bg-body) !important; color: var(--text-main) !important; border: 1px solid var(--border-color) !important;">BATAL</button>
+          <button type="button" class="btnOkNotif" onclick="simpanUbahStatusAdmin()" style="flex: 1; height: 38px; border-radius: 5px; background: var(--primary) !important; color: #ffffff !important; font-weight: 800; border: none !important;">SIMPAN STATUS</button>
         </div>
       </div>
     </div>
+  </div>
   </div>
 
 </body>

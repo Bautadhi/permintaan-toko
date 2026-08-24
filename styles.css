@@ -1370,12 +1370,12 @@ input:focus, select:focus, textarea:focus {
   .stats {
     grid-template-columns: repeat(5, 1fr) !important;
     gap: 10px !important;
-    margin-bottom: 5mm !important;
+    margin-bottom: 10mm !important;
   }
 }
 
 .stats {
-  margin-bottom: 5mm !important;
+  margin-bottom: 10mm !important;
 }
 
 .cardStat {
@@ -14204,7 +14204,7 @@ html body #riwayatPage table tbody tr:not(.empty-grid-row):hover td {
 #loginPage .login-card p,
 html body .login-card p,
 html body #loginPage .login-card p {
-  margin-bottom: 5mm !important;
+  margin-bottom: 10mm !important;
 }
 
 
@@ -14234,5 +14234,163 @@ html body #loginPage .login-card p {
   html body section#dashboardPage.page.active {
     padding-left: 0px !important;
     box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   MOBILE HP: 3MM LEFT & RIGHT PADDING FOR CONFIRMATION & NOTIFICATION POPUPS
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #confirmOverlay,
+  #popupNotif,
+  html body #confirmOverlay,
+  html body #popupNotif,
+  html body .popupOverlay#confirmOverlay,
+  html body .popupOverlay#popupNotif {
+    padding-left: 3mm !important;
+    padding-right: 3mm !important;
+    box-sizing: border-box !important;
+  }
+
+  #confirmBoxCard,
+  #popupNotifCard,
+  html body #confirmBoxCard,
+  html body #popupNotifCard,
+  html body .popupNotifCard {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* =============================================================================
+   WIDEN HELP / BANTUAN POPUP BY 1CM (#popupBantuan .chatBox)
+   ============================================================================= */
+html body #popupBantuan .chatBox,
+html body .popupBantuan .chatBox,
+html body .chatBox,
+#popupBantuan .chatBox,
+.chatBox {
+  width: 560px !important;
+  max-width: calc(100vw - 2mm) !important;
+  height: 540px !important;
+  max-height: calc(100vh - 10mm) !important;
+  max-height: calc(100dvh - 10mm) !important;
+  margin: auto !important;
+  border-radius: 6px !important;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important;
+}
+
+
+/* DISABLE UPWARD SLIDE ANIMATION ON CLOSING POPUP BANTUAN */
+#popupBantuan,
+#popupBantuan .chatBox,
+html body #popupBantuan,
+html body #popupBantuan .chatBox {
+  transition: opacity 0.15s ease-out !important;
+  transform: none !important;
+}
+
+
+/* =============================================================================
+   MOBILE HP (<= 768px): POPUP AKUN AUTO-FIT CONTENT HEIGHT & CENTERED IN MIDDLE
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #popupAkun,
+  #popupAkun.show,
+  #popupAkun.popupOverlay,
+  #popupAkun[style*="display: flex"],
+  #popupAkun[style*="display: block"],
+  html body #popupAkun,
+  html body #popupAkun.show,
+  html body #popupAkun.popupOverlay,
+  html body #popupAkun[style*="display: flex"],
+  html body #popupAkun[style*="display: block"] {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 2mm !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupAkun .akunBox,
+  .popupAkun .akunBox,
+  html body #popupAkun .akunBox,
+  html body .popupAkun .akunBox {
+    width: calc(100vw - 4mm) !important;
+    max-width: 440px !important;
+    height: auto !important;
+    min-height: unset !important;
+    max-height: calc(100vh - 10mm) !important;
+    max-height: calc(100dvh - 10mm) !important;
+    margin: auto !important;
+    align-self: center !important;
+    justify-content: center !important;
+    border-radius: 8px !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45) !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+  }
+}
+
+
+/* =============================================================================
+   USER MANAGEMENT / HAK USER TABLE LEFT-ALIGNED (RATA KIRI)
+   ============================================================================= */
+#popupUserManagementModal table.userModalTable th,
+#popupUserManagementModal table.userModalTable td,
+.userModalTable th,
+.userModalTable td,
+#userTableBodyModal td,
+#userTableBodyModal th {
+  text-align: left !important;
+}
+
+#popupUserManagementModal table.userModalTable th:first-child,
+#popupUserManagementModal table.userModalTable td:first-child,
+.userModalTable th:first-child,
+.userModalTable td:first-child {
+  text-align: center !important;
+}
+
+#popupUserManagementModal table.userModalTable th:last-child,
+#popupUserManagementModal table.userModalTable td:last-child,
+.userModalTable th:last-child,
+.userModalTable td:last-child {
+  text-align: right !important;
+}
+
+
+/* =============================================================================
+   MOBILE HP (<= 768px): WIDEN ID="TOKO" DROPDOWN & MAKE CARI TOKO COMPACT
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #toko,
+  select#toko,
+  html body #toko,
+  html body select#toko {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  #wrapperCariToko,
+  html body #wrapperCariToko {
+    flex: 0 0 95px !important;
+    min-width: 85px !important;
+    max-width: 100px !important;
+    width: 95px !important;
+  }
+
+  #cariTokoInput,
+  html body #cariTokoInput {
+    padding: 0 20px 0 26px !important;
+    font-size: 10px !important;
+  }
+
+  #wrapperCariToko > span.material-symbols-rounded {
+    font-size: 14px !important;
+    left: 6px !important;
   }
 }
