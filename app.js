@@ -2319,12 +2319,10 @@ function initFirebaseDB() {
           startFirebaseRealtimeAppSettingsListener();
                               startFirebaseRealtimeChatListener();
 
-          // OTOMATIS SINKRONKAN SELURUH DATA LOKAL/SUPABASE KE FIREBASE SAAT AWAL BUKA
-          setTimeout(() => {
-            if (typeof pushCentralCloudDB === 'function') {
-              pushCentralCloudDB().catch(() => {});
-            }
-          }, 2000);
+          // SUPABASE PURE SINGLE SOURCE OF TRUTH: SAAT REFRESH/AWAL BUKA HANYA PULL DATA DARI SUPABASE (TANPA AUTOMATIC PUSH)
+if (typeof syncSupabaseRequestsToLocalCache === 'function') {
+  syncSupabaseRequestsToLocalCache().catch(() => {});
+}
         } catch (e) {
           console.warn('[FIRESTORE INIT NOTICE]:', e);
         }
@@ -3147,60 +3145,10 @@ function handleRealtimeStoreChange(payload) {
 
 async function refreshOpenPopupsUI() {
   try {
-    // 1. MODAL RIWAYAT PARSIAL / BREAKDOWN (modalRiwayatParsialList)
-    const modalParsial = document.getElementById('modalRiwayatParsialList');
-    const isParsialOpen = modalParsial && (
-      (modalParsial.style.display && modalParsial.style.display !== 'none') ||
-      modalParsial.classList.contains('show') ||
-      modalParsial.classList.contains('active')
-    );
-    const activeParsialNoSurat = window._activeParsialNoSurat || window._activeRiwayatParsialNoSurat || (modalParsial ? (modalParsial.dataset.nosurat || modalParsial.dataset.noSurat || modalParsial.getAttribute('data-nosurat')) : '');
-
-    if (isParsialOpen && activeParsialNoSurat) {
-      if (typeof syncSupabaseBreakdownParsialToLocalCache === 'function') {
-        await syncSupabaseBreakdownParsialToLocalCache().catch(() => {});
-      }
-      if (typeof bukaModalRiwayatParsialList === 'function') {
-        await bukaModalRiwayatParsialList(activeParsialNoSurat).catch(() => {});
-      }
+    if (typeof syncSupabaseBreakdownParsialToLocalCache === 'function') {
+      await syncSupabaseBreakdownParsialToLocalCache().catch(() => {});
     }
-
-    // 2. POPUP DETAIL BARANG V2 (popupDetailBarangV2)
-    const popupV2 = document.getElementById('popupDetailBarangV2');
-    const isV2Open = popupV2 && (
-      popupV2.style.display === 'flex' ||
-      popupV2.style.display === 'block' ||
-      popupV2.classList.contains('show') ||
-      popupV2.dataset.active === "true"
-    ) && popupV2.style.display !== 'none';
-
-    const activeV2NoSurat = window._currentDetailNoSurat || (popupV2 ? (popupV2.dataset.noSurat || popupV2.dataset.nosurat) : '');
-
-    if (isV2Open && activeV2NoSurat) {
-      if (typeof syncSupabaseBreakdownParsialToLocalCache === 'function') {
-        await syncSupabaseBreakdownParsialToLocalCache().catch(() => {});
-      }
-      if (typeof lihatDetail === 'function') {
-        await lihatDetail(activeV2NoSurat, true).catch(() => {});
-      }
-    }
-
-    // 3. LEGACY POPUP DETAIL (popupDetail)
-    const popupOld = document.getElementById('popupDetail');
-    const isOldOpen = popupOld && (popupOld.style.display !== 'none' && popupOld.style.display !== '') && popupOld.classList.contains('show');
-    if (isOldOpen && window._currentDetailNoSurat && typeof lihatDetail === 'function') {
-      await lihatDetail(window._currentDetailNoSurat, true).catch(() => {});
-    }
-
-    // 4. PDF PREVIEW MODAL (pdfModal)
-    const pdfModal = document.getElementById('pdfModal');
-    const isPdfOpen = pdfModal && (pdfModal.style.display !== 'none' && pdfModal.style.display !== '') && pdfModal.classList.contains('show');
-    if (isPdfOpen && window._currentActivePdfNoSurat && typeof bukaPdfModal === 'function') {
-      bukaPdfModal(window._currentActivePdfNoSurat, true, false);
-    }
-  } catch (err) {
-    console.warn('[REFRESH OPEN POPUPS NOTICE]:', err);
-  }
+  } catch(e) {}
 }
 window.refreshOpenPopupsUI = refreshOpenPopupsUI;
 
@@ -4793,7 +4741,7 @@ window.getAppDirectLink = getAppDirectLink;
 async function checkUrlDirectNoSuratOpen() {
   try {
     const urlParams = new URLSearchParams(window.location.search);
-    let targetNoSurat = urlParams.get('noSurat');
+    let targetNoSurat = urlParams.get('noSurat') || urlParams.get('nosurat') || urlParams.get('id');
     if (!targetNoSurat) return;
 
     const decodedNoSurat = decodeURIComponent(targetNoSurat).trim();
@@ -4801,22 +4749,24 @@ async function checkUrlDirectNoSuratOpen() {
 
     window.PENDING_URL_NO_SURAT = decodedNoSurat;
 
+    // Clean query parameter from browser URL bar to prevent recurring triggers on navigation/refresh
+    try {
+      const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + window.location.hash;
+      window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+    } catch(e) {}
+
     const executeOpenDetail = async () => {
       const currentTarget = window.PENDING_URL_NO_SURAT;
-      if (!currentTarget) return;
+      window.PENDING_URL_NO_SURAT = null;
+      if (!currentTarget || window._isClosingDetailModal) return;
 
       if (typeof lihatDetail === 'function') {
-        const opened = await lihatDetail(currentTarget, true);
-        if (opened) {
-          window.PENDING_URL_NO_SURAT = null;
-        }
+        await lihatDetail(currentTarget, true);
       }
     };
 
     setTimeout(executeOpenDetail, 200);
     setTimeout(executeOpenDetail, 800);
-    setTimeout(executeOpenDetail, 2000);
-    setTimeout(executeOpenDetail, 4000);
   } catch(e) {}
 }
 window.checkUrlDirectNoSuratOpen = checkUrlDirectNoSuratOpen;
@@ -5958,8 +5908,8 @@ window.triggerConfirmBoxFlash = triggerConfirmBoxFlash;
       { id: 'popupTambahToko', closeFn: () => { const el = document.getElementById('popupTambahToko'); if (el) { el.classList.remove('show'); el.style.setProperty('display', 'none', 'important'); } } },
       { id: 'scannerModal', closeFn: () => { if (typeof tutupScanner === 'function') tutupScanner(); } },
       { id: 'excelTemplateOverlay', closeFn: () => { if (typeof closeExcelTemplateModal === 'function') closeExcelTemplateModal(); } },
-      { id: 'popupDetailBarangV2', closeFn: () => { if (typeof tutupDetailBarangV2 === 'function') tutupDetailBarangV2(); } },
-      { id: 'popupDetail', closeFn: () => { if (typeof closeDetail === 'function') closeDetail(); } }
+      { id: 'popupDetailBarangV2', closeFn: () => { if (typeof tutupDetailBarangV2 === 'function') tutupDetailBarangV2(true); } },
+      { id: 'popupDetail', closeFn: () => { if (typeof closeDetail === 'function') closeDetail(true); } }
     ];
 
     for (let mItem of modalPriorityStack) {
@@ -5989,8 +5939,7 @@ window.triggerConfirmBoxFlash = triggerConfirmBoxFlash;
     }
 
     if (currentActivePage !== 'dashboardPage' && currentActivePage !== 'loginPage') {
-      pindahHalaman('dashboardPage', false);
-      seedDashboardHistoryState();
+      // STAY ON CURRENT ACTIVE PAGE (DO NOT REDIRECT TO DASHBOARD)
       backClickTimestamps = [];
       return;
     }
@@ -6315,7 +6264,10 @@ function loadDashboard() {
   }
 }
 
+let _isClosingDetailModal = false;
+
 function bukaDetailDariDashboard(noSurat) {
+  if (_isClosingDetailModal) return;
   lihatDetail(noSurat, true);
 }
 
@@ -7959,7 +7911,11 @@ function gantiFotoViewer(arah) {
 }
 
 function approveService(noSurat) {
-  showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, () => {
+  showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, async () => {
+    showLoading('MEMERIKSA DATA TERBARU SERVER...');
+    const isValid = await validatePreApprovalData(noSurat, 'SERVICE');
+    hideLoading();
+    if (!isValid) return;
     const requests = getRequestsFromDB();
     const idx = requests.findIndex(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
     if (idx !== -1) {
@@ -7984,6 +7940,7 @@ function approveService(noSurat) {
       loadRiwayat();
       loadDashboard();
       if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM') loadMasterDbTable();
+      if (typeof refreshDetailModalIfOpen === 'function') refreshDetailModalIfOpen(noSurat);
 
       // 2. PROSES SYNC SUPABASE & BROADCAST REALTIME TERLEBIH DAHULU
       const docId = String(noSurat).replace(/[\/\.]/g, '_');
@@ -8047,7 +8004,11 @@ function approveDM(noSurat) {
     return;
   }
 
-  showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, () => {
+  showConfirm(`APPROVE PERMINTAAN #${noSurat}?`, async () => {
+    showLoading('MEMERIKSA DATA TERBARU SERVER...');
+    const isValid = await validatePreApprovalData(noSurat, 'DM');
+    hideLoading();
+    if (!isValid) return;
     const requests = getRequestsFromDB();
     const idx = requests.findIndex(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
     if (idx !== -1) {
@@ -8076,6 +8037,7 @@ function approveDM(noSurat) {
       loadRiwayat();
       loadDashboard();
       if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM') loadMasterDbTable();
+      if (typeof refreshDetailModalIfOpen === 'function') refreshDetailModalIfOpen(noSurat);
       if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
     if (typeof updateGlobalDeviceAppBadge === 'function') updateGlobalDeviceAppBadge();
       if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
@@ -8559,6 +8521,7 @@ function batalApproveService(noSurat) {
       loadRiwayat();
       loadDashboard();
       if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM') loadMasterDbTable();
+      if (typeof refreshDetailModalIfOpen === 'function') refreshDetailModalIfOpen(noSurat);
 
       const docId = String(noSurat).replace(/[\/\.]/g, '_');
       if (typeof safeSupabaseUpsertPermintaan === 'function') {
@@ -8604,6 +8567,7 @@ function batalApproveDM(noSurat) {
       loadRiwayat();
       loadDashboard();
       if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM') loadMasterDbTable();
+      if (typeof refreshDetailModalIfOpen === 'function') refreshDetailModalIfOpen(noSurat);
 
       const docId = String(noSurat).replace(/[\/\.]/g, '_');
       if (typeof safeSupabaseUpsertPermintaan === 'function') {
@@ -8912,30 +8876,59 @@ function hapusData(noSurat) {
 }
 window.hapusData = hapusData;
 
-function tutupDetailBarangV2() {
+function tutupDetailBarangV2(fromPopState = false) {
+  _isClosingDetailModal = true;
+  window._isClosingDetailModal = true;
+  window.PENDING_URL_NO_SURAT = null;
+  window._currentDetailNoSurat = null;
+
+  try {
+    if (window.location && window.location.search && (window.location.search.includes('noSurat') || window.location.search.includes('nosurat') || window.location.search.includes('id'))) {
+      const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + window.location.hash;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  } catch(e) {}
+
   const detailModal = document.getElementById('popupDetailBarangV2');
   if (detailModal) {
-    detailModal.style.display = 'none';
+    detailModal.style.setProperty('display', 'none', 'important');
     detailModal.classList.remove('show');
     detailModal.dataset.active = "false";
+    detailModal.dataset.noSurat = "";
   }
 
   const oldDetailModal = document.getElementById('popupDetail');
   if (oldDetailModal) {
-    oldDetailModal.style.display = 'none';
+    oldDetailModal.style.setProperty('display', 'none', 'important');
     oldDetailModal.classList.remove('show');
     oldDetailModal.dataset.active = "false";
+    oldDetailModal.dataset.noSurat = "";
+  }
+
+  // Jika ditutup manual via tombol X / overlay (bukan tombol Back HP/Browser), bersihkan history state
+  if (!fromPopState && window.history.state && window.history.state.popupDetailOpen) {
+    try {
+      window.history.back();
+    } catch(e) {}
   }
 
   setTimeout(() => {
+    _isClosingDetailModal = false;
+    window._isClosingDetailModal = false;
     const activePageId = typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage';
     if (typeof aturTampilanLonceng === 'function') {
       aturTampilanLonceng(activePageId);
     }
-  }, 100);
+  }, 500);
 }
 window.tutupDetailBarangV2 = tutupDetailBarangV2;
 window.closeDetail = tutupDetailBarangV2;
+
+function refreshDetailModalIfOpen(noSurat) {
+  // Disabled auto-refresh of detail modal per user directive
+  return;
+}
+window.refreshDetailModalIfOpen = refreshDetailModalIfOpen;
 
 let isItemModifiedMap = {};
 
@@ -9085,6 +9078,7 @@ async function simpanPerubahanDetailAdmin(noSurat) {
 window.simpanPerubahanDetailAdmin = simpanPerubahanDetailAdmin;
 
 async function lihatDetail(noSuratOrObj, fromDashboard = false) {
+  if (window._isClosingDetailModal) return false;
   let req = null;
   if (typeof noSuratOrObj === 'object' && noSuratOrObj !== null) {
     req = noSuratOrObj;
@@ -9370,7 +9364,7 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
       if (role === 'SERVICE' || isAdminUser) {
         if (!req.serviceApprove) {
           actionButtons.push(`
-            <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="tutupDetailBarangV2(); approveService('${req.noSurat}');">
+            <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="approveService('${req.noSurat}');">
               <span class="material-symbols-rounded">check_circle</span>
             </button>
           `);
@@ -9381,7 +9375,7 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
           `);
         } else if (isAdminUser) {
           actionButtons.push(`
-            <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="tutupDetailBarangV2(); approveDM('${req.noSurat}');">
+            <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="approveDM('${req.noSurat}');">
               <span class="material-symbols-rounded">check_circle</span>
             </button>
           `);
@@ -9395,7 +9389,7 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
       
       if (role === 'DM' && req.serviceApprove) {
         actionButtons.push(`
-          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="tutupDetailBarangV2(); approveDM('${req.noSurat}');">
+          <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="approveDM('${req.noSurat}');">
             <span class="material-symbols-rounded">check_circle</span>
           </button>
         `);
@@ -9430,14 +9424,14 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
     if (isAdminUser) {
       if (req.serviceApprove) {
         actionButtons.push(`
-          <button type="button" class="btnIcon btnIconOnly" title="BATAL APPROVE SERVICE" onclick="tutupDetailBarangV2(); batalApproveService('${req.noSurat}');" style="background: #eab308 !important; color: #ffffff !important;">
+          <button type="button" class="btnIcon btnIconOnly" title="BATAL APPROVE SERVICE" onclick="batalApproveService('${req.noSurat}');" style="background: #eab308 !important; color: #ffffff !important;">
             <span class="material-symbols-rounded">undo</span>
           </button>
         `);
       }
       if (req.status === 'APPROVE' || req.dmUserName || req.dmTTD) {
         actionButtons.push(`
-          <button type="button" class="btnIcon btnIconOnly" title="BATAL APPROVE DM" onclick="tutupDetailBarangV2(); batalApproveDM('${req.noSurat}');" style="background: #f97316 !important; color: #ffffff !important;">
+          <button type="button" class="btnIcon btnIconOnly" title="BATAL APPROVE DM" onclick="batalApproveDM('${req.noSurat}');" style="background: #f97316 !important; color: #ffffff !important;">
             <span class="material-symbols-rounded">undo</span>
           </button>
         `);
@@ -9456,7 +9450,7 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
         </button>
       `);
       actionButtons.push(`
-        <button type="button" class="btnIcon btnDelete btnIconOnly" title="HAPUS PERMINTAAN" onclick="tutupDetailBarangV2(); hapusData('${req.noSurat}');">
+        <button type="button" class="btnIcon btnDelete btnIconOnly" title="HAPUS PERMINTAAN" onclick="hapusData('${req.noSurat}');">
           <span class="material-symbols-rounded">delete</span>
         </button>
       `);
@@ -9541,17 +9535,29 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
   `;
 
   const popupDetailV2 = document.getElementById('popupDetailBarangV2');
+  const isAlreadyOpen = popupDetailV2 && (
+    popupDetailV2.classList.contains('show') ||
+    (popupDetailV2.style.display && popupDetailV2.style.display !== 'none') ||
+    popupDetailV2.dataset.active === "true"
+  );
+
   if (popupDetailV2) {
-    popupDetailV2.style.display = 'flex';
+    popupDetailV2.style.setProperty('display', 'flex', 'important');
     popupDetailV2.classList.add('show');
     popupDetailV2.dataset.active = "true";
     popupDetailV2.dataset.noSurat = req.noSurat;
     window._currentDetailNoSurat = req.noSurat;
   }
 
-  try {
-    history.pushState({ popupDetailOpen: true }, '');
-  } catch(e) {}
+  // Clear any pending URL noSurat trigger since popup is now successfully displayed
+  window.PENDING_URL_NO_SURAT = null;
+
+  // Hanya pushState jika modal BELUM terbuka sebelumnya (mencegah penumpukan pushState berulang saat refresh data/action)
+  if (!isAlreadyOpen && (!window.history.state || !window.history.state.popupDetailOpen)) {
+    try {
+      history.pushState({ popupDetailOpen: true }, '');
+    } catch(e) {}
+  }
 
   const activePageId = typeof getCurrentActivePageId === 'function' ? getCurrentActivePageId() : 'dashboardPage';
   if (typeof aturTampilanLonceng === 'function') {
@@ -9634,7 +9640,8 @@ function bukaModalEditStatusPart(noSurat) {
 
   const modal = document.getElementById('popupEditStatusPart');
   if (modal) {
-    modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('z-index', '2147483648', 'important');
     modal.classList.add('show');
     try { history.pushState({ modal: 'partStatus' }, '', location.href); } catch(e) {}
   }
@@ -9934,7 +9941,8 @@ function bukaModalEditKetPartSingle(noSurat, itemIndex) {
 
   const modal = document.getElementById('popupEditKeteranganPartSingle');
   if (modal) {
-    modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('z-index', '2147483648', 'important');
     modal.classList.add('show');
     try { history.pushState({ modal: 'partKet' }, '', location.href); } catch(e) {}
   }
@@ -13320,7 +13328,8 @@ function bukaUserModal(userId = null, btnElement = null) {
 
       const modal = document.getElementById('popupUserForm');
       if (modal) {
-        modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('z-index', '2147483648', 'important');
         modal.style.setProperty('z-index', '10000005', 'important');
         modal.classList.add('show');
         pushPopupHistoryState();
@@ -15598,7 +15607,11 @@ function showConfirm(msg, callback, cancelCallback = null, customYesText = 'YA, 
     };
   }
 
-  modal.style.setProperty('z-index', '2000000000', 'important');
+  modal.style.setProperty('z-index', '2147483647', 'important');
+  const confirmCard = modal.querySelector('.confirmBoxCard') || modal.querySelector('.popupNotifCard') || modal.querySelector('.popupBox');
+  if (confirmCard) {
+    confirmCard.style.setProperty('z-index', '2147483648', 'important');
+  }
   modal.style.setProperty('display', 'flex', 'important');
   modal.style.setProperty('pointer-events', 'auto', 'important');
   modal.classList.add('show');
@@ -15612,12 +15625,8 @@ function closeConfirm() {
     modal.style.setProperty('display', 'none', 'important');
     modal.classList.remove('show');
   }
-  const ccb = confirmCancelCallback;
   confirmCallback = null;
   confirmCancelCallback = null;
-  if (typeof ccb === 'function') {
-    try { ccb(); } catch(e) {}
-  }
 }
 window.closeConfirm = closeConfirm;
 
@@ -16035,7 +16044,8 @@ function bukaViewGambar(src, startIdx = 0) {
   }
 
   if (modal) {
-    modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('z-index', '2147483648', 'important');
     modal.style.setProperty('z-index', '2147483646', 'important');
     modal.classList.add('show');
   }
@@ -16555,7 +16565,8 @@ window.triggerUploadExcelAutoFill = triggerUploadExcelAutoFill;
 function downloadTemplateExcelPermintaan() {
   const modal = document.getElementById('excelTemplateOverlay');
   if (modal) {
-    modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('z-index', '2147483648', 'important');
     modal.classList.add('show');
     if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
   } else {
@@ -17137,14 +17148,10 @@ function aturGeminiApiKey() {
   };
   if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 
-  const isDesktop = window.innerWidth > 768;
-  const alignStyle = isDesktop ? 'align-items: center !important; padding: 12px !important;' : 'align-items: flex-start !important; padding-top: 1mm !important; padding-bottom: 2mm !important; padding-left: 2mm !important; padding-right: 2mm !important;';
-  const marginStyle = isDesktop ? 'margin: auto !important;' : 'margin: 0 auto !important;';
-
-  modal.style.cssText = `display: flex !important; position: fixed !important; top: 0px !important; left: 0px !important; right: 0px !important; bottom: 0px !important; width: 100vw !important; height: 100vh !important; background: rgba(0, 0, 0, 0.85) !important; z-index: 1000000000 !important; justify-content: center !important; ${alignStyle} box-sizing: border-box !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important;`;
+  modal.style.cssText = 'display: flex !important; position: fixed !important; top: 0px !important; left: 0px !important; right: 0px !important; bottom: 0px !important; width: 100vw !important; height: 100vh !important; height: 100dvh !important; background: rgba(0, 0, 0, 0.85) !important; z-index: 2147483647 !important; justify-content: center !important; align-items: center !important; padding: 1mm !important; padding-left: 1mm !important; padding-right: 1mm !important; box-sizing: border-box !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; backdrop-filter: blur(4px) !important; -webkit-backdrop-filter: blur(4px) !important;';
 
   modal.innerHTML = `
-    <div onclick="event.stopPropagation()" style="background: #ffffff !important; color: #0f172a !important; border-radius: 4px !important; width: 100% !important; max-width: 480px !important; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important; border: 2.5px solid #f59e0b !important; overflow: hidden !important; box-sizing: border-box !important; ${marginStyle} font-family: system-ui, -apple-system, sans-serif !important;">
+    <div class="modalKeyBox" onclick="event.stopPropagation()" style="background: #ffffff !important; color: #0f172a !important; border-radius: 6px !important; width: calc(100vw - 2mm) !important; max-width: 380px !important; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important; border: 2.5px solid #f59e0b !important; overflow: hidden !important; box-sizing: border-box !important; margin: auto !important; font-family: system-ui, -apple-system, sans-serif !important;">
       <div style="background: linear-gradient(135deg, #f59e0b, #d97706) !important; padding: 14px 18px !important; color: #ffffff !important; display: flex !important; justify-content: space-between !important; align-items: center !important;">
         <div style="display: flex !important; align-items: center !important; gap: 8px !important; font-weight: 800 !important; font-size: 14px !important; letter-spacing: 0.5px !important;">
           <span class="material-symbols-rounded" style="font-size: 22px !important; color: #ffffff !important;">key</span>
@@ -17152,7 +17159,7 @@ function aturGeminiApiKey() {
         </div>
         <button type="button" onclick="tutupModalGeminiApiKey()" style="color: #ffffff !important; font-weight: 900 !important; font-size: 28px !important; background: transparent !important; border: none !important; cursor: pointer !important; line-height: 1 !important; padding: 0 4px !important;" title="TUTUP">&times;</button>
       </div>
-      <div style="padding: 18px !important; display: flex !important; flex-direction: column !important; gap: 14px !important; box-sizing: border-box !important; background: #ffffff !important;">
+      <div class="modalKeyBody" style="padding: 16px !important; display: flex !important; flex-direction: column !important; gap: 14px !important; box-sizing: border-box !important; background: #ffffff !important;">
         <p style="margin: 0 !important; font-size: 12px !important; color: #475569 !important; line-height: 1.5 !important;">
           Masukan KEY AI. Buat key gratis di <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" style="color: #d97706 !important; font-weight: 700 !important; text-decoration: underline !important;">https://aistudio.google.com/</a>
         </p>
@@ -17167,18 +17174,13 @@ function aturGeminiApiKey() {
             <input type="text" id="inputGeminiApiKeyVal" value="${currentKey}" placeholder="Tempel API Key di sini (Contoh: AIzaSy...)" style="width: 100% !important; height: 44px !important; padding: 8px 12px !important; border-radius: 3px !important; border: 1.5px solid #cbd5e1 !important; background: #f8fafc !important; color: #0f172a !important; font-family: monospace !important; font-size: 13px !important; outline: none !important; box-sizing: border-box !important;">
           </div>
         </div>
-        <div style="display: flex !important; gap: 8px !important; justify-content: space-between !important; align-items: center !important; margin-top: 6px !important; flex-wrap: wrap !important;">
-          <button type="button" onclick="hapusGeminiApiKeyPermanen()" style="background: #fee2e2 !important; color: #dc2626 !important; border: 1px solid #fca5a5 !important; border-radius: 3px !important; padding: 10px 14px !important; font-weight: 700 !important; font-size: 12px !important; cursor: pointer !important;">
-            KOSONGKAN KEY
+        <div style="display: flex !important; gap: 8px !important; justify-content: flex-end !important; align-items: center !important; margin-top: 8px !important; width: 100% !important;">
+          <button type="button" onclick="tutupModalGeminiApiKey()" style="flex: 1 !important; height: 36px !important; background: var(--bg-body, #f1f5f9) !important; color: var(--text-main, #334155) !important; border: 1px solid var(--border-color, #cbd5e1) !important; border-radius: 6px !important; padding: 0 14px !important; font-weight: 700 !important; font-size: 12px !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important;">
+            BATAL
           </button>
-          <div style="display: flex !important; gap: 8px !important; align-items: center !important;">
-            <button type="button" onclick="tutupModalGeminiApiKey()" style="background: #f1f5f9 !important; color: #334155 !important; border: 1px solid #cbd5e1 !important; border-radius: 3px !important; padding: 10px 16px !important; font-weight: 700 !important; font-size: 12px !important; cursor: pointer !important;">
-              BATAL
-            </button>
-            <button type="button" onclick="simpanGeminiApiKeyDariModal()" style="background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #ffffff !important; border: none !important; border-radius: 3px !important; padding: 10px 20px !important; font-weight: 800 !important; font-size: 12px !important; cursor: pointer !important; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35) !important;">
-              SIMPAN PERUBAHAN
-            </button>
-          </div>
+          <button type="button" onclick="simpanGeminiApiKeyDariModal()" style="flex: 1 !important; height: 36px !important; background: linear-gradient(135deg, #f59e0b, #d97706) !important; color: #ffffff !important; border: none !important; border-radius: 6px !important; padding: 0 16px !important; font-weight: 800 !important; font-size: 12px !important; cursor: pointer !important; box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35) !important; display: flex !important; align-items: center !important; justify-content: center !important; gap: 4px !important;">
+            <span class="material-symbols-rounded" style="font-size: 16px;">save</span> SIMPAN
+          </button>
         </div>
       </div>
     </div>
@@ -18124,7 +18126,8 @@ function hapusPenyimpananLokalAkun() {
     inputPin.style.borderColor = 'var(--border-color)';
   }
   if (modal) {
-    modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('display', 'flex', 'important');
+modal.style.setProperty('z-index', '2147483648', 'important');
     modal.classList.add('show');
     setTimeout(() => {
       if (inputPin) {
@@ -19010,16 +19013,7 @@ window.toggleParsialRow = toggleParsialRow;
 
 function tutupModalBuatParsial() {
   const modal = document.getElementById('modalBuatParsial');
-  const ns = modal ? modal.getAttribute('data-nosurat') : null;
   if (modal) modal.remove();
-  
-  if (ns && typeof lihatDetail === 'function') {
-    const mainDetailEl = document.getElementById('popupDetail');
-    const listEl = document.getElementById('modalRiwayatParsialList');
-    if (!mainDetailEl && !listEl) {
-      lihatDetail(ns, true);
-    }
-  }
 }
 window.tutupModalBuatParsial = tutupModalBuatParsial;
 
@@ -19424,15 +19418,7 @@ async function bukaModalRiwayatParsialList(noSurat) {
 }
 function tutupModalRiwayatParsialList(noSurat) {
   const el = document.getElementById('modalRiwayatParsialList');
-  const ns = noSurat || (el ? el.getAttribute('data-nosurat') : null);
   if (el) el.remove();
-  
-  if (ns && typeof lihatDetail === 'function') {
-    const mainDetailEl = document.getElementById('popupDetail');
-    if (!mainDetailEl || mainDetailEl.style.display === 'none') {
-      lihatDetail(ns, true);
-    }
-  }
 }
 function bukaModalKonfirmasiApproveBreakdown(noSurat, partialId) {
   if (typeof showConfirm === 'function') {
@@ -20253,3 +20239,175 @@ if (document.readyState === 'loading') {
 } else {
   updateLiveHeaderClock();
 }
+
+
+// =======================================================================
+// MANUAL REFRESH POPUP DETAIL & PRE-APPROVAL VALIDATION ENGINE
+// =======================================================================
+async function refreshDetailModalManual() {
+  const v2 = document.getElementById('popupDetailBarangV2');
+  const noSurat = window._currentDetailNoSurat || (v2 ? (v2.dataset.noSurat || v2.dataset.nosurat) : '');
+  if (!noSurat) {
+    if (typeof showNotif === 'function') showNotif('TIDAK ADA SURAT AKTIF UNTUK DIREFRESH', 'warning');
+    return;
+  }
+
+  const btnRefresh = document.getElementById('btnRefreshDetailV2');
+  if (btnRefresh) {
+    btnRefresh.style.transition = 'transform 0.5s ease';
+    btnRefresh.style.transform = 'translateY(-50%) rotate(360deg)';
+  }
+
+  if (typeof showLoading === 'function') showLoading('MEMPERBARUI DATA DETAIL...');
+  try {
+    if (typeof supabase !== 'undefined' && supabase) {
+      const { data, error } = await supabase.from('permintaan_toko').select('*').eq('no_surat', noSurat);
+      if (data && data.length > 0) {
+        const formatted = typeof formatSupabaseRequestRow === 'function' ? formatSupabaseRequestRow(data[0]) : null;
+        if (formatted) {
+          const currentReqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+          const idx = currentReqs.findIndex(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
+          if (idx !== -1) {
+            currentReqs[idx] = { ...currentReqs[idx], ...formatted };
+          } else {
+            currentReqs.unshift(formatted);
+          }
+          if (typeof appStorage !== 'undefined') appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(currentReqs));
+        }
+      }
+    }
+    if (typeof lihatDetail === 'function') {
+      await lihatDetail(noSurat, true);
+    }
+    if (typeof showNotif === 'function') showNotif('DATA DETAIL BERHASIL DIPERBARUI!', 'success');
+  } catch(e) {
+    if (typeof showNotif === 'function') showNotif('GAGAL MEMPERBARUI DATA: ' + (e.message || e), 'warning');
+  } finally {
+    if (typeof hideLoading === 'function') hideLoading();
+    if (btnRefresh) {
+      setTimeout(() => {
+        btnRefresh.style.transition = 'none';
+        btnRefresh.style.transform = 'translateY(-50%) rotate(0deg)';
+      }, 500);
+    }
+  }
+}
+window.refreshDetailModalManual = refreshDetailModalManual;
+
+async function validatePreApprovalData(noSurat, expectedType) {
+  if (typeof supabase === 'undefined' || !supabase) return true;
+  try {
+    const { data, error } = await supabase.from('permintaan_toko').select('*').eq('no_surat', noSurat);
+    if (error || !data || data.length === 0) return true;
+    const serverRow = data[0];
+    const localReqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+    const local = localReqs.find(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
+
+    if (!local) return true;
+
+    let hasMismatch = false;
+    let mismatchMsg = '';
+
+    if (expectedType === 'SERVICE') {
+      if (serverRow.service_approve) {
+        hasMismatch = true;
+        mismatchMsg = 'SURAT INI SUDAH DI-APPROVE OLEH SERVICE LAIN DI SERVER!';
+      } else if (serverRow.status !== 'PENDING') {
+        hasMismatch = true;
+        mismatchMsg = 'STATUS SURAT DI SERVER SUDAH BERUBAH MENJADI ' + serverRow.status + '!';
+      }
+    } else if (expectedType === 'DM') {
+      if (!serverRow.service_approve) {
+        hasMismatch = true;
+        mismatchMsg = 'SURAT INI BELUM DI-APPROVE OLEH SERVICE DI SERVER!';
+      } else if (serverRow.status === 'APPROVE') {
+        hasMismatch = true;
+        mismatchMsg = 'SURAT INI SUDAH DI-APPROVE OLEH DM LAIN DI SERVER!';
+      } else if (serverRow.status !== 'PENDING') {
+        hasMismatch = true;
+        mismatchMsg = 'STATUS SURAT DI SERVER SUDAH BERUBAH MENJADI ' + serverRow.status + '!';
+      }
+    }
+
+    // Check items difference
+    if (!hasMismatch && serverRow.items) {
+      const serverItemsStr = typeof serverRow.items === 'string' ? serverRow.items : JSON.stringify(serverRow.items || []);
+      const localItemsStr = typeof local.items === 'string' ? local.items : JSON.stringify(local.items || []);
+      if (serverItemsStr !== localItemsStr) {
+        hasMismatch = true;
+        mismatchMsg = 'ADA PERUBAHAN BARANG / QTY PERMINTAAN DI SERVER!';
+      }
+    }
+
+    if (hasMismatch) {
+      if (typeof showNotif === 'function') {
+        showNotif('PERHATIAN: ' + mismatchMsg + ' SILAKAN KLIK TOMBOL REFRESH (IKON PUTAR DI ATAS) SEBELUM APPROVAL.', 'warning');
+      }
+      const btnRefresh = document.getElementById('btnRefreshDetailV2');
+      if (btnRefresh) {
+        btnRefresh.style.border = '2px solid #ef4444';
+        btnRefresh.style.background = '#ef4444';
+        setTimeout(() => {
+          btnRefresh.style.border = '1px solid rgba(255,255,255,0.35)';
+          btnRefresh.style.background = 'rgba(255,255,255,0.18)';
+        }, 3500);
+      }
+      return false;
+    }
+    return true;
+  } catch(e) {
+    return true;
+  }
+}
+window.validatePreApprovalData = validatePreApprovalData;
+
+
+// =============================================================================
+// OFFLINE & SUPABASE NETWORK SAFETY MODAL HANDLER
+// =============================================================================
+function tampilkanModalOfflineSafety(customMessage = null) {
+  const modal = document.getElementById('popupOfflineSafetyModal');
+  const msgEl = document.getElementById('popupOfflineMessage');
+  if (msgEl && customMessage) {
+    msgEl.textContent = customMessage;
+  }
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('z-index', '2147483648', 'important');
+    modal.classList.add('show');
+  }
+}
+window.tampilkanModalOfflineSafety = tampilkanModalOfflineSafety;
+
+function tutupModalOfflineSafety() {
+  const modal = document.getElementById('popupOfflineSafetyModal');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('show');
+  }
+}
+window.tutupModalOfflineSafety = tutupModalOfflineSafety;
+
+function eksekusiKeluarAplikasi() {
+  try {
+    window.close();
+  } catch(e) {}
+  setTimeout(() => {
+    try {
+      window.location.href = "about:blank";
+    } catch(e) {}
+  }, 150);
+}
+window.eksekusiKeluarAplikasi = eksekusiKeluarAplikasi;
+
+// Network online/offline event listeners
+window.addEventListener('offline', () => {
+  tampilkanModalOfflineSafety('Koneksi internet perangkat Anda terputus! Silakan periksa Wi-Fi / Data Seluler Anda.');
+});
+
+window.addEventListener('online', () => {
+  tutupModalOfflineSafety();
+  if (typeof syncSupabaseRequestsToLocalCache === 'function') {
+    syncSupabaseRequestsToLocalCache();
+  }
+});

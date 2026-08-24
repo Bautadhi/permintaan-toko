@@ -15,8 +15,8 @@
 // ================= KONFIGURASI UTAMA =================
 const CONFIG = {
   // Supabase REST API Configuration (PROJECT BARU AKTIF)
-  SUPABASE_URL: 'https://nmzulwgqkcyxjjwroxvq.supabase.co',
-  SUPABASE_ANON_KEY: 'sb_publishable_ygnIgHTSuSb7pt0s7hrQ6w_9iRs-7bf', // Kunci Publishable Baru
+  SUPABASE_URL: 'https://bfkmxhvqezdobsbgxmzg.supabase.co',
+  SUPABASE_ANON_KEY: 'sb_publishable_FMzN5oje55yHwz3Sv1s6ww_AyYU3r9K', // Kunci Publishable Baru
   
   // Token Fonnte WhatsApp API (Otomatis dibaca dari Sheet 'seting' jika dikosongkan)
   FONNTE_TOKEN: 'FejqMMmJNpcfvouaqVoE',

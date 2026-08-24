@@ -521,13 +521,14 @@ section#masterDbPage.page.active,
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* FLEX TOP-RIGHT HEADER ACTIONS CONTAINER - ALIGNED FLUSH TO RIGHTMOST CARD BORDER EDGE */
-.top-header-actions {
+/* FLEX TOP-RIGHT HEADER ACTIONS CONTAINER - HIDDEN BY DEFAULT TO PREVENT REFRESH FLICKER */
+.top-header-actions,
+#topHeaderActions {
   position: fixed !important;
   top: 6px !important;
   right: 0 !important;
   z-index: 99999 !important;
-  display: flex !important;
+  display: none !important;
   flex-direction: row !important;
   align-items: center !important;
   justify-content: flex-end !important;
@@ -538,6 +539,11 @@ section#masterDbPage.page.active,
   margin-right: 0 !important;
 }
 
+.top-header-actions.show-actions,
+#topHeaderActions.show-actions {
+  display: flex !important;
+}
+
 #firebaseOnlineDot {
   align-self: flex-start !important;
   margin-top: 5px !important;
@@ -545,9 +551,10 @@ section#masterDbPage.page.active,
   pointer-events: auto !important;
 }
 
+/* DESKTOP / LAPTOP CLOCK CONTAINER (BOX MODEL) */
 #liveClockSquareBox,
 .live-clock-square-box {
-  display: inline-flex !important;
+  display: inline-flex;
   align-items: center !important;
   gap: 8px !important;
   background: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%) !important;
@@ -568,6 +575,16 @@ section#masterDbPage.page.active,
   white-space: nowrap !important;
   margin-left: 2px !important;
   pointer-events: auto !important;
+}
+
+/* DESKTOP (>768px): STRICTLY HIDE MOBILE HP CLOCK BOX ON LAPTOP */
+@media (min-width: 769px) {
+  #mobileClockInlineBox,
+  .mobile-clock-inline-box,
+  .mobileClockDateText,
+  .mobileClockTimeText {
+    display: none !important;
+  }
 }
 
 .dashboardTop .header,
@@ -2967,10 +2984,7 @@ div[id*="Modal"] {
   display: none;
   justify-content: center !important;
   align-items: center !important;
-  padding-top: 1mm !important;
-  padding-bottom: 2cm !important;
-  padding-left: 4px !important;
-  padding-right: 4px !important;
+  padding: 1mm !important;
   box-sizing: border-box !important;
   z-index: 99999 !important;
 }
@@ -4642,7 +4656,7 @@ html body #popupUserForm .popupBox {
   }
 
   .dashboardTop {
-    padding: 0 !important;
+    padding: 1mm 0 0 0 !important;
     margin: 0 !important;
   }
 
@@ -4837,7 +4851,7 @@ html body #popupUserForm .popupBox {
     display: grid !important;
     grid-template-columns: repeat(5, 1fr) !important;
     gap: 4px !important;
-    margin: 0 0 2mm 0 !important;
+    margin: 1mm 0 2mm 0 !important;
     width: 100% !important;
   }
 
@@ -7840,14 +7854,14 @@ html body .historyTable tbody tr:not(.table-spacer-fill-row) td {
   font-size: 12px !important;
 }
 
-/* COLUMN FLEX SIZES FOR HISTORY TABLE */
-.historyTable th:nth-child(1), .historyTable td:nth-child(1) { width: 130px !important; flex: 0 0 130px !important; justify-content: center !important; }
-.historyTable th:nth-child(2), .historyTable td:nth-child(2) { width: 95px !important; flex: 0 0 95px !important; }
-.historyTable th:nth-child(3), .historyTable td:nth-child(3) { width: 140px !important; flex: 0 0 140px !important; }
-.historyTable th:nth-child(4), .historyTable td:nth-child(4) { width: 180px !important; flex: 0 0 180px !important; }
-.historyTable th:nth-child(5), .historyTable td:nth-child(5) { width: 85px !important; flex: 0 0 85px !important; }
-.historyTable th:nth-child(6), .historyTable td:nth-child(6) { width: 110px !important; flex: 0 0 110px !important; }
-.historyTable th:nth-child(7), .historyTable td:nth-child(7) { flex: 1 1 auto !important; min-width: 120px !important; }
+/* COLUMN FLEX SIZES FOR RIWAYAT HISTORY TABLE ONLY */
+#riwayatPage .historyTable th:nth-child(1), #riwayatPage .historyTable td:nth-child(1) { width: 130px !important; flex: 0 0 130px !important; justify-content: center !important; }
+#riwayatPage .historyTable th:nth-child(2), #riwayatPage .historyTable td:nth-child(2) { width: 95px !important; flex: 0 0 95px !important; }
+#riwayatPage .historyTable th:nth-child(3), #riwayatPage .historyTable td:nth-child(3) { width: 140px !important; flex: 0 0 140px !important; }
+#riwayatPage .historyTable th:nth-child(4), #riwayatPage .historyTable td:nth-child(4) { width: 180px !important; flex: 0 0 180px !important; }
+#riwayatPage .historyTable th:nth-child(5), #riwayatPage .historyTable td:nth-child(5) { width: 85px !important; flex: 0 0 85px !important; }
+#riwayatPage .historyTable th:nth-child(6), #riwayatPage .historyTable td:nth-child(6) { width: 110px !important; flex: 0 0 110px !important; }
+#riwayatPage .historyTable th:nth-child(7), #riwayatPage .historyTable td:nth-child(7) { flex: 1 1 auto !important; min-width: 120px !important; }
 
 /* LAST ACTUAL DATA ROW HAS NO BOTTOM BORDER LINE TO KEEP EMPTY BACKGROUND AREA CLEAN */
 #riwayatData tr:not(.table-spacer-fill-row):last-of-type td,
@@ -8384,13 +8398,15 @@ html body #rejectOverlay .rejectHeaderPopup .popupClose,
    MODAL POPUP GEMINI API KEY - RESPONSIVE HP DENGAN JARAK 2MM KE LAYAR
    ============================================================================= */
 #modalGeminiApiKey {
-  padding: 2mm !important;
+  padding: 1mm !important;
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
   box-sizing: border-box !important;
 }
 
 #modalGeminiApiKey .modalKeyBox {
-  width: calc(100vw - 4mm) !important;
-  max-width: 460px !important;
+  width: calc(100vw - 2mm) !important;
+  max-width: 380px !important;
   margin: 0 auto !important;
   box-sizing: border-box !important;
 }
@@ -8398,20 +8414,17 @@ html body #rejectOverlay .rejectHeaderPopup .popupClose,
 @media (max-width: 768px) {
   html body #modalGeminiApiKey,
   #modalGeminiApiKey {
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
-    padding-top: 1mm !important;
-    padding-bottom: 2mm !important;
-    padding-left: 2mm !important;
-    padding-right: 2mm !important;
+    padding: 1mm !important;
+    z-index: 2147483647 !important;
   }
   html body #modalGeminiApiKey .modalKeyBox,
   #modalGeminiApiKey .modalKeyBox {
-    margin-top: 0 !important;
-    margin-bottom: auto !important;
-    width: calc(100vw - 4mm) !important;
-    max-width: calc(100vw - 4mm) !important;
-    border-radius: 12px !important;
+    margin: auto !important;
+    width: calc(100vw - 2mm) !important;
+    max-width: 380px !important;
+    border-radius: 6px !important;
   }
   #modalGeminiApiKey .modalKeyHeader {
     padding: 10px 12px !important;
@@ -8576,39 +8589,38 @@ html body #rejectOverlay .rejectHeaderPopup .popupClose,
    MODAL POPUP GEMINI API KEY - RESPONSIVE HP DENGAN JARAK 2MM KE LAYAR
    ============================================================================= */
 #modalGeminiApiKey {
-  align-items: flex-start !important;
+  align-items: center !important;
   justify-content: center !important;
-  padding-top: 1mm !important;
-  padding-bottom: 2mm !important;
-  padding-left: 2mm !important;
-  padding-right: 2mm !important;
+  padding: 1mm !important;
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
   box-sizing: border-box !important;
+  z-index: 2147483647 !important;
 }
 
 #modalGeminiApiKey .modalKeyBox {
-  width: calc(100vw - 4mm) !important;
-  max-width: 460px !important;
-  margin: 0 auto !important;
+  width: calc(100vw - 2mm) !important;
+  max-width: 380px !important;
+  margin: auto !important;
   box-sizing: border-box !important;
 }
 
 @media (max-width: 768px) {
   html body #modalGeminiApiKey,
   #modalGeminiApiKey {
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
-    padding-top: 1mm !important;
-    padding-bottom: 2mm !important;
-    padding-left: 2mm !important;
-    padding-right: 2mm !important;
+    padding: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    z-index: 2147483647 !important;
   }
   html body #modalGeminiApiKey .modalKeyBox,
   #modalGeminiApiKey .modalKeyBox {
-    margin-top: 0 !important;
-    margin-bottom: auto !important;
-    width: calc(100vw - 4mm) !important;
-    max-width: calc(100vw - 4mm) !important;
-    border-radius: 12px !important;
+    margin: auto !important;
+    width: calc(100vw - 2mm) !important;
+    max-width: 380px !important;
+    border-radius: 6px !important;
   }
   #modalGeminiApiKey .modalKeyHeader {
     padding: 10px 12px !important;
@@ -8771,40 +8783,34 @@ html body #rejectOverlay .rejectHeaderPopup .popupClose,
    MODAL POPUP GEMINI API KEY - RESPONSIVE HP DENGAN JARAK 2MM KE LAYAR
    ============================================================================= */
 #modalGeminiApiKey {
-  z-index: 100000000 !important;
-  align-items: flex-start !important;
+  z-index: 2147483647 !important;
+  align-items: center !important;
   justify-content: center !important;
-  padding-top: 1mm !important;
-  padding-bottom: 2mm !important;
-  padding-left: 2mm !important;
-  padding-right: 2mm !important;
+  padding: 1mm !important;
   box-sizing: border-box !important;
 }
 
 #modalGeminiApiKey .modalKeyBox {
-  width: calc(100vw - 4mm) !important;
-  max-width: 460px !important;
-  margin: 0 auto !important;
+  width: calc(100vw - 2mm) !important;
+  max-width: 380px !important;
+  margin: auto !important;
   box-sizing: border-box !important;
 }
 
 @media (max-width: 768px) {
   html body #modalGeminiApiKey,
   #modalGeminiApiKey {
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
-    padding-top: 1mm !important;
-    padding-bottom: 2mm !important;
-    padding-left: 2mm !important;
-    padding-right: 2mm !important;
+    padding: 1mm !important;
+    z-index: 2147483647 !important;
   }
   html body #modalGeminiApiKey .modalKeyBox,
   #modalGeminiApiKey .modalKeyBox {
-    margin-top: 0 !important;
-    margin-bottom: auto !important;
-    width: calc(100vw - 4mm) !important;
-    max-width: calc(100vw - 4mm) !important;
-    border-radius: 12px !important;
+    margin: auto !important;
+    width: calc(100vw - 2mm) !important;
+    max-width: 380px !important;
+    border-radius: 6px !important;
   }
   #modalGeminiApiKey .modalKeyHeader {
     padding: 10px 12px !important;
@@ -9072,24 +9078,38 @@ div[id*="Modal"] {
   clip-path: none !important;
 }
 
-.btnTutupUserModal {
+.btnTutupUserModal,
+#popupUserManagementModal .btnTutupUserModal {
+  position: absolute !important;
+  top: 8px !important;
+  right: 12px !important;
   width: 32px !important;
   height: 32px !important;
-  background: #0f766e !important; /* TEAL BUTTON */
-  color: #ffffff !important;
+  background: transparent !important;
+  color: var(--primary) !important;
   border: none !important;
   border-radius: 5px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   cursor: pointer !important;
-  transition: all 0.2s ease !important;
+  transition: transform 0.2s ease, opacity 0.2s ease !important;
   padding: 0 !important;
+  z-index: 100 !important;
 }
 
-.btnTutupUserModal:hover {
-  background: #115e59 !important;
-  transform: scale(1.05) !important;
+.btnTutupUserModal .material-symbols-rounded,
+#popupUserManagementModal .btnTutupUserModal .material-symbols-rounded {
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  color: var(--primary) !important;
+  -webkit-text-stroke: 1.5px var(--primary) !important;
+}
+
+.btnTutupUserModal:hover,
+#popupUserManagementModal .btnTutupUserModal:hover {
+  background: transparent !important;
+  transform: scale(1.15) !important;
 }
 
 .userManagementToolbar {
@@ -9126,6 +9146,7 @@ div[id*="Modal"] {
   margin: 0 !important;
   border-radius: 0 !important;
   background: var(--bg-box) !important;
+  table-layout: auto !important;
 }
 
 .userModalTable thead,
@@ -9148,28 +9169,248 @@ div[id*="Modal"] {
   background-color: var(--primary) !important;
   background-image: none !important;
   color: #ffffff !important;
-  font-weight: 700 !important;
-  font-size: 12px !important;
-  letter-spacing: normal !important;
+  font-weight: 800 !important;
+  font-size: 11.5px !important;
+  line-height: 1.2 !important;
+  letter-spacing: 0.3px !important;
   text-transform: uppercase !important;
-  padding: 10px 12px !important;
+  padding: 8px 10px !important;
   text-align: center !important;
-  white-space: nowrap !important;
+  white-space: nowrap !important; /* HEADER 1 BARIS (NO WRAP TEXT) */
+  word-break: keep-all !important;
+  word-wrap: normal !important;
   border-right: 1px solid rgba(255, 255, 255, 0.35) !important;
   border-bottom: 2px solid rgba(0, 0, 0, 0.2) !important;
+  box-sizing: border-box !important;
+}
+
+.userModalTable th:nth-child(1),
+.userModalTable td:nth-child(1) {
+  width: 36px !important;
+  min-width: 36px !important;
+  max-width: 36px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(2),
+.userModalTable td:nth-child(2) {
+  width: auto !important;
+  min-width: 110px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(3),
+.userModalTable td:nth-child(3) {
+  width: auto !important;
+  min-width: 100px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(4),
+.userModalTable td:nth-child(4) {
+  width: auto !important;
+  min-width: 150px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(5),
+.userModalTable td:nth-child(5) {
+  width: auto !important;
+  min-width: 100px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(6),
+.userModalTable td:nth-child(6) {
+  width: auto !important;
+  min-width: 110px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(7),
+.userModalTable td:nth-child(7) {
+  width: auto !important;
+  min-width: 100px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(8),
+.userModalTable td:nth-child(8) {
+  width: auto !important;
+  min-width: 110px !important;
+  flex: none !important;
+  text-align: center !important;
+}
+
+.userModalTable th:nth-child(9),
+.userModalTable td:nth-child(9) {
+  width: auto !important;
+  min-width: 110px !important;
+  flex: none !important;
+  text-align: center !important;
 }
 
 @media (max-width: 768px) {
-  #popupUserManagementModal {
-    padding: 1mm 2cm 2mm !important; /* 1CM ATAS-BAWAH & 2MM KANAN-KIRI DI HP */
+  /* 1. POPUP AKUN (FULL SCREEN PADDING 1MM + OPTIMIZED INTERNAL ELEMENTS) */
+  #popupAkun,
+  html body #popupAkun,
+  html body .popupAkun,
+  #popupUserManagementModal,
+  html body #popupUserManagementModal {
+    padding: 1mm !important;
+    box-sizing: border-box !important;
   }
 
-  .userManagementBoxPopup {
+  .akunBox,
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox,
+  .userManagementBoxPopup,
+  html body .userManagementBoxPopup {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    margin: 0 auto !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+    padding: 1mm 10px !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+  }
+
+  /* 2. POPUP LAIN NYA (EDIT KET & STATUS PART) */
+  #popupEditKeteranganPartSingle,
+  #popupEditStatusPart,
+  #popupDetailModal {
+    padding: 1mm 2mm 2cm 2mm !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupEditKeteranganPartSingle .popupBox,
+  html body #popupEditKeteranganPartSingle .popupBox,
+  #popupEditStatusPart .popupBox,
+  html body #popupEditStatusPart .popupBox,
+  #popupDetailModal .popupDetailBox,
+  #popupDetailModal .detailPopupBox {
     width: calc(100vw - 4mm) !important;
     max-width: calc(100vw - 4mm) !important;
     height: calc(100vh - 2cm) !important;
     max-height: calc(100vh - 2cm) !important;
+    margin: 0 auto !important;
     border-radius: 5px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow-y: auto !important;
+  }
+
+  /* 3. POPUP RIJEK (COMPACT CARD TOP 1MM) */
+  #rejectOverlay,
+  html body #rejectOverlay {
+    position: fixed !important;
+    top: 1mm !important;
+    left: 1mm !important;
+    right: 1mm !important;
+    bottom: 0 !important;
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: auto !important;
+    max-height: calc(100vh - 1mm) !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    z-index: 2147483640 !important;
+    background: rgba(0, 0, 0, 0.85) !important;
+    backdrop-filter: blur(8px) !important;
+  }
+
+  .rejectBoxPopup,
+  html body .rejectBoxPopup,
+  #rejectOverlay > div,
+  html body #rejectOverlay > div {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: max-content !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 8px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--bg-box) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 4. POPUP BANTUAN (FULL SCREEN PADDING 1MM IN HP VIEW) */
+  #popupBantuan,
+  html body #popupBantuan,
+  html body .popupOverlay#popupBantuan {
+    padding: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  .chatBox,
+  #popupBantuan .chatBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    margin: 0 auto !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 5. POPUP NOTIFIKASI SISTEM & ALERT (FULL SCREEN PADDING 1MM IN HP VIEW) */
+  #popupNotifList,
+  html body #popupNotifList,
+  html body .popupOverlay#popupNotifList,
+  #popupNotif,
+  html body #popupNotif,
+  html body .popupOverlay#popupNotif {
+    padding: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupNotifList .popupNotifCard,
+  html body #popupNotifList .popupNotifCard,
+  #popupNotif .popupNotifCard,
+  html body #popupNotif .popupNotifCard,
+  #popupNotifCard,
+  html body #popupNotifCard {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    margin: 0 auto !important;
+    border-radius: 5px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ICON NOTIFIKASI (PADDING KANAN = 1MM) */
+  #notifBellBtn,
+  .notif-bell-btn,
+  html body #notifBellBtn,
+  html body .notif-bell-btn {
+    padding-right: 1mm !important;
+    margin-right: 1mm !important;
   }
 }
 
@@ -9581,12 +9822,14 @@ html body #inputPage #judulDetailPermintaan,
   border-radius: 0px !important;
 }
 
-/* POPUP DAFTAR NOTIFIKASI SISTEM (#popupNotifList) */
-#popupNotifList {
-  padding-top: 1mm !important;
-  padding-bottom: 2cm !important;
-  padding-left: 4px !important;
-  padding-right: 4px !important;
+/* POPUP DAFTAR NOTIFIKASI SISTEM (#popupNotifList) - HP / MOBILE ONLY */
+@media (max-width: 768px) {
+  #popupNotifList {
+    padding-top: 1mm !important;
+    padding-bottom: 2cm !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+  }
 }
 
 /* POPUP DETAIL BARANG V2 (#popupDetailBarangV2) - PC & MOBILE VIEW (TOP/BOTTOM 1MM, LEFT/RIGHT 0.5MM GAP, SOFT 8PX CORNERS) */
@@ -9623,16 +9866,18 @@ html body #inputPage #judulDetailPermintaan,
   }
 }
 
-/* POPUP PROFIL AKUN (#popupAkun) */
-#popupAkun,
-.popupAkun {
-  align-items: flex-start !important;
-  justify-content: center !important;
-  padding-top: 1mm !important;
-  padding-bottom: 2mm !important;
-  padding-left: 4px !important;
-  padding-right: 4px !important;
-  box-sizing: border-box !important;
+/* POPUP PROFIL AKUN (#popupAkun) - HP / MOBILE ONLY */
+@media (max-width: 768px) {
+  #popupAkun,
+  .popupAkun {
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding-top: 1mm !important;
+    padding-bottom: 2mm !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
+    box-sizing: border-box !important;
+  }
 }
 
 #popupAkun .akunBox,
@@ -9867,6 +10112,35 @@ html body #popupEditKeteranganPartSingle .popupContent {
   z-index: 2147483646 !important;
 }
 
+/* GLOBAL POPUP CLOSE (X) BUTTON - POJOK KANAN ATAS, TEBAL 900, WARNA MENGIKUTI TEMA (VAR(--PRIMARY)) */
+.popupClose,
+button.popupClose,
+.btnTutupUserModal {
+  position: absolute !important;
+  top: 6px !important;
+  right: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--primary) !important;
+  font-size: 24px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  padding: 2px 6px !important;
+  z-index: 99999 !important;
+  opacity: 0.95 !important;
+  transition: transform 0.2s, opacity 0.2s !important;
+}
+
+.popupClose:hover,
+.popupClose:active,
+.btnTutupUserModal:hover,
+.btnTutupUserModal:active {
+  opacity: 1 !important;
+  transform: scale(1.15) !important;
+  color: var(--primary) !important;
+}
+
 /* POPUP UPLOAD ARTEMIS (#artemisOverlay) */
 #artemisOverlay,
 html body #artemisOverlay {
@@ -9904,30 +10178,59 @@ html body #artemisOverlay[style*="display: none"] {
   }
 }
 
-/* MOBILE / HP VIEW (MAX-WIDTH: 768PX): JARAK LAYAR ATAS, KANAN, KIRI = 1MM, BAWAH MENYESUAIKAN SAAT BUKA */
+/* MOBILE / HP VIEW (MAX-WIDTH: 768PX): FULL SAMPAI LAYAR DENGAN PADDING 1MM PRESISI KELILING */
 @media (max-width: 768px) {
   #artemisOverlay.show,
   html body #artemisOverlay.show,
   html body #artemisOverlay[style*="display: flex"],
   html body #artemisOverlay[style*="display:flex"] {
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
-    padding: 1mm 1mm 0 1mm !important;
+    padding: 1mm !important;
     box-sizing: border-box !important;
   }
 
   #artemisOverlay .artemisBoxPopup,
-  html body #artemisOverlay .artemisBoxPopup {
+  html body #artemisOverlay .artemisBoxPopup,
+  #popupTTD .ttdBox,
+  html body #popupTTD .ttdBox,
+  #popupUserForm .userFormCard,
+  html body #popupUserForm .userFormCard,
+  .userFormCard,
+  html body .userFormCard,
+  #popupTambahToko .popupBox,
+  html body #popupTambahToko .popupBox {
     width: calc(100vw - 2mm) !important;
     max-width: calc(100vw - 2mm) !important;
-    margin-top: 1mm !important;
-    margin-left: 1mm !important;
-    margin-right: 1mm !important;
-    margin-bottom: auto !important;
-    padding: 2mm !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
     border-radius: 6px !important;
     box-sizing: border-box !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow-y: auto !important;
+  }
+
+  #artemisOverlay .artemisBodyPopup,
+  html body #artemisOverlay .artemisBodyPopup {
+    flex: 1 1 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow-y: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  #artemisOverlay #artemisPhotoPreviewGrid,
+  html body #artemisOverlay #artemisPhotoPreviewGrid {
+    flex: 1 1 auto !important;
+    max-height: none !important;
+    min-height: 100px !important;
+    overflow-y: auto !important;
   }
 }
 
@@ -9973,8 +10276,7 @@ html body #popupTTD.popupOverlay,
 
 /* =============================================================================
    DESKTOP / LAPTOP VIEW ONLY (MIN-WIDTH: 769PX):
-   POSISIKAN 4 POPUP (popupAkun, modalGeminiApiKey, popupBantuan, popupNotifList)
-   TEPAT DI TENGAH-TENGAH LAYAR (SIMETRIS) TANPA MENGUBAH TINGGI MAUPUN LEBARNYA.
+   POPUP AKUN, POPUP BANTUAN, & POPUP NOTIFIKASI WITH PADDING ATAS & BAWAH = 1CM
    ============================================================================= */
 @media (min-width: 769px) {
   html body #popupAkun.popupAkun,
@@ -9993,8 +10295,8 @@ html body #popupTTD.popupOverlay,
   #popupNotifList {
     align-items: center !important;
     justify-content: center !important;
-    padding-top: 12px !important;
-    padding-bottom: 12px !important;
+    padding-top: 1cm !important;
+    padding-bottom: 1cm !important;
     padding-left: 12px !important;
     padding-right: 12px !important;
     box-sizing: border-box !important;
@@ -10008,6 +10310,9 @@ html body #popupTTD.popupOverlay,
   #modalGeminiApiKey .modalKeyBox,
   #popupBantuan .chatBox,
   #popupNotifList .popupNotifCard {
+    height: auto !important;
+    max-height: calc(100vh - 2cm) !important;
+    max-height: calc(100dvh - 2cm) !important;
     margin: auto !important;
     margin-top: auto !important;
     margin-bottom: auto !important;
@@ -10044,16 +10349,16 @@ html body #popupTTD.popupOverlay,
 
   html body #modalGeminiApiKey.modalBackdrop,
   html body #modalGeminiApiKey {
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
-    padding-top: 1mm !important;
-    padding-bottom: 2mm !important;
-    padding-left: 2mm !important;
-    padding-right: 2mm !important;
+    padding: 1mm !important;
+    z-index: 2147483647 !important;
   }
   html body #modalGeminiApiKey .modalKeyBox {
-    margin-top: 0 !important;
-    margin-bottom: auto !important;
+    margin: auto !important;
+    width: calc(100vw - 2mm) !important;
+    max-width: 380px !important;
+    border-radius: 6px !important;
   }
 }
 
@@ -10623,7 +10928,7 @@ html body #popupBantuan #adminRoomsContainer {
   box-sizing: border-box !important;
 }
 
-/* 9. MOBILE HP VIEW (MAX-WIDTH: 768PX): ACCOUNT POPUP (#popupAkun .akunBox) 1MM SCREEN MARGIN & 2MM INNER CONTENT PADDING */
+/* 9. MOBILE HP VIEW (MAX-WIDTH: 768PX): ACCOUNT POPUP (#popupAkun .akunBox) 1MM SCREEN MARGIN & FULL SCREEN HEIGHT */
 @media (max-width: 768px) {
   #popupAkun,
   #popupAkun.popupAkun,
@@ -10631,13 +10936,36 @@ html body #popupBantuan #adminRoomsContainer {
   html body #popupAkun,
   html body #popupAkun.popupAkun,
   html body #popupAkun.popupOverlay {
-    padding-top: 1mm !important;
-    padding-left: 1mm !important;
-    padding-right: 1mm !important;
-    padding-bottom: 2mm !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 1mm !important;
+    margin: 0 !important;
     box-sizing: border-box !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
+    z-index: 2147483645 !important;
+  }
+
+  #popupAkun.show,
+  #popupAkun[style*="display: flex"],
+  #popupAkun[style*="display: block"],
+  html body #popupAkun.show,
+  html body #popupAkun[style*="display: flex"],
+  html body #popupAkun[style*="display: block"] {
+    display: flex !important;
+  }
+
+  #popupAkun[style*="display: none"] {
+    display: none !important;
   }
 
   #popupAkun .akunBox,
@@ -10646,42 +10974,57 @@ html body #popupBantuan #adminRoomsContainer {
   html body .popupAkun .akunBox {
     width: calc(100vw - 2mm) !important;
     max-width: calc(100vw - 2mm) !important;
-    padding: 2mm !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin: 0 auto !important;
+    border-radius: 6px !important;
     box-sizing: border-box !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
+    padding: 1mm 10px !important;
+    overflow-y: auto !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
   }
 }
 
-/* 10. MOBILE HP VIEW (MAX-WIDTH: 768PX): GEMINI API KEY MODAL (#modalGeminiApiKey) 1MM SCREEN MARGIN & 2MM INNER CONTENT PADDING */
-@media (max-width: 768px) {
-  #modalGeminiApiKey,
-  #modalGeminiApiKey.modalBackdrop,
-  html body #modalGeminiApiKey,
-  html body #modalGeminiApiKey.modalBackdrop {
-    padding-top: 1mm !important;
-    padding-left: 1mm !important;
-    padding-right: 1mm !important;
-    padding-bottom: 2mm !important;
-    box-sizing: border-box !important;
-    align-items: flex-start !important;
-    justify-content: center !important;
-  }
+/* 10. GEMINI API KEY MODAL (#modalGeminiApiKey) CENTERED IN FRONT OF POPUP AKUN (Z-INDEX 2147483647) */
+#modalGeminiApiKey,
+#modalGeminiApiKey.modalBackdrop,
+html body #modalGeminiApiKey,
+html body #modalGeminiApiKey.modalBackdrop {
+  display: flex !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1mm !important;
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
+  box-sizing: border-box !important;
+  z-index: 2147483647 !important;
+}
 
-  #modalGeminiApiKey .modalKeyBox,
-  html body #modalGeminiApiKey .modalKeyBox {
-    width: calc(100vw - 2mm) !important;
-    max-width: calc(100vw - 2mm) !important;
-    box-sizing: border-box !important;
-    margin-left: auto !important;
-    margin-right: auto !important;
-  }
+#modalGeminiApiKey .modalKeyBox,
+html body #modalGeminiApiKey .modalKeyBox {
+  width: calc(100vw - 2mm) !important;
+  max-width: 380px !important;
+  box-sizing: border-box !important;
+  margin: auto !important;
+  border-radius: 6px !important;
+}
 
-  #modalGeminiApiKey .modalKeyBody,
-  html body #modalGeminiApiKey .modalKeyBody {
-    padding: 2mm !important;
-    box-sizing: border-box !important;
-  }
+#modalGeminiApiKey .modalKeyBody,
+html body #modalGeminiApiKey .modalKeyBody {
+  padding: 16px !important;
+  box-sizing: border-box !important;
 }
 
 /* 11. INPUT PAGE ZERO TOP GAP (HEADER ATTACHED 100% STATIONARY FLUSH TO TOP OF SCREEN) */
@@ -10753,21 +11096,41 @@ html body #inputPage .inputPageHeader {
   background: var(--bg-box) !important;
 }
 
-/* REJECTION & CONFIRMATION POPUPS Z-INDEX OVERRIDE */
+/* REJECTION & CONFIRMATION POPUPS Z-INDEX OVERRIDE (ALWAYS FRONT-MOST ABOVE ALL MODALS) */
+html body #confirmOverlay,
+html body .popupOverlay#confirmOverlay,
 html body #rejectOverlay,
 html body #modalRejectBreakdown,
 html body #modalRejectParsial,
-html body #confirmOverlay,
 html body .popupOverlay#rejectOverlay,
-html body .popupOverlay#modalRejectBreakdown {
-  z-index: 2147483640 !important;
+html body .popupOverlay#modalRejectBreakdown,
+#confirmOverlay,
+#rejectOverlay,
+#modalRejectBreakdown,
+#modalRejectParsial {
+  z-index: 2147483647 !important;
 }
 
-/* POPUP NOTIF CARD ALWAYS IN FRONT OF ALL MODALS AND INPUTS (#inputAlasanRejectParsial) */
+html body #confirmBoxCard,
+html body .confirmBoxCard,
+html body .confirmBox,
+#confirmBoxCard,
+.confirmBoxCard,
+.confirmBox {
+  z-index: 2147483648 !important;
+}
+
+/* POPUP NOTIF & NOTIF CARD ALWAYS AT THE VERY FRONT (MAXIMUM Z-INDEX 2147483648) */
 html body #popupNotif,
+html body .popupOverlay#popupNotif,
+#popupNotif {
+  z-index: 2147483647 !important;
+}
+
 html body #popupNotifCard,
 html body .popupNotifCard,
-html body .popupOverlay#popupNotif {
+#popupNotifCard,
+.popupNotifCard {
   z-index: 2147483648 !important;
 }
 
@@ -10798,18 +11161,20 @@ html body .popupOverlay#popupNotif {
   #modalRejectParsial.show,
   #modalRejectParsial.active {
     position: fixed !important;
-    top: 1mm !important;
-    left: 1mm !important;
-    right: 1mm !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     bottom: 0 !important;
-    width: calc(100vw - 2mm) !important;
-    max-width: calc(100vw - 2mm) !important;
-    height: calc(100vh - 1mm) !important;
-    max-height: calc(100vh - 1mm) !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100vh !important;
+    max-height: 100dvh !important;
     margin: 0 !important;
-    padding: 0 !important;
+    padding: 1mm !important;
     display: flex !important;
-    align-items: flex-start !important;
+    align-items: center !important;
     justify-content: center !important;
     box-sizing: border-box !important;
     z-index: 2147483640 !important;
@@ -10821,9 +11186,9 @@ html body .popupOverlay#popupNotif {
   html body #rejectOverlay .rejectBoxPopup,
   html body #modalRejectBreakdown .rejectBoxPopup,
   .rejectBoxPopup {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
+    width: calc(100vw - 2mm) !important;
+    max-width: 380px !important;
+    margin: auto !important;
     padding: 0 !important;
     border-radius: 8px !important;
     border: 1px solid var(--border-color) !important;
@@ -10992,3 +11357,553 @@ html body .popupOverlay#popupNotif {
   }
 }
 
+/* =======================================================================
+   EXACT 1MM SCREEN PADDING & FULL SCREEN HP VIEW FOR 3 POPUPS:
+   1. .popupNotifCard (#popupNotifList / #popupNotif)
+   2. #popupAkun (.akunBox)
+   3. #popupBantuan (.chatBox)
+   ======================================================================= */
+@media screen and (max-width: 768px) {
+  /* OVERLAY CONTAINERS (EXACT 1MM SCREEN PADDING ALL 4 SIDES WHEN ACTIVE, OVERRIDE 2CM) */
+  html body #popupAkun,
+  html body #popupAkun.popupAkun,
+  html body #popupAkun.popupOverlay,
+  html body .popupAkun,
+  html body #popupBantuan,
+  html body #popupBantuan.popupBantuan,
+  html body #popupBantuan.popupOverlay,
+  html body .popupBantuan,
+  html body #popupNotifList,
+  html body #popupNotifList.popupOverlay,
+  html body #popupNotif,
+  html body #popupNotif.popupOverlay,
+  #popupAkun,
+  #popupBantuan,
+  #popupNotifList,
+  #popupNotif {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    padding: 1mm !important;
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    align-items: center !important;
+    justify-content: center !important;
+    z-index: 2147483645 !important;
+  }
+
+  /* STAY HIDDEN WHEN CLOSED OR DISPLAY: NONE */
+  html body #popupAkun[style*="display: none"],
+  html body #popupBantuan[style*="display: none"],
+  html body #popupNotifList[style*="display: none"],
+  html body #popupNotif[style*="display: none"],
+  #popupAkun[style*="display: none"],
+  #popupBantuan[style*="display: none"],
+  #popupNotifList[style*="display: none"],
+  #popupNotif[style*="display: none"] {
+    display: none !important;
+  }
+
+  /* SHOW ONLY WHEN SHOW OR DISPLAY FLEX/BLOCK IS SET */
+  html body #popupAkun.show,
+  html body #popupAkun[style*="display: flex"],
+  html body #popupAkun[style*="display: block"],
+  html body #popupBantuan.show,
+  html body #popupBantuan[style*="display: flex"],
+  html body #popupBantuan[style*="display: block"],
+  html body #popupNotifList.show,
+  html body #popupNotifList[style*="display: flex"],
+  html body #popupNotifList[style*="display: block"],
+  html body #popupNotif.show,
+  html body #popupNotif[style*="display: flex"],
+  html body #popupNotif[style*="display: block"],
+  #popupAkun.show,
+  #popupBantuan.show,
+  #popupNotifList.show,
+  #popupNotif.show {
+    display: flex !important;
+  }
+
+  /* FULL HEIGHT POPUP CARDS STRETCHING 100% DOWNWARDS TO BOTTOM (CALC 100VH - 2MM) */
+  html body #popupAkun .akunBox,
+  html body .popupAkun .akunBox,
+  html body .akunBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox,
+  html body .chatBox,
+  html body #popupNotifList .popupNotifCard,
+  #popupAkun .akunBox,
+  .akunBox,
+  #popupBantuan .chatBox,
+  .chatBox,
+  #popupNotifList .popupNotifCard {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin: auto !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ALERT NOTIFICATION DIALOG CARD (#popupNotif .popupNotifCard) - CENTERED DIALOG */
+  html body #popupNotif #popupNotifCard,
+  html body #popupNotif .popupNotifCard,
+  #popupNotif #popupNotifCard,
+  #popupNotif .popupNotifCard {
+    width: calc(100vw - 2mm) !important;
+    max-width: 360px !important;
+    height: auto !important;
+    max-height: calc(100vh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin: auto !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* CHAT BANTUAN INTERNAL FLEX FILL */
+  #popupBantuan .chatBox,
+  html body #popupBantuan .chatBox {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 2mm !important;
+  }
+
+  #popupBantuan #chatList,
+  #popupBantuan .chatBody,
+  html body #popupBantuan #chatList,
+  html body #popupBantuan .chatBody {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+  }
+
+  /* NOTIFIKASI LIST INTERNAL FLEX FILL */
+  #popupNotifList .popupNotifCard,
+  html body #popupNotifList .popupNotifCard {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 2mm !important;
+  }
+
+  #popupNotifList #notifListContainer,
+  html body #popupNotifList #notifListContainer {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+  }
+
+  /* AKUN BOX INTERNAL FLEX FILL & SCROLL (EXACT 1MM PADDING ALL SIDES) */
+  #popupAkun .akunBox,
+  html body #popupAkun .akunBox {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow-y: auto !important;
+    padding: 1mm !important;
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* =======================================================================
+   EXACT REJECT POPUP DIMENSIONS & HEADER CLOSE BUTTON FIX
+   MATCHES id="modalGeminiApiKey" (width: calc(100vw - 2mm), max-width: 380px)
+   ======================================================================= */
+html body #rejectOverlay .rejectBoxPopup,
+html body #modalRejectBreakdown .rejectBoxPopup,
+html body #modalRejectParsial .rejectBoxPopup,
+html body .rejectBoxPopup,
+#rejectOverlay .rejectBoxPopup,
+#modalRejectBreakdown .rejectBoxPopup,
+#modalRejectParsial .rejectBoxPopup,
+.rejectBoxPopup {
+  position: relative !important;
+  width: calc(100vw - 2mm) !important;
+  max-width: 380px !important;
+  box-sizing: border-box !important;
+  margin: auto !important;
+  border-radius: 6px !important;
+  overflow: hidden !important;
+  background: var(--bg-card) !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6) !important;
+}
+
+html body #rejectOverlay .rejectHeaderPopup,
+html body #modalRejectBreakdown .rejectHeaderPopup,
+html body #modalRejectParsial .rejectHeaderPopup,
+html body .rejectHeaderPopup,
+#rejectOverlay .rejectHeaderPopup,
+#modalRejectBreakdown .rejectHeaderPopup,
+#modalRejectParsial .rejectHeaderPopup,
+.rejectHeaderPopup {
+  position: relative !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100% !important;
+  padding: 10px 14px !important;
+  background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+  color: #ffffff !important;
+  border-radius: 6px 6px 0 0 !important;
+  box-sizing: border-box !important;
+}
+
+html body #rejectOverlay .rejectHeaderPopup .popupClose,
+html body #modalRejectBreakdown .rejectHeaderPopup .popupClose,
+html body #modalRejectParsial .rejectHeaderPopup .popupClose,
+html body .rejectHeaderPopup .popupClose,
+#rejectOverlay .rejectHeaderPopup .popupClose,
+#modalRejectBreakdown .rejectHeaderPopup .popupClose,
+#modalRejectParsial .rejectHeaderPopup .popupClose,
+.rejectHeaderPopup .popupClose {
+  position: static !important;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  margin-left: auto !important;
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  padding: 0 4px !important;
+  outline: none !important;
+  opacity: 1 !important;
+  display: inline-block !important;
+  z-index: 10 !important;
+}
+
+
+
+/* =============================================================================
+   DESKTOP / LAPTOP VIEW ONLY (MIN-WIDTH: 769PX)
+   FULL SCREEN TOP-TO-BOTTOM (PADDING 1MM ATAS BAWAH) FOR POPUP AKUN, BANTUAN, NOTIFIKASI
+   ============================================================================= */
+@media screen and (min-width: 769px) {
+  /* OVERLAY CONTAINERS - EXACT 1MM PADDING TOP & BOTTOM ON LAPTOP */
+  html body #popupAkun.popupAkun,
+  html body #popupAkun.popupOverlay,
+  html body #popupAkun,
+  html body .popupAkun,
+  html body #popupBantuan.popupOverlay,
+  html body #popupBantuan.popupBantuan,
+  html body #popupBantuan,
+  html body .popupBantuan,
+  html body #popupNotifList.popupOverlay,
+  html body #popupNotifList,
+  #popupAkun,
+  #popupBantuan,
+  #popupNotifList {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    box-sizing: border-box !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* INNER POPUP CARDS - FULL SCREEN HEIGHT (CALC 100VH - 2MM) ON LAPTOP */
+  html body #popupAkun .akunBox,
+  html body .popupAkun .akunBox,
+  html body .akunBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox,
+  html body .chatBox,
+  html body #popupNotifList .popupNotifCard,
+  #popupAkun .akunBox,
+  .akunBox,
+  #popupBantuan .chatBox,
+  .chatBox,
+  #popupNotifList .popupNotifCard {
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin-top: 1mm !important;
+    margin-bottom: 1mm !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  /* CHAT BANTUAN INTERNAL FLEX FILL ON LAPTOP */
+  html body #popupBantuan .chatBox,
+  #popupBantuan .chatBox {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 2mm !important;
+  }
+
+  html body #popupBantuan .chatHeader,
+  #popupBantuan .chatHeader {
+    flex-shrink: 0 !important;
+  }
+
+  html body #popupBantuan #chatList,
+  html body #popupBantuan #chatUserPicker,
+  html body #popupBantuan .chatBody,
+  #popupBantuan #chatList,
+  #popupBantuan #chatUserPicker,
+  #popupBantuan .chatBody {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+  }
+
+  html body #popupBantuan .chatFooter,
+  #popupBantuan .chatFooter {
+    flex-shrink: 0 !important;
+  }
+
+  /* NOTIFIKASI LIST INTERNAL FLEX FILL ON LAPTOP */
+  html body #popupNotifList .popupNotifCard,
+  #popupNotifList .popupNotifCard {
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    padding: 2mm !important;
+  }
+
+  html body #popupNotifList .popupHeaderV2,
+  html body #popupNotifList .notifHeader,
+  #popupNotifList .popupHeaderV2,
+  #popupNotifList .notifHeader {
+    flex-shrink: 0 !important;
+  }
+
+  html body #popupNotifList #notifListContainer,
+  html body #popupNotifList #notifListBody,
+  #popupNotifList #notifListContainer,
+  #popupNotifList #notifListBody {
+    flex: 1 1 auto !important;
+    overflow-y: auto !important;
+  }
+
+  /* AKUN BOX INTERNAL FLEX FILL ON LAPTOP */
+  html body #popupAkun .akunBox,
+  #popupAkun .akunBox {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    overflow-y: auto !important;
+    padding: 4mm 16px !important;
+  }
+}
+
+
+/* =============================================================================
+   NOTIFICATION ICON & BADGE BOX 1MM PADDING SPECIFICATION
+   ============================================================================= */
+html body #notifBellBtn,
+html body .notif-bell-btn,
+html body #helpButton,
+html body .helpButton,
+#notifBellBtn,
+.notif-bell-btn,
+#helpButton,
+.helpButton {
+  padding: 1mm !important;
+  margin-right: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+html body #notifBellBadge,
+html body .notif-bell-badge,
+html body #unreadBadge,
+html body .unreadBadge,
+#notifBellBadge,
+.notif-bell-badge,
+#unreadBadge,
+.unreadBadge {
+  padding: 1mm 4px !important;
+  top: -1mm !important;
+  right: -1mm !important;
+  box-sizing: border-box !important;
+}
+
+
+/* =============================================================================
+   HP / MOBILE VIEW ONLY (MAX-WIDTH: 768PX)
+   NOTIFICATION ICON & BADGE BOX 1MM PADDING SPECIFICATION
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  html body #topHeaderActions #notifBellBtn,
+  html body #topHeaderActions .notif-bell-btn,
+  html body #topHeaderActions #helpButton,
+  html body #topHeaderActions .helpButton,
+  html body #notifBellBtn,
+  html body .notif-bell-btn,
+  html body #helpButton,
+  html body .helpButton,
+  #notifBellBtn,
+  .notif-bell-btn,
+  #helpButton,
+  .helpButton {
+    padding: 1mm !important;
+    margin-right: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #topHeaderActions #notifBellBadge,
+  html body #topHeaderActions .notif-bell-badge,
+  html body #topHeaderActions #unreadBadge,
+  html body #topHeaderActions .unreadBadge,
+  html body #notifBellBadge,
+  html body .notif-bell-badge,
+  html body #unreadBadge,
+  html body .unreadBadge,
+  #notifBellBadge,
+  .notif-bell-badge,
+  #unreadBadge,
+  .unreadBadge {
+    padding: 1mm 4px !important;
+    top: -1mm !important;
+    right: -1mm !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   HP / MOBILE VIEW (MAX-WIDTH: 768PX) - FULL HEIGHT POPUPS & BADGE FIT 1MM PADDING
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  /* OVERLAY CONTAINERS - EXACT 1MM PADDING TOP & BOTTOM ON MOBILE HP */
+  html body #popupAkun.popupAkun,
+  html body #popupAkun.popupOverlay,
+  html body #popupAkun,
+  html body .popupAkun,
+  html body #popupBantuan.popupOverlay,
+  html body #popupBantuan.popupBantuan,
+  html body #popupBantuan,
+  html body .popupBantuan,
+  html body #popupNotifList.popupOverlay,
+  html body #popupNotifList,
+  #popupAkun,
+  #popupBantuan,
+  #popupNotifList {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    box-sizing: border-box !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* INNER POPUP CARDS - FULL HEIGHT (CALC 100VH - 2MM / 100DVH - 2MM) ON MOBILE HP */
+  html body #popupAkun .akunBox,
+  html body .popupAkun .akunBox,
+  html body .akunBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox,
+  html body .chatBox,
+  html body #popupNotifList .popupNotifCard,
+  #popupAkun .akunBox,
+  .akunBox,
+  #popupBantuan .chatBox,
+  .chatBox,
+  #popupNotifList .popupNotifCard {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+    height: calc(100dvh - 2mm) !important;
+    max-height: calc(100dvh - 2mm) !important;
+    margin-top: 1mm !important;
+    margin-bottom: 1mm !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   SECURITY PIN MODAL (popupSecurityPinHapusLokal) HIGH Z-INDEX IN FRONT OF AKUN
+   ============================================================================= */
+html body #popupSecurityPinHapusLokal.popupOverlay,
+html body #popupSecurityPinHapusLokal,
+#popupSecurityPinHapusLokal {
+  z-index: 2147483648 !important;
+  position: fixed !important;
+}
+
+
+/* =============================================================================
+   OFFLINE / NETWORK SAFETY MODAL (#popupOfflineSafetyModal)
+   ============================================================================= */
+html body #popupOfflineSafetyModal.popupOverlay,
+html body #popupOfflineSafetyModal,
+#popupOfflineSafetyModal {
+  z-index: 2147483648 !important;
+  position: fixed !important;
+}
+
+
+/* =============================================================================
+   SECURITY PIN MODAL (popupSecurityPinHapusLokal) 1MM LEFT & RIGHT PADDING
+   ============================================================================= */
+html body #popupSecurityPinHapusLokal.popupOverlay,
+html body #popupSecurityPinHapusLokal,
+#popupSecurityPinHapusLokal {
+  z-index: 2147483648 !important;
+  position: fixed !important;
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+html body #popupSecurityPinHapusLokal .popupBox,
+#popupSecurityPinHapusLokal .popupBox {
+  margin-left: auto !important;
+  margin-right: auto !important;
+  box-sizing: border-box !important;
+}
+
+
+/* =============================================================================
+   SECURITY PIN MODAL (popupSecurityPinHapusLokal) MOBILE HP 1MM SCREEN MARGIN & WIDTH
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  html body #popupSecurityPinHapusLokal,
+  html body #popupSecurityPinHapusLokal.popupOverlay,
+  #popupSecurityPinHapusLokal {
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #popupSecurityPinHapusLokal .popupBox,
+  #popupSecurityPinHapusLokal .popupBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+}
