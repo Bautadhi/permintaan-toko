@@ -5970,10 +5970,13 @@ window.triggerConfirmBoxFlash = triggerConfirmBoxFlash;
       { id: 'modalBuatParsial', closeFn: () => { const el = document.getElementById('modalBuatParsial'); if (el) el.remove(); } },
       { id: 'artemisOverlay', closeFn: () => { if (typeof closeArtemisModal === 'function') closeArtemisModal(); } },
       { id: 'rejectOverlay', closeFn: () => { if (typeof tutupRejectModal === 'function') tutupRejectModal(); } },
-      { id: 'confirmOverlay', closeFn: () => { 
-          if (typeof triggerConfirmBoxFlash === 'function') triggerConfirmBoxFlash();
-          if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
-        } 
+            { id: 'confirmOverlay', closeFn: () => {
+          if (typeof confirmNo === 'function') {
+            confirmNo();
+          } else if (typeof closeConfirm === 'function') {
+            closeConfirm();
+          }
+        }
       },
       { id: 'popupUserForm', closeFn: () => { const el = document.getElementById('popupUserForm'); if (el) { el.classList.remove('show'); el.style.setProperty('display', 'none', 'important'); } } },
       { id: 'popupUserManagementModal', closeFn: () => { const el = document.getElementById('popupUserManagementModal'); if (el) { el.classList.remove('show'); el.style.setProperty('display', 'none', 'important'); } } },

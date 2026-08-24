@@ -14195,3 +14195,14 @@ html body #riwayatPage table tbody tr:not(.empty-grid-row):hover td {
     gap: 6px !important;
   }
 }
+
+
+/* =============================================================================
+   5MM GAP BETWEEN LOGIN CARD TITLE / SUBTITLE AND USERNAME INPUT BOX
+   ============================================================================= */
+.login-card p,
+#loginPage .login-card p,
+html body .login-card p,
+html body #loginPage .login-card p {
+  margin-bottom: 5mm !important;
+}
