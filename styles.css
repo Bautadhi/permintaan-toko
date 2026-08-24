@@ -3046,8 +3046,9 @@ div[id*="Modal"] {
 }
 
 #popupAkun .akunGrid {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: 1fr !important;
   gap: 8px 10px !important;
 }
 
@@ -3659,8 +3660,9 @@ html body #popupUserForm .popupBox {
 }
 
 .akunGrid {
-  display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: 1fr !important;
   gap: 8px 12px !important;
 }
 
@@ -10503,21 +10505,26 @@ html body #loginPage .login-card {
   transition: transform 0.3s ease, box-shadow 0.3s ease !important;
 }
 
-/* HP / MOBILE SCREEN RESPONSIVE LOGIN CARD STYLING (JARAK KARTU DENGAN LAYAR ATAS, KANAN, KIRI PRESISI 1MM SIMETRIS, BAWAH MENYESUAIKAN) */
+/* HP / MOBILE SCREEN RESPONSIVE LOGIN CARD STYLING (CENTERED VERTICALLY & HORIZONTALLY, COMPACT SHORTENED HEIGHT) */
 @media screen and (max-width: 768px) {
   #loginPage,
   #loginPage.page,
   #loginPage.active,
   #loginPage.page.active,
+  html body #loginPage,
   html body #loginPage.active {
     display: flex !important;
     flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: stretch !important;
-    padding: 1mm 1mm 0 1mm !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 1mm !important;
     margin: 0 !important;
     width: 100vw !important;
     max-width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-height: 100vh !important;
+    min-height: 100dvh !important;
     box-sizing: border-box !important;
   }
 
@@ -10527,10 +10534,56 @@ html body #loginPage .login-card {
   html body #loginPage .login-card {
     width: calc(100vw - 2mm) !important;
     max-width: calc(100vw - 2mm) !important;
-    margin: 0 auto auto auto !important;
-    padding: 2mm !important;
+    margin: auto !important;
+    padding: 12px 14px !important;
     border-radius: 8px !important;
     box-sizing: border-box !important;
+  }
+
+  .login-card .logo {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    margin: 0 auto 6px auto !important;
+  }
+
+  .login-card .logo .material-symbols-rounded {
+    font-size: 22px !important;
+  }
+
+  .login-card h2 {
+    font-size: 15px !important;
+    margin: 0 0 2px 0 !important;
+  }
+
+  .login-card p {
+    font-size: 10.5px !important;
+    margin: 0 0 10px 0 !important;
+  }
+
+  .login-card .input-group {
+    height: 40px !important;
+    min-height: 40px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .login-card .input-group span {
+    width: 36px !important;
+  }
+
+  .login-card .input-group input {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+  }
+
+  #btnLogin,
+  .login-card button.btn-primary,
+  .login-card #btnLogin {
+    height: 38px !important;
+    min-height: 38px !important;
+    margin-top: 8px !important;
+    font-size: 12.5px !important;
   }
 }
 
@@ -11906,4 +11959,818 @@ html body #popupSecurityPinHapusLokal .popupBox,
     margin-right: auto !important;
     box-sizing: border-box !important;
   }
+}
+
+
+/* =============================================================================
+   UNIFIED STYLING & 1MM TOP/BOTTOM PADDING FOR 3 POPUPS:
+   1. Popup Reject (#rejectOverlay, #modalRejectParsial, #modalRejectBreakdown)
+   2. Popup Security PIN Hapus Lokal (#popupSecurityPinHapusLokal)
+   3. Popup Gemini API Key (#modalGeminiApiKey)
+   ============================================================================= */
+
+/* OVERLAY CONTAINERS - EXACT 1MM PADDING ALL SIDES (TOP, BOTTOM, LEFT, RIGHT) */
+html body #rejectOverlay.popupOverlay,
+html body #modalRejectParsial.popupOverlay,
+html body #modalRejectBreakdown.popupOverlay,
+html body #popupSecurityPinHapusLokal.popupOverlay,
+html body #modalGeminiApiKey.modalBackdrop,
+html body #rejectOverlay,
+html body #modalRejectParsial,
+html body #modalRejectBreakdown,
+html body #popupSecurityPinHapusLokal,
+html body #modalGeminiApiKey,
+#rejectOverlay,
+#modalRejectParsial,
+#modalRejectBreakdown,
+#popupSecurityPinHapusLokal,
+#modalGeminiApiKey {
+  padding: 1mm !important;
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
+  box-sizing: border-box !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 2147483648 !important;
+}
+
+/* INNER CARDS UNIFORM SIZE & MARGIN */
+html body #rejectOverlay .rejectBoxPopup,
+html body #modalRejectParsial .rejectBoxPopup,
+html body #modalRejectBreakdown .rejectBoxPopup,
+html body #popupSecurityPinHapusLokal .popupBox,
+html body #modalGeminiApiKey .modalKeyBox,
+#rejectOverlay .rejectBoxPopup,
+#modalRejectParsial .rejectBoxPopup,
+#modalRejectBreakdown .rejectBoxPopup,
+#popupSecurityPinHapusLokal .popupBox,
+#modalGeminiApiKey .modalKeyBox {
+  width: calc(100vw - 2mm) !important;
+  max-width: 380px !important;
+  margin: auto !important;
+  border-radius: 6px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+/* HEADERS UNIFORM 12PX 16PX PADDING */
+html body #rejectOverlay .rejectHeaderPopup,
+html body #modalRejectParsial .rejectHeaderPopup,
+html body #modalRejectBreakdown .rejectHeaderPopup,
+html body #popupSecurityPinHapusLokal .popupBox > div:first-child,
+html body #modalGeminiApiKey .modalKeyHeader,
+#rejectOverlay .rejectHeaderPopup,
+#modalRejectParsial .rejectHeaderPopup,
+#modalRejectBreakdown .rejectHeaderPopup,
+#popupSecurityPinHapusLokal .popupBox > div:first-child,
+#modalGeminiApiKey .modalKeyHeader {
+  padding: 12px 16px !important;
+  border-radius: 6px 6px 0 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* BODIES UNIFORM 16PX PADDING & NEAT ELEMENTS */
+html body #rejectOverlay .rejectBodyPopup,
+html body #modalRejectParsial .rejectBodyPopup,
+html body #modalRejectBreakdown .rejectBodyPopup,
+html body #popupSecurityPinHapusLokal .popupBox > div:nth-child(2),
+html body #modalGeminiApiKey .modalKeyBody,
+#rejectOverlay .rejectBodyPopup,
+#modalRejectParsial .rejectBodyPopup,
+#modalRejectBreakdown .rejectBodyPopup,
+#popupSecurityPinHapusLokal .popupBox > div:nth-child(2),
+#modalGeminiApiKey .modalKeyBody {
+  padding: 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* ACTION BUTTONS UNIFORM HEIGHT & BORDER RADIUS */
+#rejectOverlay .confirmButton button,
+#modalRejectParsial .confirmButton button,
+#modalRejectBreakdown .confirmButton button,
+#popupSecurityPinHapusLokal .popupBox button,
+#modalGeminiApiKey .modalKeyActions button {
+  height: 38px !important;
+  border-radius: 5px !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  box-sizing: border-box !important;
+}
+
+
+/* =============================================================================
+   CLOSE BUTTON BOLD & ACTIVE THEME COLOR + 2MM INNER BODY PADDING
+   + 1MM LEFT & RIGHT PADDING FOR CONFIRMATION & NOTIFICATION POPUPS
+   ============================================================================= */
+
+/* BOLD TEBAL & THEME COLOR CLOSE BUTTONS */
+.popupClose,
+.chatClose,
+.rejectHeaderPopup .popupClose,
+.modalKeyHeader button,
+.popupCloseV2 {
+  font-weight: 900 !important;
+  font-size: 26px !important;
+  color: #ffffff !important;
+  line-height: 1 !important;
+  opacity: 0.95 !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, opacity 0.15s ease !important;
+}
+
+.popupClose:hover,
+.chatClose:hover,
+.rejectHeaderPopup .popupClose:hover,
+.modalKeyHeader button:hover,
+.popupCloseV2:hover {
+  opacity: 1 !important;
+  transform: scale(1.1) !important;
+}
+
+/* 2MM INNER BODY PADDING FOR ALL CARDS */
+html body #rejectOverlay .rejectBodyPopup,
+html body #modalRejectParsial .rejectBodyPopup,
+html body #modalRejectBreakdown .rejectBodyPopup,
+html body #popupSecurityPinHapusLokal .popupBox > div:nth-child(2),
+html body #modalGeminiApiKey .modalKeyBody,
+#rejectOverlay .rejectBodyPopup,
+#modalRejectParsial .rejectBodyPopup,
+#modalRejectBreakdown .rejectBodyPopup,
+#popupSecurityPinHapusLokal .popupBox > div:nth-child(2),
+#modalGeminiApiKey .modalKeyBody {
+  padding: 2mm 16px !important;
+  box-sizing: border-box !important;
+}
+
+/* CONFIRMATION & NOTIFICATION POPUPS 1MM LEFT & RIGHT PADDING TO SCREEN */
+html body #confirmOverlay.popupOverlay,
+html body #popupNotif.popupOverlay,
+html body #popupOfflineSafetyModal.popupOverlay,
+html body #confirmOverlay,
+html body #popupNotif,
+html body #popupOfflineSafetyModal,
+#confirmOverlay,
+#popupNotif,
+#popupOfflineSafetyModal {
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+html body #confirmOverlay .popupNotifCard,
+html body #popupNotif .popupNotifCard,
+html body #popupOfflineSafetyModal .popupNotifCard,
+#confirmOverlay .popupNotifCard,
+#popupNotif .popupNotifCard,
+#popupOfflineSafetyModal .popupNotifCard {
+  width: calc(100vw - 2mm) !important;
+  max-width: 360px !important;
+  margin: auto !important;
+  box-sizing: border-box !important;
+}
+
+
+/* =============================================================================
+   SECURITY PIN MODAL (popupSecurityPinHapusLokal) BOLD TITLE & X BUTTON
+   ============================================================================= */
+html body #popupSecurityPinHapusLokal .popupBox > div:first-child span,
+html body #popupSecurityPinHapusLokal .popupBox > div:first-child div,
+html body #popupSecurityPinHapusLokal .popupBox > div:first-child button,
+#popupSecurityPinHapusLokal .popupBox > div:first-child span,
+#popupSecurityPinHapusLokal .popupBox > div:first-child div,
+#popupSecurityPinHapusLokal .popupBox > div:first-child button {
+  font-weight: 900 !important;
+  color: #ffffff !important;
+}
+
+
+/* =============================================================================
+   HEADER CLOSE BUTTON (btnHeaderCloseX) STRICTLY INSIDE POPUP HEADER
+   ============================================================================= */
+html body .btnHeaderCloseX,
+html body #popupSecurityPinHapusLokal .btnHeaderCloseX,
+html body #modalGeminiApiKey .btnHeaderCloseX,
+html body #rejectOverlay .rejectHeaderPopup .popupClose,
+html body #modalRejectBreakdown .rejectHeaderPopup .popupClose,
+html body #modalRejectParsial .rejectHeaderPopup .popupClose,
+.btnHeaderCloseX {
+  position: relative !important;
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  margin-left: auto !important;
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  padding: 0 4px !important;
+  cursor: pointer !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+.btnHeaderCloseX:hover {
+  opacity: 1 !important;
+  transform: scale(1.15) !important;
+}
+
+
+/* =============================================================================
+   CONFIRMATION & NOTIFICATION POPUPS MOBILE HP 1MM SCREEN PADDING & WIDTH
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  html body #confirmOverlay,
+  html body #popupNotif,
+  html body #popupOfflineSafetyModal,
+  #confirmOverlay,
+  #popupNotif,
+  #popupOfflineSafetyModal {
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #confirmBoxCard,
+  html body #popupNotifCard,
+  html body #popupOfflineSafetyCard,
+  #confirmBoxCard,
+  #popupNotifCard,
+  #popupOfflineSafetyCard {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   RESPONSIVE POPUP CARDS:
+   - LAPTOP (min-width: 769px): Original Centered Widths (350px / 360px / 380px)
+   - MOBILE HP (max-width: 768px): 1mm Screen Edge Padding (calc(100vw - 2mm))
+   ============================================================================= */
+
+/* LAPTOP VIEW (min-width: 769px) - ORIGINAL CENTERING & CARD WIDTHS */
+@media screen and (min-width: 769px) {
+  html body #confirmBoxCard,
+  html body #popupNotifCard,
+  html body #popupOfflineSafetyCard,
+  #confirmBoxCard,
+  #popupNotifCard,
+  #popupOfflineSafetyCard {
+    width: 350px !important;
+    max-width: 350px !important;
+    margin: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #popupSecurityPinHapusLokal .popupBox,
+  #popupSecurityPinHapusLokal .popupBox {
+    width: 360px !important;
+    max-width: 360px !important;
+    margin: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #rejectOverlay .rejectBoxPopup,
+  html body #modalRejectParsial .rejectBoxPopup,
+  html body #modalRejectBreakdown .rejectBoxPopup,
+  html body #modalGeminiApiKey .modalKeyBox,
+  #rejectOverlay .rejectBoxPopup,
+  #modalRejectParsial .rejectBoxPopup,
+  #modalRejectBreakdown .rejectBoxPopup,
+  #modalGeminiApiKey .modalKeyBox {
+    width: 380px !important;
+    max-width: 380px !important;
+    margin: auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* MOBILE HP VIEW (max-width: 768px) - 1MM SCREEN EDGE PADDING & FULL DYNAMIC WIDTH */
+@media screen and (max-width: 768px) {
+  html body #confirmOverlay,
+  html body #popupNotif,
+  html body #popupOfflineSafetyModal,
+  html body #popupSecurityPinHapusLokal,
+  html body #modalGeminiApiKey,
+  html body #rejectOverlay,
+  #confirmOverlay,
+  #popupNotif,
+  #popupOfflineSafetyModal,
+  #popupSecurityPinHapusLokal,
+  #modalGeminiApiKey,
+  #rejectOverlay {
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #confirmBoxCard,
+  html body #popupNotifCard,
+  html body #popupOfflineSafetyCard,
+  html body #popupSecurityPinHapusLokal .popupBox,
+  html body #modalGeminiApiKey .modalKeyBox,
+  html body #rejectOverlay .rejectBoxPopup,
+  #confirmBoxCard,
+  #popupNotifCard,
+  #popupOfflineSafetyCard,
+  #popupSecurityPinHapusLokal .popupBox,
+  #modalGeminiApiKey .modalKeyBox,
+  #rejectOverlay .rejectBoxPopup {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   POPUP USER FORM (#popupUserForm) HEADER & X BUTTON PERFECT ALIGNMENT
+   ============================================================================= */
+html body #popupUserForm .popupClose,
+html body #popupUserForm .btnHeaderCloseX,
+#popupUserForm .popupClose,
+#popupUserForm .btnHeaderCloseX {
+  position: static !important;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  margin-left: auto !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--primary) !important;
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  padding: 0 4px !important;
+  cursor: pointer !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+}
+
+
+/* =============================================================================
+   USER MANAGEMENT MODAL (#popupUserManagementModal) X BUTTON ALIGNMENT WITH TITLE
+   & POPUP TAMBAH USER (#popupUserForm) ENLARGED TITLE ON MOBILE HP
+   ============================================================================= */
+
+/* 1. X BUTTON ALIGNMENT IN USER MANAGEMENT HEADER */
+html body #popupUserManagementModal .userManagementHeader,
+#popupUserManagementModal .userManagementHeader,
+.userManagementHeader {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  position: relative !important;
+  padding: 10px 14px !important;
+  box-sizing: border-box !important;
+}
+
+html body #popupUserManagementModal .btnTutupUserModal,
+#popupUserManagementModal .btnTutupUserModal,
+.btnTutupUserModal {
+  position: static !important;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  left: auto !important;
+  bottom: auto !important;
+  margin-left: auto !important;
+  width: auto !important;
+  height: auto !important;
+  padding: 0 4px !important;
+  background: transparent !important;
+  border: none !important;
+  color: var(--primary) !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+html body #popupUserManagementModal .btnTutupUserModal .material-symbols-rounded,
+#popupUserManagementModal .btnTutupUserModal .material-symbols-rounded,
+.btnTutupUserModal .material-symbols-rounded {
+  font-size: 26px !important;
+  font-weight: 900 !important;
+  color: var(--primary) !important;
+  line-height: 1 !important;
+}
+
+/* 2. ENLARGED USER FORM TITLE ON MOBILE HP VIEW */
+@media screen and (max-width: 768px) {
+  html body #popupUserForm #userFormTitle,
+  #popupUserForm #userFormTitle,
+  #userFormTitle {
+    font-size: 16.5px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.6px !important;
+  }
+}
+
+
+/* =============================================================================
+   FIXED REFRESH BUTTON POSITIONING NEXT TO CLOSE (X) BUTTON IN POPUP HEADERS
+   ============================================================================= */
+#btnRefreshDetailV2,
+.btnHeaderRefresh {
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  transform: none !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  color: #ffffff !important;
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: transform 0.3s ease, background 0.2s ease !important;
+  outline: none !important;
+}
+
+#btnRefreshDetailV2:hover,
+.btnHeaderRefresh:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+  transform: scale(1.1) !important;
+}
+
+
+/* =============================================================================
+   POPUP EDIT KETERANGAN PART SINGLE (#popupEditKeteranganPartSingle)
+   UNIFIED PADDING, HEADER & RESPONSIVE CARD SIZING WITH POPUP REJECT
+   ============================================================================= */
+
+/* LAPTOP VIEW (min-width: 769px) - 380PX CENTERING */
+@media screen and (min-width: 769px) {
+  html body #popupEditKeteranganPartSingle .popupBox,
+  #popupEditKeteranganPartSingle .popupBox {
+    width: 380px !important;
+    max-width: 380px !important;
+    margin: auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* MOBILE HP VIEW (max-width: 768px) - 1MM SCREEN PADDING ALL SIDES */
+@media screen and (max-width: 768px) {
+  html body #popupEditKeteranganPartSingle,
+  html body #popupEditKeteranganPartSingle.popupOverlay,
+  #popupEditKeteranganPartSingle {
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #popupEditKeteranganPartSingle .popupBox,
+  #popupEditKeteranganPartSingle .popupBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   ENFORCE EXACT POPUP REJECT SIZING & POSITIONING ON popupEditKeteranganPartSingle
+   ============================================================================= */
+html body #popupEditKeteranganPartSingle.popupOverlay,
+html body #popupEditKeteranganPartSingle,
+#popupEditKeteranganPartSingle {
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 2147483647 !important;
+}
+
+html body #popupEditKeteranganPartSingle .rejectBoxPopup,
+#popupEditKeteranganPartSingle .rejectBoxPopup {
+  margin: auto !important;
+}
+
+
+
+
+
+/* =============================================================================
+   MOBILE HP: TALLER KETERANGAN INPUT & SHORTENED PHOTO PREVIEW GRID (ARTEMIS)
+   ============================================================================= */
+@media screen and (max-width: 768px) {
+  #inputKetPartArtemis,
+  html body #artemisOverlay #inputKetPartArtemis {
+    height: 85px !important;
+    min-height: 75px !important;
+    font-size: 13px !important;
+    padding: 8px 10px !important;
+    box-sizing: border-box !important;
+  }
+
+  #artemisPhotoPreviewGrid,
+  html body #artemisOverlay #artemisPhotoPreviewGrid {
+    max-height: 90px !important;
+    padding: 4px !important;
+    margin-bottom: 6px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   ARTEMIS POPUP (#artemisOverlay) BOLD TITLE & ALIGNED X BUTTON
+   ============================================================================= */
+html body #artemisOverlay .artemisHeaderPopup span,
+html body #artemisOverlay .artemisHeaderPopup button,
+#artemisOverlay .artemisHeaderPopup span,
+#artemisOverlay .artemisHeaderPopup button {
+  font-weight: 900 !important;
+  color: #ffffff !important;
+}
+
+html body #artemisOverlay .btnHeaderCloseX,
+#artemisOverlay .btnHeaderCloseX {
+  position: static !important;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  margin-left: auto !important;
+  line-height: 1 !important;
+  font-size: 26px !important;
+  font-weight: 900 !important;
+}
+
+
+/* =============================================================================
+   LAPTOP VIEW ONLY (min-width: 769px):
+   AUTO-FIT COLUMNS WITH WRAP-TEXT SAFETY FOR POPUP DETAIL & RIWAYAT TABLE
+   ============================================================================= */
+@media screen and (min-width: 769px) {
+  /* 1. Popup Detail Permintaan Table (#popupDetailBarangV2) */
+  html body #popupDetailBarangV2 table,
+  html body #popupDetailBarangV2 .detailTable2,
+  #popupDetailBarangV2 table,
+  #popupDetailBarangV2 .detailTable2 {
+    table-layout: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #popupDetailBarangV2 table th,
+  html body #popupDetailBarangV2 table td,
+  #popupDetailBarangV2 table th,
+  #popupDetailBarangV2 table td {
+    width: auto !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. Tabel Riwayat Page (#historyPage / .historyTable) */
+  html body #historyPage table.historyTable,
+  html body #riwayatPage table.historyTable,
+  html body .historyTable,
+  #historyPage .historyTable,
+  #riwayatPage .historyTable {
+    table-layout: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #historyPage .historyTable th,
+  html body #historyPage .historyTable td,
+  html body #riwayatPage .historyTable th,
+  html body #riwayatPage .historyTable td,
+  html body .historyTable th,
+  html body .historyTable td,
+  #riwayatPage .historyTable th:nth-child(n),
+  #riwayatPage .historyTable td:nth-child(n) {
+    width: auto !important;
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+    box-sizing: border-box !important;
+  }
+}
+
+
+/* =============================================================================
+   LAPTOP VIEW: DETAIL TABLE V2 AUTO-FIT & WRAP TEXT PROTECTION
+   ============================================================================= */
+@media screen and (min-width: 769px) {
+  html body #popupDetailBarangV2 table.detailTableV2,
+  html body .detailTableV2,
+  #popupDetailBarangV2 table,
+  #popupDetailBarangV2 .detailTableV2 {
+    table-layout: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #popupDetailBarangV2 table.detailTableV2 th,
+  html body #popupDetailBarangV2 table.detailTableV2 td,
+  html body .detailTableV2 th,
+  html body .detailTableV2 td,
+  #popupDetailBarangV2 table th,
+  #popupDetailBarangV2 table td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+    overflow-wrap: anywhere !important;
+    max-width: 380px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* KETERANGAN PART & ALASAN wrapping for continuous long text */
+  html body #popupDetailBarangV2 .detailTableV2 td {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: anywhere !important;
+  }
+}
+
+
+
+
+
+/* =============================================================================
+   TABLE RULES: LAPTOP (min-width: 769px) vs MOBILE HP (max-width: 768px)
+   ============================================================================= */
+
+/* LAPTOP VIEW ONLY (min-width: 769px): COMPACT & RIGHT ALIGNED AKSI COLUMN */
+@media screen and (min-width: 769px) {
+  .th-aksi-col,
+  html body #popupDetailBarangV2 table.detailTableV2 th.th-aksi-col,
+  html body #popupDetailBarangV2 table.detailTableV2 th:last-child,
+  html body #popupDetailBarangV2 table.detailTableV2 td:last-child,
+  html body #historyPage .historyTable th.th-aksi-col,
+  html body #historyPage .historyTable td:nth-child(1),
+  html body #riwayatPage .historyTable th.th-aksi-col,
+  html body #riwayatPage .historyTable td:nth-child(1) {
+    width: 1% !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+    justify-content: flex-end !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* MOBILE HP VIEW (max-width: 768px): AUTO-FIT COLUMNS WITHOUT WRAP-TEXT & PRES RIGHT-ALIGNED AKSI */
+@media screen and (max-width: 768px) {
+  html body #popupDetailBarangV2 table.detailTableV2,
+  html body .detailTableV2,
+  html body #historyPage .historyTable,
+  html body #riwayatPage .historyTable {
+    table-layout: auto !important;
+    width: max-content !important;
+    min-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #popupDetailBarangV2 table.detailTableV2 th,
+  html body #popupDetailBarangV2 table.detailTableV2 td,
+  html body .detailTableV2 th,
+  html body .detailTableV2 td,
+  html body #historyPage .historyTable th,
+  html body #historyPage .historyTable td,
+  html body #riwayatPage .historyTable th,
+  html body #riwayatPage .historyTable td {
+    white-space: nowrap !important;
+    word-break: normal !important;
+    overflow-wrap: normal !important;
+    width: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  /* AKSI Column in Mobile HP: Pres / Compact & Right Aligned */
+  .th-aksi-col,
+  html body #popupDetailBarangV2 table.detailTableV2 th.th-aksi-col,
+  html body #popupDetailBarangV2 table.detailTableV2 th:last-child,
+  html body #popupDetailBarangV2 table.detailTableV2 td:last-child,
+  html body #historyPage .historyTable th.th-aksi-col,
+  html body #historyPage .historyTable td:nth-child(1),
+  html body #riwayatPage .historyTable th.th-aksi-col,
+  html body #riwayatPage .historyTable td:nth-child(1) {
+    width: 1% !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+    justify-content: flex-end !important;
+    padding-right: 12px !important;
+  }
+}
+
+
+/* =============================================================================
+   POPUP TTD (#popupTTD) Z-INDEX & SHORTENED RESPONSIVE SIZING
+   ============================================================================= */
+#popupTTD.popupOverlay,
+html body #popupTTD.popupOverlay {
+  z-index: 2147483648 !important;
+}
+
+/* LAPTOP VIEW (min-width: 769px): SHORTENED HEIGHT & COMPACT CANVAS */
+@media screen and (min-width: 769px) {
+  #popupTTD .ttdBox,
+  html body #popupTTD .ttdBox {
+    width: 460px !important;
+    max-width: 460px !important;
+    height: auto !important;
+    max-height: 85vh !important;
+    margin: auto !important;
+    border-radius: 6px !important;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupTTD #canvasTTD,
+  html body #popupTTD #canvasTTD {
+    height: 175px !important;
+  }
+}
+
+/* MOBILE HP VIEW (max-width: 768px): 1MM LEFT/RIGHT GAP & COMPACT SHORTENED HEIGHT */
+@media screen and (max-width: 768px) {
+  #popupTTD .ttdBox,
+  html body #popupTTD .ttdBox {
+    width: calc(100vw - 2mm) !important;
+    max-width: calc(100vw - 2mm) !important;
+    height: auto !important;
+    max-height: calc(100vh - 3cm) !important;
+    margin: auto 1mm !important;
+    margin-left: 1mm !important;
+    margin-right: 1mm !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+  }
+
+  #popupTTD #canvasTTD,
+  html body #popupTTD #canvasTTD {
+    height: 165px !important;
+  }
+}
+
+
+/* =============================================================================
+   FORCE POPUP AKUN FORM FIELDS (.akunGrid) TO 1 FULL COLUMN SINGLE ROW
+   ============================================================================= */
+#popupAkun .akunGrid,
+.popupAkun .akunGrid,
+.akunGrid,
+html body #popupAkun .akunGrid {
+  display: flex !important;
+  flex-direction: column !important;
+  grid-template-columns: 1fr !important;
+  gap: 5px !important;
+  width: 100% !important;
+}
+
+#popupAkun .akunGrid > div,
+.popupAkun .akunGrid > div,
+.akunGrid > div,
+html body #popupAkun .akunGrid > div {
+  width: 100% !important;
+  grid-column: span 1 !important;
+  min-width: 0 !important;
+}
+
+
+/* =============================================================================
+   STRICT NO-SCROLLBAR FIX FOR POPUP PROFIL AKUN (#popupAkun .akunBox)
+   ============================================================================= */
+#popupAkun .akunBox,
+.popupAkun .akunBox,
+html body #popupAkun .akunBox,
+html body .popupAkun .akunBox {
+  overflow: hidden !important;
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  max-height: 98vh !important;
 }
