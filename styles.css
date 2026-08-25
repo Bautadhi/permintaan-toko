@@ -184,6 +184,46 @@ body.crimson-mode {
   --primary-hover: #be123c;
 }
 
+/* 10. SPACE / COSMIC MODE (RAME NEBULA & BINTANG DI ATAS) */
+body.space-mode,
+body.cosmic-mode {
+  --bg-body: #080c18;
+  --bg-box: #111827;
+  --bg-card: #111827;
+  --bg-header: #0f172a;
+  --text-main: #e2e8f0;
+  --text-muted: #94a3b8;
+  --border-color: #1e293b;
+  --input-bg: #0b1120;
+  --input-text: #f8fafc;
+  --table-hover: #1e293b;
+  --table-border: #334155;
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  background-color: #05070f !important;
+  background-image: 
+    radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.45) 0%, rgba(59, 130, 246, 0.35) 25%, rgba(236, 72, 153, 0.25) 45%, transparent 70%),
+    radial-gradient(circle at 20% 10%, rgba(6, 182, 212, 0.4) 0%, transparent 40%),
+    radial-gradient(circle at 80% 12%, rgba(168, 85, 247, 0.4) 0%, transparent 45%),
+    radial-gradient(circle at 50% 18%, rgba(244, 114, 182, 0.3) 0%, transparent 35%),
+    radial-gradient(2px 2px at 15% 5%, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 25% 12%, #a855f7, rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 35% 8%, #38bdf8, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 45% 15%, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 55% 6%, #f472b6, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 65% 14%, #38bdf8, rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 75% 9%, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 85% 18%, #c084fc, rgba(0,0,0,0)),
+    radial-gradient(3px 3px at 92% 7%, #38bdf8, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 10% 22%, #ffffff, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 30% 25%, #f472b6, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 70% 24%, #38bdf8, rgba(0,0,0,0)),
+    radial-gradient(2px 2px at 88% 28%, #ffffff, rgba(0,0,0,0)) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 100% !important;
+  background-attachment: fixed !important;
+}
+
 /* BASE RESET */
 * {
   margin: 0;
@@ -10752,23 +10792,38 @@ html body #inputPage.active {
   margin-top: 0 !important;
 }
 
-#inputPage input,
+/* VERTICALLY CENTERED (RATA TENGAH ATAS-BAWAH) & HORIZONTALLY LEFT ALIGNED (RATA KIRI) FOR ALL INPUT BOXES IN INPUT PAGE */
+#inputPage input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 #inputPage select,
-#inputPage textarea,
-#inputPage .box input,
+#inputPage .box input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 #inputPage .box select,
-#inputPage .box textarea,
-html body #inputPage input,
+#inputPage .detailRow input,
+html body #inputPage input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 html body #inputPage select,
-html body #inputPage textarea,
-.input-form input,
+html body #inputPage .detailRow input,
+.input-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
 .input-form select,
-.input-form textarea,
-.form-control,
-form input,
-form select,
-form textarea {
-  padding-top: 1mm !important;
+.form-control {
+  text-align: left !important;
+  vertical-align: middle !important;
+  line-height: normal !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  padding-left: 10px !important;
+  padding-right: 10px !important;
+  height: 42px !important;
+  align-content: center !important;
+  box-sizing: border-box !important;
+}
+
+#inputPage textarea,
+#inputPage .box textarea,
+html body #inputPage textarea,
+.input-form textarea {
+  text-align: left !important;
+  padding: 10px 12px !important;
+  line-height: 1.4 !important;
+  box-sizing: border-box !important;
 }
 
 /* 3. STICKY FULL-WIDTH TOP HEADER FOR INPUT FORM PAGE (TITLE, PDF/IMAGE/EXCEL ICONS & LINE STAYS PINNED AT TOP FULL-WIDTH) */
@@ -14359,7 +14414,19 @@ html body #popupBantuan .chatBox {
 #popupUserManagementModal table.userModalTable td:last-child,
 .userModalTable th:last-child,
 .userModalTable td:last-child {
-  text-align: right !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  min-width: 125px !important;
+}
+
+.userModalTable td:last-child > div,
+#popupUserManagementModal table.userModalTable td:last-child > div {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
 }
 
 
