@@ -31,8 +31,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260825_v1787850000">
-  <script src="app.js?v=20260825_v1787850000"></script>
+  <link rel="stylesheet" href="styles.css?v=20260825_v1787970000">
+  <script src="app.js?v=20260825_v1787970000"></script>
 
   <!-- Global Failsafe Gemini AI Key Handler -->
   <script>
@@ -990,17 +990,19 @@
         <input type="range" id="bgOpacityRange" min="0" max="100" value="48" oninput="ubahTransparansiBackground(this.value)" style="width: 100%; accent-color: var(--primary); cursor: pointer; height: 5px; border-radius: 3px; display: block; margin: 0; padding: 0;">
       </div>
 
-      <!-- BARIS 8: LOGOUT KELUAR (1 BARIS FULL) -->
-      <div style="margin-top: 1.5mm; margin-bottom: 1.5mm; width: 100%;"
-        <button type="button" class="btnLogout" onclick="logout()" style="width: 100%; height: 36px; border-radius: 6px; font-size: 12px; font-weight: 900; background: linear-gradient(135deg, #dc2626, #991b1b); color: #ffffff; border: none; box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; white-space: nowrap;">
-          <span class="material-symbols-rounded" style="font-size: 18px; line-height: 1;">logout</span> LOGOUT KELUAR
-        </button>
+      <!-- BARIS 8: LOGOUT KELUAR -->
+      <div id="containerLogoutButtons" class="akunRowPair">
+        <div id="btnLogoutThisDeviceWrapper" style="width: 100%;">
+          <button type="button" id="btnLogoutSingleBtn" class="btnLogout" onclick="logout()" title="LOGOUT DARI PERANGKAT HP / LAPTOP INI">
+            <span class="material-symbols-rounded">logout</span> LOGOUT KELUAR
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- POPUP VERIFIKASI PASSWORD KEAMANAN HAPUS PENYIMPANAN LOKAL -->
-  <div id="popupSecurityPinHapusLokal" class="popupOverlay" style="display: none; z-index: 2147483648 !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;" onclick="if(event.target === this) { event.preventDefault(); event.stopPropagation(); tutupModalPinHapusLokal(); }">
+  <div id="popupSecurityPinHapusLokal" class="popupOverlay" style="display: none; z-index: 2000000000 !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;" onclick="if(event.target === this) { event.preventDefault(); event.stopPropagation(); tutupModalPinHapusLokal(); }">
     <div class="popupBox" style="background: var(--bg-card) !important; border-radius: 6px !important; box-shadow: 0 25px 60px rgba(0,0,0,0.5) !important; border: 1px solid var(--border-color) !important; overflow: hidden !important; animation: spinnerPop 0.25s cubic-bezier(0.16, 1, 0.3, 1); margin: auto !important;">
       
       <!-- HEADER (SESUAI DENGAN TEMA AKTIF) -->
@@ -1153,7 +1155,7 @@
   </div>
 
   <!-- 5. OFFLINE / NETWORK SAFETY MODAL (#popupOfflineSafetyModal) -->
-  <div id="popupOfflineSafetyModal" class="popupOverlay" style="display: none; z-index: 2147483648 !important; align-items: center !important; justify-content: center !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;">
+  <div id="popupOfflineSafetyModal" class="popupOverlay" style="display: none; z-index: 2000000000 !important; align-items: center !important; justify-content: center !important; padding-left: 3mm !important; padding-right: 3mm !important; box-sizing: border-box !important;">
     <div class="popupNotifCard" id="popupOfflineSafetyCard" class="popupNotifCard" style="border-radius: 5px !important; overflow: hidden !important; margin: auto !important;">
       <div class="popupNotifBody" style="padding: 16px 18px 12px 18px; text-align: center;">
         <span class="material-symbols-rounded" style="font-size: 34px; color: #ef4444; margin-bottom: 6px; display: block;">wifi_off</span>
@@ -1317,7 +1319,7 @@
   </div>
 
   <!-- 7. POPUP DIGITAL SIGNATURE (TTD) MODAL -->
-  <div id="popupTTD" class="popupTTD popupOverlay" onclick="if(event.target === this) tutupTTD();" style="display: none; z-index: 2147483648 !important; box-sizing: border-box !important;">
+  <div id="popupTTD" class="popupTTD popupOverlay" onclick="if(event.target === this) tutupTTD();" style="display: none; z-index: 2000000000 !important; box-sizing: border-box !important;">
     <div class="ttdBox" onclick="event.stopPropagation()" style="background: var(--bg-box) !important; border-radius: 6px !important; overflow: hidden !important; border: 1px solid var(--border-color) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important; box-sizing: border-box !important; margin: auto !important; padding: 2mm !important;">
       <div class="ttdHeader" style="background: var(--primary) !important; color: #ffffff !important; padding: 2mm !important; border-radius: 4px 4px 0 0 !important; display: flex !important; align-items: center !important; justify-content: space-between !important; position: relative !important;">
         <div style="display: flex; align-items: center; gap: 8px;">
@@ -1435,6 +1437,9 @@
         <div style="display: flex; align-items: center; gap: 6px;">
           <button type="button" id="btnHapusMultiUserModal" class="btnDownload" style="display: none; background: #ef4444; height: 36px; padding: 0 12px; font-weight: 800; font-size: 11px;" onclick="hapusMultiUser(this)">
             <span class="material-symbols-rounded" style="font-size: 16px;">delete_sweep</span> HAPUS (<span id="countSelectedUsers">0</span>) USER
+          </button>
+          <button type="button" class="btnForceLogoutSemuaUserAdmin" style="height: 36px; padding: 0 10px; font-size: 11px; font-weight: 900; background: linear-gradient(135deg, #ea580c, #c2410c); color: #ffffff; border: none; border-radius: 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; box-shadow: 0 2px 6px rgba(234,88,12,0.3); white-space: nowrap;" onclick="logoutSemuaPerangkatUserByAdmin()" title="KELUARKAN / LOGOUT SELURUH USER DARI SEMUA PERANGKAT">
+            <span class="material-symbols-rounded" style="font-size: 16px;">phonelink_erase</span> LOGOUT SEMUA USER
           </button>
           <button type="button" class="btnTambahBarang" style="height: 36px; padding: 0 14px; font-size: 11.5px; font-weight: 800; margin: 0;" onclick="bukaUserModal(null, this)">
             <span class="material-symbols-rounded" style="font-size: 18px;">person_add</span> TAMBAH USER
@@ -1672,7 +1677,7 @@
 
 
   <!-- POPUP UBAH STATUS SUPABASE (KHUSUS ADMIN) -->
-    <div id="popupUbahStatusAdminModal" class="popupOverlay" onclick="if(event.target===this){ tutupModalUbahStatusAdmin(); }" style="z-index: 2147483648 !important; display: none;">
+    <div id="popupUbahStatusAdminModal" class="popupOverlay" onclick="if(event.target===this){ tutupModalUbahStatusAdmin(); }" style="z-index: 2000000000 !important; display: none;">
     <div class="rejectBoxPopup" style="width: 380px !important; max-width: calc(100vw - 2mm) !important; background: var(--bg-card, var(--bg-box)) !important; border-radius: 6px !important; overflow: hidden !important; border: 1px solid var(--border-color) !important; box-shadow: 0 20px 50px rgba(0,0,0,0.45) !important; box-sizing: border-box !important; margin: auto !important;" onclick="event.stopPropagation()">
       <div class="rejectHeaderPopup" style="background: var(--primary) !important; color: #ffffff !important; padding: 12px 16px !important; border-radius: 6px 6px 0 0 !important; display: flex !important; align-items: center !important; justify-content: space-between !important; box-sizing: border-box !important;">
         <div style="display: flex; align-items: center; gap: 8px;">

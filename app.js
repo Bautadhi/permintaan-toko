@@ -1700,19 +1700,32 @@ function countAllPendingBreakdowns() {
   const seenIds = new Set();
 
   try {
+    // 1. Jika pengaturan require_dm_approval_breakdown = false, maka DM approval tidak diperlukan (count = 0)
+    const requireApproval = (typeof getRequireDmApprovalBreakdownSetting === 'function')
+      ? getRequireDmApprovalBreakdownSetting()
+      : true;
+    if (!requireApproval) return 0;
+
+    const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+    // Hanya hitung surat yang aktif dan TIDAK dihapus
+    const activeReqs = reqs.filter(r => r && r.noSurat && !r.isDeleted && String(r.status || '').toUpperCase() !== 'DELETED');
+    const validNoSuratSet = new Set(activeReqs.map(r => String(r.noSurat).trim().toUpperCase()));
+
     const allPartials = typeof getAllPartialBreakdownsFromDB === 'function' ? getAllPartialBreakdownsFromDB() : [];
     allPartials.forEach(p => {
       if (p && String(p.status || '').toUpperCase() === 'PENDING') {
-        const pid = p.id || `${p.no_surat_induk || p.noSurat}_${p.partial_id || p.partialId || 'P1'}`;
-        if (!seenIds.has(pid)) {
-          seenIds.add(pid);
-          count++;
+        const parentNs = String(p.no_surat_induk || p.noSurat || '').trim().toUpperCase();
+        if (parentNs && validNoSuratSet.has(parentNs)) {
+          const pid = p.id || `${parentNs}_${p.partial_id || p.partialId || 'P1'}`;
+          if (!seenIds.has(pid)) {
+            seenIds.add(pid);
+            count++;
+          }
         }
       }
     });
 
-    const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
-    reqs.forEach(r => {
+    activeReqs.forEach(r => {
       if (r && Array.isArray(r.partialBreakdowns)) {
         r.partialBreakdowns.forEach(p => {
           if (p && String(p.status || '').toUpperCase() === 'PENDING') {
@@ -1798,6 +1811,10 @@ function getAccessibleNotifications() {
   if (isDMUser) {
     const pendingCount = countAllPendingBreakdowns();
     if (pendingCount > 0) {
+      // Ambil status readBy yang tersimpan dari notifikasi lokal/DB agar titik merah & status baca tersimpan
+      const existingStored = notifs.find(n => n && n.id === 'CONSOLIDATED_BREAKDOWN_PENDING_NOTIF');
+      const readByArr = (existingStored && Array.isArray(existingStored.readBy)) ? existingStored.readBy : [];
+
       const consolidatedNotif = {
         id: 'CONSOLIDATED_BREAKDOWN_PENDING_NOTIF',
         type: 'BREAKDOWN_CONSOLIDATED',
@@ -1806,7 +1823,7 @@ function getAccessibleNotifications() {
         targetRoles: ['DM', 'ADMIN'],
         targetArea: 'ALL',
         time: 'HARI INI',
-        readBy: [],
+        readBy: readByArr,
         pendingCount: pendingCount
       };
       filtered.unshift(consolidatedNotif);
@@ -6263,6 +6280,8 @@ async function prosesLogin() {
 
     if (user) {
       currentUser = user;
+      const newMyToken = 'ST_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+      appStorage.setItem('MY_SESSION_TOKEN', newMyToken);
 
       if (user.theme) {
         appStorage.setItem(THEME_KEY, user.theme);
@@ -6357,6 +6376,166 @@ async function logout() {
 }
 
 // =======================================================================
+// SYSTEM LOGOUT SEMUA PERANGKAT (GLOBAL SESSION INVALIDATION ENGINE)
+// =======================================================================
+let _sessionTokenRealtimeRef = null;
+
+function startSessionTokenRealtimeListener() {
+  if (!currentUser || !currentUser.username) return;
+  const usernameKey = String(currentUser.username).replace(/[\/\.#$\[\]]/g, '_');
+  const rtdb = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
+  if (!rtdb) return;
+
+  if (_sessionTokenRealtimeRef) {
+    try { rtdb.ref(`user_sessions/${usernameKey}`).off('value', _sessionTokenRealtimeRef); } catch(e) {}
+    _sessionTokenRealtimeRef = null;
+  }
+
+  let myLocalToken = appStorage.getItem('MY_SESSION_TOKEN');
+  if (!myLocalToken) {
+    myLocalToken = 'ST_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    appStorage.setItem('MY_SESSION_TOKEN', myLocalToken);
+  }
+
+  // SINKRONISASI PENTING: Update token sesi lokal saat login ke Realtime DB
+  try {
+    rtdb.ref(`user_sessions/${usernameKey}`).set({
+      session_token: myLocalToken,
+      updated_at: new Date().toISOString()
+    });
+  } catch(e) {}
+
+  _sessionTokenRealtimeRef = rtdb.ref(`user_sessions/${usernameKey}`).on('value', snapshot => {
+    if (!currentUser) return;
+    const data = snapshot.val();
+    if (data && data.session_token) {
+      const activeMyToken = appStorage.getItem('MY_SESSION_TOKEN');
+      if (activeMyToken && data.session_token !== activeMyToken) {
+        console.warn('⚠️ [GLOBAL LOGOUT NOTICE]: Account logged out from another device!');
+        forceLogoutThisDevice('AKUN ANDA TELAH DI-LOGOUT DARI PERANGKAT LAIN!');
+      }
+    }
+  });
+}
+window.startSessionTokenRealtimeListener = startSessionTokenRealtimeListener;
+
+function forceLogoutThisDevice(customMsg = 'SESI ANDA TELAH KEDALUWARSA ATAU DI-LOGOUT!') {
+  if (_sessionTokenRealtimeRef) {
+    try {
+      const rtdb = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
+      if (rtdb && currentUser && currentUser.username) {
+        const usernameKey = String(currentUser.username).replace(/[\/\.#$\[\]]/g, '_');
+        rtdb.ref(`user_sessions/${usernameKey}`).off('value', _sessionTokenRealtimeRef);
+      }
+    } catch(e) {}
+    _sessionTokenRealtimeRef = null;
+  }
+
+  currentUser = null;
+  appStorage.removeItem(SESSION_KEY);
+  appStorage.removeItem('MY_SESSION_TOKEN');
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+
+  if (typeof tutupAkun === 'function') tutupAkun(true);
+  if (typeof tutupNotificationModal === 'function') tutupNotificationModal();
+  if (typeof tutupModalTambahToko === 'function') tutupModalTambahToko();
+  if (typeof tutupModalViewMasterSqlSupabase === 'function') tutupModalViewMasterSqlSupabase();
+  if (typeof tutupModalSetupSupabaseKeys === 'function') tutupModalSetupSupabaseKeys();
+  if (typeof tutupModalPeriksaToko === 'function') tutupModalPeriksaToko();
+  if (typeof tutupModalManagementUser === 'function') tutupModalManagementUser();
+
+  // Bersihkan seluruh popup overlay & backdrop agar tombol di loginPage tidak terkunci
+  document.querySelectorAll('.popupOverlay, .modal').forEach(el => {
+    el.classList.remove('show');
+    el.style.display = 'none';
+  });
+
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  if (confirmOverlay) {
+    confirmOverlay.classList.remove('show');
+    confirmOverlay.style.display = 'none';
+  }
+  const popupNotif = document.getElementById('popupNotif');
+  if (popupNotif) {
+    popupNotif.classList.remove('show');
+    popupNotif.style.display = 'none';
+  }
+
+  const bottomMenu = document.getElementById('bottomMenu');
+  if (bottomMenu) bottomMenu.style.display = 'none';
+  const helpBtn = document.getElementById('helpButton');
+  if (helpBtn) helpBtn.style.display = 'none';
+
+  pindahHalaman('loginPage');
+  if (typeof loadRememberedCredentials === 'function') {
+    loadRememberedCredentials();
+  }
+  if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
+  if (typeof updateGlobalDeviceAppBadge === 'function') updateGlobalDeviceAppBadge();
+  
+  if (customMsg) showNotif(customMsg, 'warning');
+}
+window.forceLogoutThisDevice = forceLogoutThisDevice;
+
+async function logoutSemuaPerangkat() {
+  const confirmMsg = isFormDirtyOrFilled() 
+    ? 'ADA DATA PERMINTAAN BELUM DISIMPAN. YAKIN INGIN LOGOUT SELURUH PERANGKAT HP & LAPTOP AKUN INI?' 
+    : 'YAKIN INGIN KELUAR / LOGOUT AKUN INI DARI SELURUH PERANGKAT HP & LAPTOP?';
+
+  showConfirm(confirmMsg, function() {
+    var _asyncTask = async function() {
+      showLoading('MEMPROSES LOGOUT SEMUA PERANGKAT...');
+      try {
+        const username = currentUser ? currentUser.username : null;
+        const usernameKey = username ? String(username).replace(/[\/\.#$\[\]]/g, '_') : null;
+        const newGlobalSessionToken = 'ST_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+        if (usernameKey) {
+          // 1. Update Firebase Realtime DB (Realtime Sync to all devices)
+          try {
+            const rtdb = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
+            if (rtdb) {
+              await rtdb.ref(`user_sessions/${usernameKey}`).set({
+                session_token: newGlobalSessionToken,
+                logout_at: new Date().toISOString()
+              });
+              rtdb.ref(`users/${usernameKey}/session_token`).set(newGlobalSessionToken).catch(() => {});
+            }
+          } catch(e1) {}
+
+          // 2. Update Firestore
+          try {
+            const fs = typeof getDbFirestore === 'function' ? getDbFirestore() : null;
+            if (fs) {
+              fs.collection('users').doc(usernameKey).set({
+                session_token: newGlobalSessionToken,
+                logout_all_at: new Date().toISOString()
+              }, { merge: true }).catch(() => {});
+            }
+          } catch(e2) {}
+
+          // 3. Update Supabase
+          try {
+            if (typeof supabase !== 'undefined' && supabase) {
+              supabase.from('users').update({ session_token: newGlobalSessionToken }).eq('username', username).then(() => {}, () => {});
+            }
+          } catch(e3) {}
+        }
+
+        hideLoading();
+        showNotif('BERHASIL LOGOUT DARI SEMUA PERANGKAT HP & LAPTOP!', 'success');
+        forceLogoutThisDevice(null);
+      } catch(err) {
+        hideLoading();
+        showNotif('GAGAL LOGOUT SEMUA PERANGKAT: ' + (err.message || err), 'warning');
+      }
+    };
+    _asyncTask();
+  });
+}
+window.logoutSemuaPerangkat = logoutSemuaPerangkat;
+
+// =======================================================================
 // BUKA MAIN APP: LOCAL-FIRST (0ms INSTANT LOAD) + REALTIME + DELTA SYNC
 // =======================================================================
 async function bukaMainApp() {
@@ -6371,6 +6550,11 @@ async function bukaMainApp() {
         appStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
       }
     } catch(e) {}
+  }
+
+  // Active Realtime Session Token Invalidation Listener
+  if (currentUser && typeof startSessionTokenRealtimeListener === 'function') {
+    startSessionTokenRealtimeListener();
   }
 
   const loginPage = document.getElementById('loginPage');
@@ -10507,7 +10691,7 @@ function bukaModalEditStatusPart(noSurat) {
   const modal = document.getElementById('popupEditStatusPart');
   if (modal) {
 modal.style.setProperty('display', 'flex', 'important');
-modal.style.setProperty('z-index', '2147483648', 'important');
+modal.style.setProperty('z-index', '2000000000', 'important');
     modal.classList.add('show');
     try { history.pushState({ modal: 'partStatus' }, '', location.href); } catch(e) {}
   }
@@ -10814,7 +10998,7 @@ function bukaModalEditKetPartSingle(noSurat, itemIndex) {
   const modal = document.getElementById('popupEditKeteranganPartSingle');
   if (modal) {
 modal.style.setProperty('display', 'flex', 'important');
-modal.style.setProperty('z-index', '2147483648', 'important');
+modal.style.setProperty('z-index', '2000000000', 'important');
     modal.classList.add('show');
     try { history.pushState({ modal: 'partKet' }, '', location.href); } catch(e) {}
   }
@@ -11964,7 +12148,7 @@ function bukaTTD() {
   if (modal) {
     modal.classList.add('show');
     modal.style.setProperty('display', 'flex', 'important');
-    modal.style.setProperty('z-index', '2147483648', 'important');
+    modal.style.setProperty('z-index', '2000000000', 'important');
   }
   pushPopupHistoryState();
   setTimeout(() => {
@@ -13916,6 +14100,7 @@ function loadUsersManagement() {
         <td><span class="badgeStatus badge-pending" style="font-weight:600;">${u.category}</span></td>
         <td><span style="color:var(--primary); font-weight:600;">${u.area}</span></td>
         <td style="text-align: right; white-space:nowrap;">
+          <button class="btnIcon btnForceLogout" onclick="paksaLogoutUserByAdmin('${u.username}')" title="LOGOUT USER '${u.username}' DARI SEMUA PERANGKAT"><span class="material-symbols-rounded">phonelink_erase</span></button>
           <button class="btnIcon btnEdit" onclick="bukaUserModal('${uKey}', this)" title="EDIT USER"><span class="material-symbols-rounded">edit</span></button>
           ${!isSuperAdmin ? `<button class="btnIcon btnDelete" onclick="hapusUser('${uKey}', this)" title="HAPUS USER"><span class="material-symbols-rounded">delete</span></button>` : ''}
         </td>
@@ -13937,6 +14122,94 @@ function loadUsersManagement() {
   renderToTbody(tbodyModal);
   updateMultiUserBtnState();
 }
+
+async function paksaLogoutUserByAdmin(targetUsername) {
+  if (!targetUsername) return;
+  showConfirm(`YAKIN INGIN LOGOUT USER '${targetUsername}' DARI SELURUH PERANGKAT HP & LAPTOP?`, function() {
+    var _asyncTask = async function() {
+      showLoading(`MEMPROSES LOGOUT USER '${targetUsername}'...`);
+      try {
+        const uKey = String(targetUsername).trim().replace(/[\/\.#$\[\]]/g, '_');
+        const newSessionToken = 'ST_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+        // 1. Firebase Realtime DB
+        try {
+          const rtdb = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
+          if (rtdb) {
+            await rtdb.ref(`user_sessions/${uKey}`).set({
+              session_token: newSessionToken,
+              logout_by: currentUser ? currentUser.username : 'ADMIN',
+              logout_at: new Date().toISOString()
+            });
+            rtdb.ref(`users/${uKey}/session_token`).set(newSessionToken).catch(() => {});
+          }
+        } catch(e1) {}
+
+        // 2. Firestore
+        try {
+          const fs = typeof getDbFirestore === 'function' ? getDbFirestore() : null;
+          if (fs) {
+            fs.collection('users').doc(uKey).set({
+              session_token: newSessionToken,
+              logout_all_at: new Date().toISOString()
+            }, { merge: true }).catch(() => {});
+          }
+        } catch(e2) {}
+
+        // 3. Supabase
+        try {
+          if (typeof supabase !== 'undefined' && supabase) {
+            supabase.from('users').update({ session_token: newSessionToken }).eq('username', targetUsername).then(() => {}, () => {});
+          }
+        } catch(e3) {}
+
+        hideLoading();
+        showNotif(`USER '${targetUsername}' BERHASIL DI-LOGOUT DARI SEMUA PERANGKAT!`, 'success');
+      } catch(err) {
+        hideLoading();
+        showNotif('GAGAL LOGOUT USER: ' + (err.message || err), 'warning');
+      }
+    };
+    _asyncTask();
+  });
+}
+window.paksaLogoutUserByAdmin = paksaLogoutUserByAdmin;
+
+async function logoutSemuaPerangkatUserByAdmin() {
+  showConfirm('YAKIN INGIN LOGOUT SELURUH AKUN USER DARI SEMUA PERANGKAT HP & LAPTOP?', function() {
+    var _asyncTask = async function() {
+      showLoading('MEMPROSES LOGOUT SEMUA AKUN USER...');
+      try {
+        const users = typeof getUsersFromDB === 'function' ? getUsersFromDB() : [];
+        const newSessionTokenBase = 'ST_' + Date.now() + '_';
+        const rtdb = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
+
+        for (let i = 0; i < users.length; i++) {
+          const u = users[i];
+          if (!u || !u.username) continue;
+          const uKey = String(u.username).trim().replace(/[\/\.#$\[\]]/g, '_');
+          const token = newSessionTokenBase + i + '_' + Math.random().toString(36).substring(2, 6);
+
+          if (rtdb) {
+            rtdb.ref(`user_sessions/${uKey}`).set({
+              session_token: token,
+              logout_by: 'ADMIN_ALL',
+              logout_at: new Date().toISOString()
+            }).catch(() => {});
+          }
+        }
+
+        hideLoading();
+        showNotif('SELURUH AKUN USER BERHASIL DI-LOGOUT DARI SEMUA PERANGKAT!', 'success');
+      } catch(err) {
+        hideLoading();
+        showNotif('GAGAL LOGOUT SEMUA AKUN: ' + (err.message || err), 'warning');
+      }
+    };
+    _asyncTask();
+  });
+}
+window.logoutSemuaPerangkatUserByAdmin = logoutSemuaPerangkatUserByAdmin;
 
 function toggleSelectAllUsers(masterCheckbox) {
   const isChecked = masterCheckbox ? masterCheckbox.checked : false;
@@ -14232,7 +14505,7 @@ function bukaUserModal(userId = null, btnElement = null) {
       const modal = document.getElementById('popupUserForm');
       if (modal) {
 modal.style.setProperty('display', 'flex', 'important');
-modal.style.setProperty('z-index', '2147483648', 'important');
+modal.style.setProperty('z-index', '2000000000', 'important');
         modal.style.setProperty('z-index', '10000005', 'important');
         modal.classList.add('show');
         pushPopupHistoryState();
@@ -15435,6 +15708,15 @@ function prosesBukaAkun() {
     containerHapusStorage.style.display = 'block';
   }
 
+  const btnLogoutAllWrapper = document.getElementById('btnForceLogoutAllAkunWrapper');
+  const btnLogoutSingle = document.getElementById('btnLogoutSingleBtn');
+  if (btnLogoutAllWrapper) {
+    btnLogoutAllWrapper.style.setProperty('display', 'none', 'important');
+  }
+  if (btnLogoutSingle) {
+    btnLogoutSingle.innerHTML = `<span class="material-symbols-rounded" style="font-size: 16px; line-height: 1;">logout</span> LOGOUT KELUAR`;
+  }
+
   if (typeof tutupModalTambahToko === 'function') {
     tutupModalTambahToko();
   }
@@ -15447,7 +15729,7 @@ function prosesBukaAkun() {
   if (modal) {
     modal.classList.add('show');
     modal.style.setProperty('display', 'flex', 'important');
-    modal.style.setProperty('z-index', '2147483648', 'important');
+    modal.style.setProperty('z-index', '2000000000', 'important');
   }
   if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
 }
@@ -16532,7 +16814,7 @@ function showConfirm(msg, callback, cancelCallback = null, customYesText = 'YA, 
   modal.style.setProperty('z-index', '2147483647', 'important');
   const confirmCard = modal.querySelector('.confirmBoxCard') || modal.querySelector('.popupNotifCard') || modal.querySelector('.popupBox');
   if (confirmCard) {
-    confirmCard.style.setProperty('z-index', '2147483648', 'important');
+    confirmCard.style.setProperty('z-index', '2147483647', 'important');
   }
   modal.style.setProperty('display', 'flex', 'important');
   modal.style.setProperty('pointer-events', 'auto', 'important');
@@ -16662,11 +16944,11 @@ function showNotif(msg, type = 'info') {
   }
 
   if (notifOverlay) {
-    notifOverlay.style.setProperty('z-index', '2147483648', 'important');
+    notifOverlay.style.setProperty('z-index', '2147483647', 'important');
     notifOverlay.style.setProperty('display', 'flex', 'important');
   }
   if (notifCard) {
-    notifCard.style.setProperty('z-index', '2147483649', 'important');
+    notifCard.style.setProperty('z-index', '2147483647', 'important');
   }
 }
 
@@ -16986,7 +17268,7 @@ function bukaViewGambar(src, startIdx = 0) {
 
   if (modal) {
 modal.style.setProperty('display', 'flex', 'important');
-modal.style.setProperty('z-index', '2147483648', 'important');
+modal.style.setProperty('z-index', '2000000000', 'important');
     modal.style.setProperty('z-index', '2147483646', 'important');
     modal.classList.add('show');
   }
@@ -17507,7 +17789,7 @@ function downloadTemplateExcelPermintaan() {
   const modal = document.getElementById('excelTemplateOverlay');
   if (modal) {
 modal.style.setProperty('display', 'flex', 'important');
-modal.style.setProperty('z-index', '2147483648', 'important');
+modal.style.setProperty('z-index', '2000000000', 'important');
     modal.classList.add('show');
     if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
   } else {
@@ -19078,7 +19360,7 @@ function hapusPenyimpananLokalAkun() {
   }
   if (modal) {
 modal.style.setProperty('display', 'flex', 'important');
-modal.style.setProperty('z-index', '2147483648', 'important');
+modal.style.setProperty('z-index', '2000000000', 'important');
     modal.classList.add('show');
     setTimeout(() => {
       if (inputPin) {
@@ -21388,7 +21670,7 @@ function tampilkanModalOfflineSafety(customMessage = null) {
   }
   if (modal) {
     modal.style.setProperty('display', 'flex', 'important');
-    modal.style.setProperty('z-index', '2147483648', 'important');
+    modal.style.setProperty('z-index', '2000000000', 'important');
     modal.classList.add('show');
   }
 }
@@ -21473,7 +21755,7 @@ function bukaModalUbahStatusAdmin(noSurat) {
   const modal = document.getElementById('popupUbahStatusAdminModal');
   if (modal) {
     modal.style.setProperty('display', 'flex', 'important');
-    modal.style.setProperty('z-index', '2147483648', 'important');
+    modal.style.setProperty('z-index', '2000000000', 'important');
     modal.classList.add('show');
     try { history.pushState({ modal: 'adminStatus' }, '', location.href); } catch(e) {}
   }

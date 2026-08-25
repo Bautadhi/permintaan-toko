@@ -1274,6 +1274,7 @@ input:focus, select:focus, textarea:focus {
 
 .btnEdit { background: var(--primary) !important; }
 .btnDelete { background: #ef4444 !important; }
+.btnForceLogout { background: linear-gradient(135deg, #ea580c, #c2410c) !important; }
 .btnApprove { background: #16a34a !important; }
 .btnReject { background: #dc2626 !important; }
 .btnDone { background: #7c3aed !important; }
@@ -2822,7 +2823,7 @@ div[id*="Modal"] {
 #popupNotif,
 #popupNotifCard,
 .popupNotifCard {
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
 }
 
 #loadingOverlay,
@@ -11181,7 +11182,7 @@ html body .confirmBox,
 #confirmBoxCard,
 .confirmBoxCard,
 .confirmBox {
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
 }
 
 /* POPUP NOTIF & NOTIF CARD ALWAYS AT THE VERY FRONT (MAXIMUM Z-INDEX 2147483648) */
@@ -11195,7 +11196,7 @@ html body #popupNotifCard,
 html body .popupNotifCard,
 #popupNotifCard,
 .popupNotifCard {
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
 }
 
 /* BY DEFAULT, HIDE REJECT OVERLAYS UNLESS ACTIVE/SHOWING */
@@ -11911,7 +11912,7 @@ html body .unreadBadge,
 html body #popupSecurityPinHapusLokal.popupOverlay,
 html body #popupSecurityPinHapusLokal,
 #popupSecurityPinHapusLokal {
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
   position: fixed !important;
 }
 
@@ -11922,7 +11923,7 @@ html body #popupSecurityPinHapusLokal,
 html body #popupOfflineSafetyModal.popupOverlay,
 html body #popupOfflineSafetyModal,
 #popupOfflineSafetyModal {
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
   position: fixed !important;
 }
 
@@ -11933,7 +11934,7 @@ html body #popupOfflineSafetyModal,
 html body #popupSecurityPinHapusLokal.popupOverlay,
 html body #popupSecurityPinHapusLokal,
 #popupSecurityPinHapusLokal {
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
   position: fixed !important;
   padding-left: 1mm !important;
   padding-right: 1mm !important;
@@ -12004,7 +12005,7 @@ html body #modalGeminiApiKey,
   box-sizing: border-box !important;
   align-items: center !important;
   justify-content: center !important;
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
 }
 
 /* INNER CARDS UNIFORM SIZE & MARGIN */
@@ -12704,7 +12705,7 @@ html body #artemisOverlay .btnHeaderCloseX,
    ============================================================================= */
 #popupTTD.popupOverlay,
 html body #popupTTD.popupOverlay {
-  z-index: 2147483648 !important;
+  z-index: 2000000000 !important;
 }
 
 /* LAPTOP VIEW (min-width: 769px): SHORTENED HEIGHT & COMPACT CANVAS */
@@ -14915,4 +14916,128 @@ html body #historyPage .historyTable th:last-child {
     padding: 6px 8px !important;
     margin-bottom: 8px !important;
   }
+}
+
+/* =============================================================================
+   ABSOLUTE MAXIMUM Z-INDEX FOR CONFIRMATION POPUP & NOTIFICATIONS
+   (Guarantees "SIMPAN TTD" confirmation box sits at the very front of #popupTTD)
+   ============================================================================= */
+html body #confirmOverlay.popupOverlay,
+html body #popupNotif.popupOverlay,
+html body #loadingOverlay,
+#confirmOverlay,
+#popupNotif,
+#loadingOverlay {
+  z-index: 2147483647 !important;
+}
+
+html body #confirmOverlay .confirmBoxCard,
+html body #popupNotif .popupNotifCard,
+#confirmOverlay .confirmBoxCard,
+#popupNotif .popupNotifCard {
+  z-index: 2147483647 !important;
+}
+
+/* =============================================================================
+   STORE LOGO ICON PADDING IN LOGIN POPUP (8MM SPACING FROM TOP CONTAINER)
+   ============================================================================= */
+.login-card .logo,
+#loginPage .login-card .logo,
+html body .login-card .logo,
+html body #loginPage .login-card .logo {
+  margin-top: 8mm !important;
+}
+
+/* =============================================================================
+   CONTAINER LOGOUT BUTTONS (POPUP AKUN) - PERFECT 1:1 HORIZONTAL ALIGNMENT
+   ============================================================================= */
+#containerLogoutButtons,
+#popupAkun #containerLogoutButtons,
+html body #popupAkun #containerLogoutButtons {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 6px !important;
+  width: 100% !important;
+  margin-top: 1.5mm !important;
+  margin-bottom: 1.5mm !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+#containerLogoutButtons > div,
+#popupAkun #containerLogoutButtons > div,
+html body #popupAkun #containerLogoutButtons > div {
+  flex: 1 1 0% !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  height: 36px !important;
+  box-sizing: border-box !important;
+}
+
+#containerLogoutButtons .btnLogout,
+#containerLogoutButtons .btnForceLogoutAll,
+#popupAkun #containerLogoutButtons .btnLogout,
+#popupAkun #containerLogoutButtons .btnForceLogoutAll,
+html body #popupAkun #containerLogoutButtons .btnLogout,
+html body #popupAkun #containerLogoutButtons .btnForceLogoutAll {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  width: 100% !important;
+  margin: 0 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding: 0 4px !important;
+  border-radius: 6px !important;
+  font-size: 10.5px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+  transform: none !important;
+  position: static !important;
+}
+
+#containerLogoutButtons .btnLogout,
+#popupAkun #containerLogoutButtons .btnLogout,
+html body #popupAkun #containerLogoutButtons .btnLogout {
+  background: linear-gradient(135deg, #dc2626, #991b1b) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(220, 38, 38, 0.35) !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+#containerLogoutButtons .btnForceLogoutAll,
+#popupAkun #containerLogoutButtons .btnForceLogoutAll,
+html body #popupAkun #containerLogoutButtons .btnForceLogoutAll {
+  background: linear-gradient(135deg, #ea580c, #c2410c) !important;
+  color: #ffffff !important;
+  box-shadow: 0 3px 8px rgba(234, 88, 12, 0.35) !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+#containerLogoutButtons .btnLogout span.material-symbols-rounded,
+#containerLogoutButtons .btnForceLogoutAll span.material-symbols-rounded,
+#popupAkun #containerLogoutButtons .btnLogout span.material-symbols-rounded,
+#popupAkun #containerLogoutButtons .btnForceLogoutAll span.material-symbols-rounded {
+  font-size: 16px !important;
+  line-height: 1 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  vertical-align: middle !important;
+  display: inline-block !important;
 }
