@@ -14706,27 +14706,34 @@ html body #popupBantuan .chatBody {
   box-sizing: border-box !important;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 768px) {
   #popupBantuan,
   .popupBantuan,
   html body #popupBantuan,
-  html body .popupBantuan {
-    padding-top: 1mm !important;
-    padding-bottom: 1mm !important;
-    padding-left: 1mm !important;
-    padding-right: 1mm !important;
+  html body .popupBantuan,
+  html body #popupBantuan.popupOverlay {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 12px 10px !important;
+    box-sizing: border-box !important;
   }
 
   #popupBantuan .chatBox,
   .popupBantuan .chatBox,
   html body #popupBantuan .chatBox,
   html body .popupBantuan .chatBox {
-    padding-top: 1mm !important;
-    padding-bottom: 1mm !important;
-    padding-left: 1mm !important;
-    padding-right: 1mm !important;
-    height: calc(100vh - 2mm) !important;
-    max-height: calc(100vh - 2mm) !important;
+    width: calc(100vw - 20px) !important;
+    max-width: 480px !important;
+    height: 72vh !important;
+    max-height: 520px !important;
+    min-height: 380px !important;
+    margin: auto !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.4) !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: column !important;
   }
 
   #popupBantuan .chatHeader,
