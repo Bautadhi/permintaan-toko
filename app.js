@@ -2763,7 +2763,11 @@ function startFirebaseRealtimeChatListener() {
         if (typeof renderChatBoxUser === 'function') renderChatBoxUser();
         if (typeof renderChatBoxAdmin === 'function') renderChatBoxAdmin();
       }, err => {
-        console.warn('[FIRESTORE CHAT REALTIME LISTENER]:', err);
+        if (unsubscribeFirestoreChat) {
+          try { unsubscribeFirestoreChat(); } catch(e) {}
+          unsubscribeFirestoreChat = null;
+        }
+        console.info('ℹ️ [FIRESTORE NOTICE]: Firestore Chat realtime listener dihentikan.');
       });
   } catch (e) {
     console.warn('[FIRESTORE CHAT INIT EXCEPTION]:', e);
@@ -2826,7 +2830,11 @@ function startFirebaseRealtimeNotifListener() {
     if (typeof updateGlobalDeviceAppBadge === 'function') updateGlobalDeviceAppBadge();
         if (typeof updateNotifBadgeCount === 'function') updateNotifBadgeCount();
       }, err => {
-        console.warn('[FIRESTORE NOTIF REALTIME LISTENER]:', err);
+        if (unsubscribeFirestoreNotif) {
+          try { unsubscribeFirestoreNotif(); } catch(e) {}
+          unsubscribeFirestoreNotif = null;
+        }
+        console.info('ℹ️ [FIRESTORE NOTICE]: Firestore Notif realtime listener dihentikan.');
       });
   } catch (e) {
     console.warn('[FIRESTORE NOTIF INIT EXCEPTION]:', e);
@@ -2884,7 +2892,11 @@ function startFirebaseRealtimeAppSettingsListener() {
           try { localStorage.setItem(FONTE_TOKEN_KEY, String(data.fonteToken)); } catch(e) {}
         }
       }, err => {
-        console.warn('[FIRESTORE APP_SETTINGS REALTIME LISTENER]:', err);
+        if (unsubscribeFirestoreAppSettings) {
+          try { unsubscribeFirestoreAppSettings(); } catch(e) {}
+          unsubscribeFirestoreAppSettings = null;
+        }
+        console.info('ℹ️ [FIRESTORE NOTICE]: Firestore AppSettings realtime listener dihentikan.');
       });
   } catch (e) {
     console.warn('[FIRESTORE APP_SETTINGS INIT EXCEPTION]:', e);
@@ -2920,7 +2932,11 @@ function startFirebaseRealtimeRequestsListener() {
           }
         });
       }, err => {
-        console.warn('[FIRESTORE REQUESTS REALTIME LISTENER]:', err);
+        if (unsubscribeFirestoreRequests) {
+          try { unsubscribeFirestoreRequests(); } catch(e) {}
+          unsubscribeFirestoreRequests = null;
+        }
+        console.info('ℹ️ [FIRESTORE NOTICE]: Firestore Requests realtime listener dihentikan.');
       });
   } catch (e) {
     console.warn('[FIRESTORE REQUESTS INIT EXCEPTION]:', e);
@@ -2955,7 +2971,11 @@ function startFirebaseRealtimeUsersListener() {
           }
         });
       }, err => {
-        console.warn('[FIRESTORE USERS LISTENER]:', err);
+        if (unsubscribeFirestoreUsers) {
+          try { unsubscribeFirestoreUsers(); } catch(e) {}
+          unsubscribeFirestoreUsers = null;
+        }
+        console.info('ℹ️ [FIRESTORE NOTICE]: Firestore Users listener dihentikan.');
       });
   } catch (e) {}
 }
@@ -6563,10 +6583,12 @@ function initMobileBackButtonEngine() {
   window.addEventListener('popstate', (e) => {
     // SANGAT PENTING: Lock history stack seketika pada popstate agar browser HP tidak langsung keluar ke link/web luar
     seedDashboardHistoryState();
+
     // JIKA POPUP UBAH STATUS ADMIN TERBUKA & DI-BACK DARI HP -> TUTUP MODAL STATUS & KEMBALI KE DETAIL / MASTER
     const popUbahStatus = document.getElementById('popupUbahStatusAdminModal');
     const isUbahStatusOpen = popUbahStatus && (popUbahStatus.classList.contains('show') || popUbahStatus.style.display === 'flex' || popUbahStatus.style.display === 'block');
     if (isUbahStatusOpen) {
+      backClickTimestamps = [];
       if (typeof tutupModalUbahStatusAdmin === 'function') tutupModalUbahStatusAdmin();
       return;
     }
@@ -6707,6 +6729,7 @@ window.triggerConfirmBoxFlash = triggerConfirmBoxFlash;
     for (let mItem of modalPriorityStack) {
       const el = document.getElementById(mItem.id);
       if (el && (el.classList.contains('show') || el.style.display === 'flex' || el.style.display === 'block')) {
+        backClickTimestamps = [];
         mItem.closeFn();
         if (mItem.id !== 'popupDetailBarangV2' && mItem.id !== 'popupDetail') {
           if (typeof pastikanDetailPermintaanTetapTerbuka === 'function') {
@@ -10077,7 +10100,12 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
     const qtyVal = i.qty || i.jumlah || 1;
 
     const activePartialsList = (typeof getPartialBreakdownsFromDB === 'function' ? getPartialBreakdownsFromDB(req.noSurat) : []).filter(p => p && (p.status === 'PENDING' || p.status === 'APPROVE' || p.status === 'DONE'));
-    const partialMatch = activePartialsList.find(p => Array.isArray(p.items) && p.items.some(pi => pi.itemIdx === idx || (pi.type && String(pi.type || pi.tipe || '').trim().toUpperCase() === String(typeVal).trim().toUpperCase() && String(typeVal).trim() !== '-')));
+    const partialMatch = activePartialsList.find(p => Array.isArray(p.items) && p.items.some(pi => {
+      if (pi.itemIdx !== undefined && pi.itemIdx !== null) {
+        return Number(pi.itemIdx) === idx;
+      }
+      return pi.type && String(pi.type || pi.tipe || '').trim().toUpperCase() === String(typeVal).trim().toUpperCase() && String(typeVal).trim() !== '-';
+    }));
     const isLockedByBreakdown = !!partialMatch;
 
     let statusPartVal = (i.statusPart || i.keteranganPart || i.noPart || '').trim();
@@ -11006,10 +11034,11 @@ function bukaKunciSerahPartAdmin(noSurat, itemIndex) {
             const piSeri = String(pi.seri || pi.sn || '').trim().toUpperCase();
             const piBarang = String(pi.barang || pi.permintaan || '').trim().toUpperCase();
 
-            const isMatch = (pi.itemIdx === itemIndex) ||
-              (targetSeri && piSeri && targetSeri !== '-' && piSeri !== '-' && targetSeri === piSeri) ||
-              (targetType && piType && targetType !== '-' && piType !== '-' && targetType === piType && targetBarang === piBarang) ||
-              (targetBarang && piBarang && targetBarang === piBarang && (!targetType || targetType === '-'));
+            const isMatch = (pi.itemIdx !== undefined && pi.itemIdx !== null) ?
+              (Number(pi.itemIdx) === itemIndex) :
+              ((targetSeri && piSeri && targetSeri !== '-' && piSeri !== '-' && targetSeri === piSeri) ||
+               (targetType && piType && targetType !== '-' && piType !== '-' && targetType === piType && targetBarang === piBarang) ||
+               (targetBarang && piBarang && targetBarang === piBarang && (!targetType || targetType === '-')));
 
             return !isMatch;
           });
@@ -19643,7 +19672,11 @@ function calcItemDeliveredQty(req, itemIdx) {
   approvedPartials.forEach(p => {
     if (Array.isArray(p.items)) {
       p.items.forEach(pi => {
-        if (pi.itemIdx === itemIdx || String(pi.type || pi.tipe || '').trim() === String(req.items[itemIdx].type || req.items[itemIdx].tipe || '').trim()) {
+        if (pi.itemIdx !== undefined && pi.itemIdx !== null) {
+          if (Number(pi.itemIdx) === itemIdx) {
+            delivered += Number(pi.qtyDiserahkan || pi.qty || pi.jumlah || 0);
+          }
+        } else if (String(pi.type || pi.tipe || '').trim() === String(req.items[itemIdx].type || req.items[itemIdx].tipe || '').trim()) {
           delivered += Number(pi.qtyDiserahkan || pi.qty || pi.jumlah || 0);
         }
       });
@@ -19663,7 +19696,11 @@ function calcItemAllocatedQty(req, itemIdx) {
   activePartials.forEach(p => {
     if (Array.isArray(p.items)) {
       p.items.forEach(pi => {
-        if (pi.itemIdx === itemIdx || String(pi.type || pi.tipe || '').trim() === String(req.items[itemIdx].type || req.items[itemIdx].tipe || '').trim()) {
+        if (pi.itemIdx !== undefined && pi.itemIdx !== null) {
+          if (Number(pi.itemIdx) === itemIdx) {
+            allocated += Number(pi.qtyDiserahkan || pi.qty || pi.jumlah || 0);
+          }
+        } else if (String(pi.type || pi.tipe || '').trim() === String(req.items[itemIdx].type || req.items[itemIdx].tipe || '').trim()) {
           allocated += Number(pi.qtyDiserahkan || pi.qty || pi.jumlah || 0);
         }
       });
@@ -19828,7 +19865,12 @@ function bukaModalBuatParsial(noSurat) {
     const delQty = calcItemDeliveredQty(req, el.idx);
     const bgRow = idxSeq % 2 === 0 ? 'var(--bg-box)' : 'var(--bg-card)';
     
-    const wasRejectedByDM = rejectedPartials.some(p => Array.isArray(p.items) && p.items.some(pi => pi.itemIdx === el.idx || String(pi.type || pi.tipe || '').trim() === String(i.type || i.tipe || '').trim()));
+    const wasRejectedByDM = rejectedPartials.some(p => Array.isArray(p.items) && p.items.some(pi => {
+      if (pi.itemIdx !== undefined && pi.itemIdx !== null) {
+        return Number(pi.itemIdx) === el.idx;
+      }
+      return String(pi.type || pi.tipe || '').trim() === String(i.type || i.tipe || '').trim();
+    }));
     const rejectBadge = wasRejectedByDM ? `<span style="font-size: 10px; background: #ef4444; color: #ffffff; padding: 2px 6px; border-radius: 4px; font-weight: 700; margin-left: 6px; display: inline-flex; align-items: center; gap: 2px;">🔴 DITOLAK DM (BISA DIAJUKAN ULANG)</span>` : '';
 
     return `
@@ -20256,14 +20298,16 @@ async function bukaModalRiwayatParsialList(noSurat) {
     const photosList = parsePhotosArray(p.photos);
     const hasPhotos = photosList.length > 0;
     
-    let badgeBg = '#f59e0b';
-    let badgeText = '⏳ PENDING (MENUNGGU APPROVAL DM)';
+    const isRequireDM = window.REQUIRE_DM_APPROVAL_PARSIAL !== false;
+
+    let badgeBg = isRequireDM ? '#f59e0b' : '#10b981';
+    let badgeText = isRequireDM ? '⏳ PENDING (MENUNGGU APPROVAL DM)' : '🟢 APPROVAL SERVICE (AUTO)';
     if (pStatus === 'DONE') {
       badgeBg = '#059669';
       badgeText = '🟢 SELESAI (DONE)';
     } else if (pStatus === 'APPROVE') {
       badgeBg = '#10b981';
-      badgeText = '🟢 DISETUJUI DM';
+      badgeText = isRequireDM ? '🟢 APPROVAL DM' : '🟢 APPROVAL SERVICE (AUTO)';
     } else if (pStatus === 'REJECT') {
       badgeBg = '#ef4444';
       badgeText = `🔴 DITOLAK DM (${p.reject_reason || '-'})`;
@@ -20756,6 +20800,13 @@ function bukaDetailSuratParsial(noSurat, partialId) {
     </tr>
   `).join('');
 
+  const isRequireDMSub = window.REQUIRE_DM_APPROVAL_PARSIAL !== false;
+  const pStatSub = targetPartial.status || 'PENDING';
+  let statusTextSub = isRequireDMSub ? 'APPROVAL DM' : 'APPROVAL SERVICE (AUTO)';
+  if (pStatSub === 'DONE') statusTextSub = 'SELESAI (DONE)';
+  else if (pStatSub === 'REJECT') statusTextSub = `DITOLAK DM (${targetPartial.reject_reason || '-'})`;
+  else if (pStatSub === 'PENDING' && isRequireDMSub) statusTextSub = 'PENDING (MENUNGGU APPROVAL DM)';
+
   const modalHtml = `
     <div id="modalDetailParsialSub" data-nosurat="${noSurat}" class="modal-overlay active" onclick="if (event.target === this) tutupModalDetailParsialSub('${noSurat}');" style="display: flex; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 99000000 !important; align-items: center; justify-content: center; padding: 1mm 0.5mm !important; box-sizing: border-box !important;">
       <div style="background: var(--bg-card); color: var(--text-main); width: calc(100vw - 1mm); height: calc(100vh - 2mm); margin: 1mm 0.5mm !important; border-radius: 8px !important; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 15px 35px rgba(0,0,0,0.4); border: 1px solid var(--border-color); animation: popIn 0.2s ease-out;">
@@ -20776,8 +20827,9 @@ function bukaDetailSuratParsial(noSurat, partialId) {
 
         <div style="padding: 1mm 0 0 0 !important; overflow-y: auto; flex: 1; background: var(--bg-card); display: flex; flex-direction: column;">
           <!-- NO SURAT BREAKDOWN RATA KIRI DENGAN DEKAT DENGAN TABEL -->
-          <div style="background: var(--bg-box); border: none !important; border-left: none !important; padding: 4px 8px !important; margin: 0 2mm 1mm 2mm !important; font-size: 12px; color: var(--text-main); font-weight: 700; text-align: left !important; flex-shrink: 0; border-radius: 0px !important;">
-            NO SURAT : <strong style="color: var(--primary); font-size: 12.5px; font-weight: 800;">${noSurat}-${partialId}</strong>
+          <div style="background: var(--bg-box); border: none !important; border-left: none !important; padding: 4px 8px !important; margin: 0 2mm 1mm 2mm !important; font-size: 12px; color: var(--text-main); font-weight: 700; text-align: left !important; flex-shrink: 0; border-radius: 0px !important; display: flex; justify-content: space-between; align-items: center;">
+            <div>NO SURAT : <strong style="color: var(--primary); font-size: 12.5px; font-weight: 800;">${noSurat}-${partialId}</strong></div>
+            <div style="font-size: 11px; font-weight: 800; color: var(--primary);">STATUS : ${statusTextSub}</div>
           </div>
 
           <div style="overflow-x: auto; width: 100%; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); border-left: none !important; border-right: none !important; margin: 0 !important; border-radius: 0px !important; flex: 1;">
