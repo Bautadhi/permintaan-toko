@@ -4797,8 +4797,8 @@ html body #popupUserForm .popupBox {
     min-width: 6px !important;
     min-height: 6px !important;
     border-radius: 50% !important;
-    background: #10b981 !important;
-    box-shadow: 0 0 6px #10b981 !important;
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
     align-self: flex-start !important;
     margin-top: 2px !important;
     flex-shrink: 0 !important;
@@ -14392,5 +14392,513 @@ html body #popupBantuan .chatBox {
   #wrapperCariToko > span.material-symbols-rounded {
     font-size: 14px !important;
     left: 6px !important;
+  }
+}
+
+
+/* =============================================================================
+   WIDEN STORE SEARCH COLUMN (#wrapperCariToko) & MATCH FONT SIZE TO OTHER INPUTS (13PX BOLD)
+   ============================================================================= */
+#wrapperCariToko,
+html body #wrapperCariToko {
+  flex: 0 0 150px !important;
+  min-width: 130px !important;
+  max-width: 170px !important;
+  width: 150px !important;
+}
+
+#cariTokoInput,
+html body #cariTokoInput {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 0 24px 0 30px !important;
+}
+
+#wrapperCariToko > span.material-symbols-rounded {
+  font-size: 17px !important;
+  left: 8px !important;
+}
+
+@media screen and (max-width: 600px) {
+  #wrapperCariToko,
+  html body #wrapperCariToko {
+    flex: 0 0 135px !important;
+    min-width: 120px !important;
+    max-width: 150px !important;
+    width: 135px !important;
+  }
+
+  #cariTokoInput,
+  html body #cariTokoInput {
+    font-size: 12.5px !important;
+    font-weight: 700 !important;
+    padding: 0 22px 0 28px !important;
+  }
+}
+
+
+/* =============================================================================
+   UNBOLD (FONT-WEIGHT: 400) & TOP-ALIGN TEXT IN CARI TOKO INPUT (#cariTokoInput)
+   ============================================================================= */
+#cariTokoInput,
+html body #cariTokoInput {
+  font-size: 13px !important;
+  font-weight: 400 !important; /* UNBOLD NORMAL FONT WEIGHT */
+  padding-top: 6px !important;
+  padding-bottom: 0 !important;
+  padding-left: 30px !important;
+  padding-right: 24px !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+}
+
+#wrapperCariToko > span.material-symbols-rounded {
+  font-size: 17px !important;
+  left: 8px !important;
+  top: 9px !important;
+  transform: none !important;
+}
+
+@media screen and (max-width: 600px) {
+  #cariTokoInput,
+  html body #cariTokoInput {
+    font-size: 12.5px !important;
+    font-weight: 400 !important; /* UNBOLD NORMAL FONT WEIGHT */
+    padding-top: 6px !important;
+    padding-bottom: 0 !important;
+    padding-left: 28px !important;
+    padding-right: 22px !important;
+    line-height: 1.2 !important;
+  }
+
+  #wrapperCariToko > span.material-symbols-rounded {
+    top: 9px !important;
+    left: 7px !important;
+  }
+}
+
+
+/* =============================================================================
+   REDUCE STORE SEARCH COLUMN (#wrapperCariToko) WIDTH TO COMPACT (120PX PC / 110PX HP)
+   ============================================================================= */
+#wrapperCariToko,
+html body #wrapperCariToko {
+  flex: 0 0 120px !important;
+  min-width: 105px !important;
+  max-width: 135px !important;
+  width: 120px !important;
+}
+
+@media screen and (max-width: 600px) {
+  #wrapperCariToko,
+  html body #wrapperCariToko {
+    flex: 0 0 110px !important;
+    min-width: 95px !important;
+    max-width: 125px !important;
+    width: 110px !important;
+  }
+}
+
+
+/* =============================================================================
+   REDUCE STORE SEARCH COLUMN (#wrapperCariToko) WIDTH FURTHER (100PX PC / 90PX HP)
+   ============================================================================= */
+#wrapperCariToko,
+html body #wrapperCariToko {
+  flex: 0 0 100px !important;
+  min-width: 90px !important;
+  max-width: 115px !important;
+  width: 100px !important;
+}
+
+@media screen and (max-width: 600px) {
+  #wrapperCariToko,
+  html body #wrapperCariToko {
+    flex: 0 0 90px !important;
+    min-width: 80px !important;
+    max-width: 100px !important;
+    width: 90px !important;
+  }
+}
+
+
+/* =============================================================================
+   WIDEN STORE SEARCH COLUMN (#wrapperCariToko) BY EXACTLY 2MM (108PX PC / 98PX HP)
+   ============================================================================= */
+#wrapperCariToko,
+html body #wrapperCariToko {
+  flex: 0 0 108px !important;
+  min-width: 98px !important;
+  max-width: 123px !important;
+  width: 108px !important;
+}
+
+@media screen and (max-width: 600px) {
+  #wrapperCariToko,
+  html body #wrapperCariToko {
+    flex: 0 0 98px !important;
+    min-width: 88px !important;
+    max-width: 108px !important;
+    width: 98px !important;
+  }
+}
+
+
+/* =============================================================================
+   100% THEME COLOR & ALIGNED BOLD WHITE X BUTTON FOR EXCEL TEMPLATE POPUP (#excelTemplateOverlay)
+   ============================================================================= */
+#excelTemplateOverlay .modalBox,
+#excelTemplateOverlay .excelTemplateBox {
+  border: 1.5px solid var(--primary) !important;
+  background: var(--bg-card) !important;
+  border-radius: 5px !important;
+}
+
+#excelTemplateOverlay .excelTemplateHeader,
+#excelTemplateOverlay .modalBox > div:first-child {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 12px 16px !important;
+}
+
+#excelTemplateOverlay .excelTemplateHeader span,
+#excelTemplateOverlay .excelTemplateHeader .material-symbols-rounded {
+  color: #ffffff !important;
+  font-weight: 900 !important;
+}
+
+#excelTemplateOverlay .btnHeaderCloseX,
+#excelTemplateOverlay .excelCloseX,
+#excelTemplateOverlay button[onclick*="closeExcelTemplateModal"] {
+  position: static !important;
+  position: relative !important;
+  top: auto !important;
+  right: auto !important;
+  margin-left: auto !important;
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-weight: 900 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+}
+
+#excelTemplateOverlay .btnHeaderCloseX .material-symbols-rounded,
+#excelTemplateOverlay .excelCloseX .material-symbols-rounded {
+  color: #ffffff !important;
+  font-size: 24px !important;
+  font-weight: 900 !important;
+}
+
+
+/* =============================================================================
+   1MM TOP & BOTTOM PADDING FOR POPUP BANTUAN (#popupBantuan) ON HP & LAPTOP
+   ============================================================================= */
+#popupBantuan,
+.popupBantuan,
+html body #popupBantuan,
+html body .popupBantuan,
+html body #popupBantuan.popupOverlay {
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+}
+
+#popupBantuan .chatBox,
+.popupBantuan .chatBox,
+html body #popupBantuan .chatBox,
+html body .popupBantuan .chatBox {
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+}
+
+@media (max-width: 600px) {
+  #popupBantuan,
+  .popupBantuan,
+  html body #popupBantuan,
+  html body .popupBantuan {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+  }
+
+  #popupBantuan .chatBox,
+  .popupBantuan .chatBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+  }
+}
+
+@media (min-width: 601px) {
+  #popupBantuan,
+  .popupBantuan,
+  html body #popupBantuan,
+  html body .popupBantuan {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+  }
+
+  #popupBantuan .chatBox,
+  .popupBantuan .chatBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+  }
+}
+
+
+/* =============================================================================
+   STRICT 1MM TOP & BOTTOM PADDING FOR POPUP BANTUAN (#popupBantuan) HP & LAPTOP
+   ============================================================================= */
+#popupBantuan,
+.popupBantuan,
+html body #popupBantuan,
+html body .popupBantuan,
+html body #popupBantuan.popupOverlay {
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+#popupBantuan .chatBox,
+.popupBantuan .chatBox,
+html body #popupBantuan .chatBox,
+html body .popupBantuan .chatBox {
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+  padding-left: 1mm !important;
+  padding-right: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+#popupBantuan .chatHeader,
+.popupBantuan .chatHeader,
+html body #popupBantuan .chatHeader {
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+#popupBantuan .chatFooter,
+.popupBantuan .chatFooter,
+html body #popupBantuan .chatFooter {
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+#popupBantuan #chatList,
+#popupBantuan #chatUserPicker,
+#popupBantuan .chatBody,
+html body #popupBantuan #chatList,
+html body #popupBantuan #chatUserPicker,
+html body #popupBantuan .chatBody {
+  padding-top: 1mm !important;
+  padding-bottom: 1mm !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 600px) {
+  #popupBantuan,
+  .popupBantuan,
+  html body #popupBantuan,
+  html body .popupBantuan {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+  }
+
+  #popupBantuan .chatBox,
+  .popupBantuan .chatBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    height: calc(100vh - 2mm) !important;
+    max-height: calc(100vh - 2mm) !important;
+  }
+
+  #popupBantuan .chatHeader,
+  #popupBantuan .chatFooter,
+  #popupBantuan #chatList,
+  #popupBantuan #chatUserPicker,
+  #popupBantuan .chatBody {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+  }
+}
+
+@media (min-width: 601px) {
+  #popupBantuan,
+  .popupBantuan,
+  html body #popupBantuan,
+  html body .popupBantuan {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+  }
+
+  #popupBantuan .chatBox,
+  .popupBantuan .chatBox,
+  html body #popupBantuan .chatBox,
+  html body .popupBantuan .chatBox {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    padding-left: 1mm !important;
+    padding-right: 1mm !important;
+    max-height: calc(100vh - 2mm) !important;
+  }
+
+  #popupBantuan .chatHeader,
+  #popupBantuan .chatFooter,
+  #popupBantuan #chatList,
+  #popupBantuan #chatUserPicker,
+  #popupBantuan .chatBody {
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+  }
+}
+
+
+/* =============================================================================
+   USER TABLE HEADERS CENTER ALIGNED (RATA TENGAH UNTUK HEADER TABEL USER)
+   ============================================================================= */
+.userModalTable th,
+#userTableModal th,
+#popupUserManagementModal table th,
+#popupUserManagementModal th,
+#userManagementPage table th,
+#userManagementPage th,
+html body #popupUserManagementModal table.userModalTable th,
+html body #userManagementPage table th {
+  text-align: center !important;
+}
+
+
+/* =============================================================================
+   100% CENTER-ALIGNED AKSI HEADER ACROSS ALL TABLES IN THE APP
+   ============================================================================= */
+th.th-aksi-col,
+.th-aksi-col,
+table th.th-aksi-col,
+.userModalTable th:last-child,
+#popupUserManagementModal table th:last-child,
+#userTableModal th:last-child,
+#userManagementPage table th:last-child,
+.historyTable th:last-child,
+.dashboardTable th:last-child,
+#tabelDaftarTokoModal th:last-child,
+#popupDetailBarangV2 table th:last-child,
+html body th.th-aksi-col,
+html body .th-aksi-col,
+html body .userModalTable th:last-child,
+html body #popupUserManagementModal table.userModalTable th:last-child,
+html body #popupUserManagementModal table th:last-child,
+html body #riwayatPage .historyTable th:last-child,
+html body #historyPage .historyTable th:last-child {
+  text-align: center !important;
+}
+
+/* =============================================================================
+   ADMIN SWITCH TOGGLE COMPONENT FOR BREAKDOWN PARSIAL APPROVAL
+   ============================================================================= */
+.switch-toggle input:checked + .slider-round {
+  background-color: #10b981 !important;
+}
+.switch-toggle input:focus + .slider-round {
+  box-shadow: 0 0 1px #10b981;
+}
+.switch-toggle input:checked + .slider-round:before {
+  transform: translateX(24px);
+}
+.slider-round:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+/* =============================================================================
+   MOBILE VIEW (HP): FULLSCREEN 1MM PADDING FOR SUPABASE KEY & SQL POPUPS
+   ============================================================================= */
+@media (max-width: 768px) {
+  html body #modalSetupSupabaseKeys,
+  html body #modalViewMasterSqlSupabase {
+    padding: 1mm !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #modalSetupSupabaseKeys .rejectModalContent,
+  html body #modalViewMasterSqlSupabase .rejectModalContent {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    border-radius: 6px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+  }
+
+  html body #modalSetupSupabaseKeys .rejectHeaderPopup,
+  html body #modalViewMasterSqlSupabase .rejectHeaderPopup {
+    padding: 8px 12px !important;
+    flex-shrink: 0 !important;
+  }
+
+  html body #modalSetupSupabaseKeys .rejectHeaderPopup h4,
+  html body #modalViewMasterSqlSupabase .rejectHeaderPopup h4 {
+    font-size: 13px !important;
+  }
+
+  html body #modalSetupSupabaseKeys .rejectModalContent > div:last-child,
+  html body #modalViewMasterSqlSupabase .rejectModalContent > div:last-child {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    padding: 2mm 1mm 1mm 1mm !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+  }
+
+  html body #rawSupabaseKeyText {
+    height: 75px !important;
+    font-size: 11px !important;
+    padding: 6px 8px !important;
+    margin-bottom: 8px !important;
+  }
+
+  html body #parsedSupabaseUrlInput,
+  html body #parsedSupabaseKeyInput {
+    height: 34px !important;
+    font-size: 11px !important;
+    padding: 4px 8px !important;
+  }
+
+  html body #txtMasterSqlSupabasePreview {
+    flex: 1 !important;
+    min-height: 160px !important;
+    font-size: 10px !important;
+    padding: 6px 8px !important;
+    margin-bottom: 8px !important;
   }
 }

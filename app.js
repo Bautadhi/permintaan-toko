@@ -124,11 +124,11 @@ function getReqPhotosList(req) {
 }
 window.getReqPhotosList = getReqPhotosList;
 
-// 1. SUPABASE CLIENT & CREDENTIALS
-const SUPABASE_URL = 'https://bfkmxhvqezdobsbgxmzg.supabase.co';
-const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_FMzN5oje55yHwz3Sv1s6ww_AyYU3r9K';
-const SUPABASE_SECRET_KEY = 'your-secret-key';
-const SUPABASE_JWKS_URL = 'https://bfkmxhvqezdobsbgxmzg.supabase.co/auth/v1/.well-known/jwks.json';
+// 1. SUPABASE CLIENT & CREDENTIALS (DITARIK DYNAMIS VIA FIREBASE)
+let SUPABASE_URL = '';
+let SUPABASE_PUBLISHABLE_KEY = '';
+let SUPABASE_SECRET_KEY = '';
+let SUPABASE_JWKS_URL = '';
 
 const supabaseAuthOptions = {
   auth: {
@@ -139,17 +139,597 @@ const supabaseAuthOptions = {
   }
 };
 
-const supabase = (window.supabase && typeof window.supabase.createClient === 'function') ? window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseAuthOptions) : null;
-const supabaseAdmin = supabase;
-window.supabase = supabase;
+// Check localStorage cache first for instant cold start
+const cachedSupaUrl = typeof localStorage !== 'undefined' ? (localStorage.getItem('APP_SUPABASE_URL') || '') : '';
+const cachedSupaKey = typeof localStorage !== 'undefined' ? (localStorage.getItem('APP_SUPABASE_KEY') || '') : '';
+
+// Preserve the global Supabase library creator function before window.supabase gets assigned
+window._supabaseClientCreator = (window.supabase && typeof window.supabase.createClient === 'function') 
+  ? window.supabase.createClient 
+  : (window.Supabase && typeof window.Supabase.createClient === 'function' 
+    ? window.Supabase.createClient 
+    : (window._supabaseClientCreator || null));
+
+if (cachedSupaUrl && cachedSupaKey) {
+  SUPABASE_URL = (typeof cleanSupabaseUrl === 'function') ? cleanSupabaseUrl(cachedSupaUrl) : cachedSupaUrl.match(/https:\/\/[a-zA-Z0-9_\-]+\.supabase\.co/i)?.[0] || cachedSupaUrl;
+  SUPABASE_PUBLISHABLE_KEY = cachedSupaKey;
+}
+
+let supabase = (window._supabaseClientCreator && SUPABASE_URL && SUPABASE_URL.startsWith('http')) 
+  ? window._supabaseClientCreator(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, supabaseAuthOptions) 
+  : null;
+let supabaseAdmin = supabase;
+if (supabase) {
+  window.supabase = supabase;
+}
 window.supabaseClient = supabase;
 window.supabaseAdmin = supabase;
 
+// =============================================================================
+// DYNAMIC SUPABASE CREDENTIALS & FIREBASE SYNC LOGIC
+// =============================================================================
+
+function cleanSupabaseUrl(urlStr) {
+  if (!urlStr || typeof urlStr !== 'string') return '';
+  const match = urlStr.match(/https:\/\/[a-zA-Z0-9_\-]+\.supabase\.co/i);
+  if (match) return match[0];
+  try {
+    const u = new URL(urlStr.trim());
+    return u.origin;
+  } catch (e) {
+    return urlStr.trim().replace(/\/+$/, '');
+  }
+}
+window.cleanSupabaseUrl = cleanSupabaseUrl;
+
+function parseRawSupabaseCredentials(rawText) {
+  let url = '';
+  let anonKey = '';
+
+  if (!rawText || typeof rawText !== 'string') {
+    return { url, anonKey };
+  }
+
+  const lines = rawText.split('\n');
+  lines.forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) return;
+
+    if (trimmed.includes('=')) {
+      const parts = trimmed.split('=');
+      const key = parts[0].trim().toUpperCase();
+      const val = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+
+      if (key.includes('URL') && !key.includes('JWKS') && !key.includes('AUTH') && !key.includes('REDIRECT') && val.startsWith('http')) {
+        url = cleanSupabaseUrl(val);
+      }
+      if ((key.includes('PUBLISHABLE') || key.includes('ANON') || key.includes('KEY')) && !key.includes('SECRET') && !key.includes('JWKS') && !key.includes('URL') && val.length > 10) {
+        anonKey = val;
+      }
+    }
+  });
+
+  if (!url) {
+    url = cleanSupabaseUrl(rawText);
+  }
+
+  if (!anonKey) {
+    const pubMatch = rawText.match(/sb_publishable_[a-zA-Z0-9_\-]+/);
+    if (pubMatch) {
+      anonKey = pubMatch[0];
+    } else {
+      const jwtMatch = rawText.match(/eyJ[a-zA-Z0-9_\-\.]{50,}/);
+      if (jwtMatch) anonKey = jwtMatch[0];
+    }
+  }
+
+  return { url: cleanSupabaseUrl(url), anonKey };
+}
+window.parseRawSupabaseCredentials = parseRawSupabaseCredentials;
+
+function prosesAutoParseRawSupabaseText(rawText) {
+  const parsed = parseRawSupabaseCredentials(rawText);
+  if (parsed.url) {
+    const urlEl = document.getElementById('parsedSupabaseUrlInput');
+    if (urlEl) urlEl.value = parsed.url;
+  }
+  if (parsed.anonKey) {
+    const keyEl = document.getElementById('parsedSupabaseKeyInput');
+    if (keyEl) keyEl.value = parsed.anonKey;
+  }
+}
+window.prosesAutoParseRawSupabaseText = prosesAutoParseRawSupabaseText;
+
+// =============================================================================
+// MASTER SUPABASE DDL SQL GENERATOR & COPY TO CLIPBOARD WORKFLOW
+// =============================================================================
+function getMasterSqlSupabaseScript() {
+  return `-- =============================================================================
+-- MASTER SETUP DDL SQL UNTUK SUPABASE (APLIKASI PERMINTAAN TOKO)
+-- Salin seluruh kode ini dan tempelkan ke:
+-- Dashboard Supabase -> SQL Editor -> New Query -> RUN
+-- =============================================================================
+
+-- 1. TABEL PERMINTAAN TOKO (Surat Utama Permintaan Barang)
+CREATE TABLE IF NOT EXISTS public.permintaan_toko (
+  no_surat TEXT PRIMARY KEY,
+  toko TEXT,
+  user_id TEXT,
+  created_by TEXT,
+  status TEXT DEFAULT 'PENDING',
+  area TEXT DEFAULT 'ALL',
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  data JSONB DEFAULT '{}'::jsonb
+);
+
+-- 2. TABEL BREAKDOWN PARSIAL (Surat Jalan Parsial)
+CREATE TABLE IF NOT EXISTS public.breakdown_parsial (
+  id TEXT PRIMARY KEY,
+  no_surat_induk TEXT NOT NULL,
+  partial_id TEXT NOT NULL,
+  items JSONB DEFAULT '[]'::jsonb,
+  photos JSONB DEFAULT '[]'::jsonb,
+  artemis_photos JSONB DEFAULT '[]'::jsonb,
+  status TEXT DEFAULT 'PENDING',
+  created_by TEXT,
+  created_at TEXT,
+  approved_by TEXT,
+  approved_at TEXT,
+  reject_reason TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. TABEL MASTER BARANG (Database Master Kode Barang)
+CREATE TABLE IF NOT EXISTS public.master_barang (
+  kode_barang TEXT PRIMARY KEY,
+  nama_barang TEXT NOT NULL,
+  satuan TEXT DEFAULT 'PCS',
+  kategori TEXT DEFAULT 'UMUM',
+  harga NUMERIC DEFAULT 0,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. TABEL TOKO LIST (Database Daftar Toko)
+CREATE TABLE IF NOT EXISTS public.toko_list (
+  kode_toko TEXT PRIMARY KEY,
+  nama_toko TEXT NOT NULL,
+  area TEXT DEFAULT 'ALL',
+  alamat TEXT,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 5. TABEL USERS (Database Akun Pengguna)
+CREATE TABLE IF NOT EXISTS public.users (
+  username TEXT PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  role TEXT DEFAULT 'TOKO',
+  category TEXT DEFAULT 'REGULER',
+  store_code TEXT DEFAULT '',
+  password TEXT DEFAULT '123',
+  status TEXT DEFAULT 'ACTIVE',
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 6. TABEL SYSTEM SETTINGS (Pengaturan Sistem Admin)
+CREATE TABLE IF NOT EXISTS public.system_settings (
+  setting_key TEXT PRIMARY KEY,
+  setting_value TEXT NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- =============================================================================
+-- HAK AKSES & SECURITY POLICIES (ROW LEVEL SECURITY / RLS)
+-- =============================================================================
+ALTER TABLE public.permintaan_toko ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All permintaan_toko" ON public.permintaan_toko;
+CREATE POLICY "Allow All permintaan_toko" ON public.permintaan_toko FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.breakdown_parsial ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All breakdown_parsial" ON public.breakdown_parsial;
+CREATE POLICY "Allow All breakdown_parsial" ON public.breakdown_parsial FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.master_barang ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All master_barang" ON public.master_barang;
+CREATE POLICY "Allow All master_barang" ON public.master_barang FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.toko_list ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All toko_list" ON public.toko_list;
+CREATE POLICY "Allow All toko_list" ON public.toko_list FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All users" ON public.users;
+CREATE POLICY "Allow All users" ON public.users FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.system_settings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Allow All system_settings" ON public.system_settings;
+CREATE POLICY "Allow All system_settings" ON public.system_settings FOR ALL USING (true) WITH CHECK (true);
+
+-- =============================================================================
+-- AKTIFKAN REPLIKASI SUPABASE REALTIME DENGAN AMAN
+-- =============================================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'permintaan_toko') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.permintaan_toko;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'breakdown_parsial') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.breakdown_parsial;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'master_barang') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.master_barang;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'toko_list') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.toko_list;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'users') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.users;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'system_settings') THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.system_settings;
+  END IF;
+EXCEPTION WHEN OTHERS THEN
+  NULL;
+END $$;`;
+}
+window.getMasterSqlSupabaseScript = getMasterSqlSupabaseScript;
+
+function salinKodeMasterSqlSupabase() {
+  try { history.pushState({ modalOpen: true }, '', location.href); } catch(e) {}
+  const sqlText = getMasterSqlSupabaseScript();
+  const txtArea = document.getElementById('txtMasterSqlSupabasePreview');
+  if (txtArea) txtArea.value = sqlText;
+
+  const modal = document.getElementById('modalViewMasterSqlSupabase');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.classList.add('active', 'show');
+  }
+
+  eksekusiSalinMasterSqlToClipboard();
+}
+window.salinKodeMasterSqlSupabase = salinKodeMasterSqlSupabase;
+
+function eksekusiSalinMasterSqlToClipboard() {
+  const sqlText = getMasterSqlSupabaseScript();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(sqlText).then(() => {
+      if (typeof showNotif === 'function') {
+        showNotif('📋 KODE MASTER DDL SQL SUPABASE BERHASIL DISALIN! Silakan paste & RUN di Supabase SQL Editor.', 'success');
+      }
+    }).catch(() => fallbackCopySqlText(sqlText));
+  } else {
+    fallbackCopySqlText(sqlText);
+  }
+}
+window.eksekusiSalinMasterSqlToClipboard = eksekusiSalinMasterSqlToClipboard;
+
+function fallbackCopySqlText(text) {
+  const txtArea = document.getElementById('txtMasterSqlSupabasePreview') || document.createElement('textarea');
+  if (!document.getElementById('txtMasterSqlSupabasePreview')) {
+    txtArea.value = text;
+    document.body.appendChild(txtArea);
+  }
+  txtArea.select();
+  txtArea.setSelectionRange(0, 99999);
+  try {
+    document.execCommand('copy');
+    if (typeof showNotif === 'function') {
+      showNotif('📋 KODE MASTER DDL SQL SUPABASE BERHASIL DISALIN! Silakan paste & RUN di Supabase SQL Editor.', 'success');
+    }
+  } catch(e) {}
+}
+
+function tutupModalViewMasterSqlSupabase() {
+  const modal = document.getElementById('modalViewMasterSqlSupabase');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('active', 'show');
+  }
+}
+window.tutupModalViewMasterSqlSupabase = tutupModalViewMasterSqlSupabase;
+
+function reinitSupabaseClient(newUrl, newKey) {
+  newUrl = cleanSupabaseUrl(newUrl);
+  if (!newUrl || !newKey) return false;
+
+  const currentCachedUrl = typeof localStorage !== 'undefined' ? (localStorage.getItem('APP_SUPABASE_URL') || '') : '';
+  const currentCachedKey = typeof localStorage !== 'undefined' ? (localStorage.getItem('APP_SUPABASE_KEY') || '') : '';
+
+  const isKeyChanged = (currentCachedUrl && cleanSupabaseUrl(currentCachedUrl) !== newUrl) || (currentCachedKey && currentCachedKey !== newKey);
+
+  if (SUPABASE_URL === newUrl && SUPABASE_PUBLISHABLE_KEY === newKey && supabase && !isKeyChanged) {
+    window.isSupabaseOnline = true;
+    return true;
+  }
+
+  // If key changed across devices, automatically purge stale local storage cache
+  if (isKeyChanged) {
+    console.log('🔄 [SUPABASE KEY CHANGED DETECTED]: Auto purging old device cache...');
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('APP_SUPABASE_URL');
+        localStorage.removeItem('APP_SUPABASE_KEY');
+        localStorage.removeItem('STORE_SUPABASE_LAST_SYNC_V7');
+      }
+      if (typeof appStorage !== 'undefined' && appStorage) {
+        appStorage.removeItem('STORE_SUPABASE_LAST_SYNC_V7');
+        if (typeof REQUESTS_DB_KEY !== 'undefined') appStorage.removeItem(REQUESTS_DB_KEY);
+      }
+    } catch(e) {}
+  }
+  try {
+    const creator = window._supabaseClientCreator || (window.supabase && typeof window.supabase.createClient === 'function' ? window.supabase.createClient : null);
+
+    if (creator) {
+      const client = creator(newUrl, newKey, supabaseAuthOptions);
+      if (client) {
+        SUPABASE_URL = newUrl;
+        SUPABASE_PUBLISHABLE_KEY = newKey;
+        supabase = client;
+        supabaseAdmin = client;
+        window.supabase = client;
+        window.supabaseClient = client;
+        window.supabaseAdmin = client;
+        window.isSupabaseOnline = true;
+
+        try {
+          if (typeof localStorage !== 'undefined') {
+            localStorage.setItem('APP_SUPABASE_URL', newUrl);
+            localStorage.setItem('APP_SUPABASE_KEY', newKey);
+          }
+        } catch(e) {}
+
+        if (typeof updateGlobalConnectionDotStatus === 'function') updateGlobalConnectionDotStatus();
+        if (typeof pingSupabaseKeepAlive === 'function') pingSupabaseKeepAlive();
+        if (typeof syncAllDataToCache === 'function') {
+          syncAllDataToCache().then(() => {
+            if (typeof refreshRealtimeUI === 'function') refreshRealtimeUI();
+            if (typeof renderRiwayat === 'function') renderRiwayat();
+            if (typeof loadMasterDbTable === 'function') loadMasterDbTable();
+          }).catch(() => {});
+        } else if (typeof syncSupabaseRequestsToLocalCache === 'function') {
+          syncSupabaseRequestsToLocalCache().catch(() => {});
+        }
+
+        console.log('⚡ [SUPABASE REINITIALIZED SUCCESSFULLY]:', newUrl);
+        return true;
+      }
+    } else {
+      console.error('[SUPABASE REINIT NOTICE]: Supabase SDK createClient constructor not found!');
+    }
+  } catch (err) {
+    console.error('[SUPABASE REINIT ERROR]:', err);
+  }
+  return false;
+}
+window.reinitSupabaseClient = reinitSupabaseClient;
+
+// =============================================================================
+// GLOBAL ADMIN CONFIG: DM APPROVAL FOR BREAKDOWN PARSIAL
+// =============================================================================
+window.REQUIRE_DM_APPROVAL_PARSIAL = (typeof localStorage !== 'undefined' && localStorage.getItem('APP_REQUIRE_DM_APPROVAL_PARSIAL') !== null) 
+  ? (localStorage.getItem('APP_REQUIRE_DM_APPROVAL_PARSIAL') === 'true')
+  : true;
+
+function updateUIApprovalParsialToggle(isChecked) {
+  window.REQUIRE_DM_APPROVAL_PARSIAL = !!isChecked;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('APP_REQUIRE_DM_APPROVAL_PARSIAL', isChecked ? 'true' : 'false');
+    }
+  } catch(e) {}
+
+  const sw = document.getElementById('toggleApprovalParsialSwitch');
+  const lbl = document.getElementById('labelApprovalParsialToggle');
+  const desc = document.getElementById('txtStatusApprovalParsialDesc');
+
+  if (sw) sw.checked = isChecked;
+  if (lbl) {
+    lbl.innerText = isChecked ? 'PERLU APPROVAL DM' : 'TANPA APPROVAL DM (OTOMATIS APPROVE)';
+    lbl.style.color = isChecked ? '#10b981' : '#f59e0b';
+  }
+  if (desc) {
+    desc.innerText = isChecked ? 'PERLU APPROVAL DM' : 'TANPA APPROVAL DM (OTOMATIS APPROVE)';
+    desc.style.color = isChecked ? '#0ea5e9' : '#f59e0b';
+  }
+}
+window.updateUIApprovalParsialToggle = updateUIApprovalParsialToggle;
+
+async function simpanApprovalParsialSettingToCloud(isChecked) {
+  updateUIApprovalParsialToggle(isChecked);
+
+  const valStr = isChecked ? 'true' : 'false';
+
+  // 1. Save to Supabase (system_settings table)
+  try {
+    if (typeof supabase !== 'undefined' && supabase && typeof supabase.from === 'function') {
+      const { error } = await supabase.from('system_settings').upsert({
+        setting_key: 'require_dm_approval_breakdown',
+        setting_value: valStr,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'setting_key' });
+      if (error) {
+        if (error.code === 'PGRST205' || String(error.message || '').includes('Could not find the table')) {
+          console.info('ℹ️ [SUPABASE NOTICE]: Tabel system_settings belum dibuat di Supabase (Pengaturan tetap tersimpan & aktif via Firebase Realtime Cloud).');
+        } else {
+          console.warn('[SUPABASE SYSTEM_SETTINGS UPSERT NOTICE]:', error);
+        }
+      } else console.log('[SUPABASE SYSTEM_SETTINGS SUCCESS]: Saved require_dm_approval_breakdown =', valStr);
+    }
+  } catch(e) {
+    console.warn('[SUPABASE SYSTEM_SETTINGS EXCEPTION]:', e);
+  }
+
+  // 2. Mirror to Firebase Realtime Database
+  try {
+    if (typeof firebase !== 'undefined' && firebase.database) {
+      firebase.database().ref('config/system_settings/require_dm_approval_breakdown').set(isChecked).catch(() => {});
+    }
+  } catch(e) {}
+
+  // 3. Mirror to Firebase Firestore
+  try {
+    if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+      dbFirestore.collection('config').doc('system_settings').set({ require_dm_approval_breakdown: isChecked }, { merge: true }).catch(() => {});
+    }
+  } catch(e) {}
+
+  if (typeof showNotif === 'function') {
+    showNotif(isChecked ? 'PENGATURAN DIUBAH: Pengajuan breakdown WAJIB Approval DM!' : 'PENGATURAN DIUBAH: Pengajuan breakdown TANPA Approval DM (Otomatis Approve)!', isChecked ? 'info' : 'warning');
+  }
+}
+window.simpanApprovalParsialSettingToCloud = simpanApprovalParsialSettingToCloud;
+
+function listenApprovalParsialSettingFromCloud() {
+  // Listen from Firebase Realtime DB
+  if (typeof firebase !== 'undefined' && firebase.database) {
+    try {
+      firebase.database().ref('config/system_settings/require_dm_approval_breakdown').on('value', snapshot => {
+        if (snapshot.exists()) {
+          const val = snapshot.val() !== false && snapshot.val() !== 'false';
+          updateUIApprovalParsialToggle(val);
+        }
+      });
+    } catch(e) {}
+  }
+
+  // Listen / Fetch from Supabase
+  if (typeof supabase !== 'undefined' && supabase && typeof supabase.from === 'function') {
+    supabase.from('system_settings').select('*').eq('setting_key', 'require_dm_approval_breakdown').then(({ data, error }) => {
+      if (!error && Array.isArray(data) && data.length > 0) {
+        const valStr = data[0].setting_value;
+        const isReq = valStr !== 'false' && valStr !== false;
+        updateUIApprovalParsialToggle(isReq);
+      }
+    }).catch(() => {});
+  }
+}
+window.listenApprovalParsialSettingFromCloud = listenApprovalParsialSettingFromCloud;
+
+function loadSupabaseKeysFromFirebase() {
+  listenApprovalParsialSettingFromCloud();
+  const extractKeys = (data) => {
+    if (!data) return { url: '', anonKey: '' };
+    if (typeof data === 'string') return parseRawSupabaseCredentials(data);
+    const url = data.url || data.SUPABASE_URL || data.supabase_url || '';
+    const anonKey = data.anonKey || data.key || data.SUPABASE_PUBLISHABLE_KEY || data.anon_key || data.publishableKey || '';
+    if (url && anonKey) return { url, anonKey };
+    if (data.rawText) return parseRawSupabaseCredentials(data.rawText);
+    return { url, anonKey };
+  };
+
+  if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+    dbFirestore.collection('config').doc('supabase_credentials').get().then(doc => {
+      if (doc.exists) {
+        const { url, anonKey } = extractKeys(doc.data());
+        if (url && anonKey) {
+          reinitSupabaseClient(url, anonKey);
+          updateStatusSupabaseKeysCloudInfo(url, 'Firebase Cloud Firestore');
+        }
+      }
+    }).catch(e => console.warn('[SUPABASE KEYS FIRESTORE FETCH NOTICE]:', e));
+  }
+
+  if (typeof firebase !== 'undefined' && firebase.database) {
+    try {
+      firebase.database().ref('config/supabase_credentials').on('value', snapshot => {
+        const { url, anonKey } = extractKeys(snapshot.val());
+        if (url && anonKey) {
+          reinitSupabaseClient(url, anonKey);
+          updateStatusSupabaseKeysCloudInfo(url, 'Firebase Realtime Cloud');
+        }
+      });
+    } catch(e) {}
+  }
+}
+window.loadSupabaseKeysFromFirebase = loadSupabaseKeysFromFirebase;
+
+function updateStatusSupabaseKeysCloudInfo(activeUrl, sourceStr = 'Firebase Cloud') {
+  const infoEl = document.getElementById('statusSupabaseKeysCloudInfo');
+  if (infoEl) {
+    infoEl.innerHTML = `<span style="color:#16a34a">✓ Terhubung via ${sourceStr}:</span> <code>${activeUrl || SUPABASE_URL}</code>`;
+  }
+}
+
+function bukaModalSetupSupabaseKeys() {
+  try { history.pushState({ modalOpen: true }, '', location.href); } catch(e) {}
+  const modal = document.getElementById('modalSetupSupabaseKeys');
+  if (modal) {
+    modal.style.display = 'flex';
+    const urlEl = document.getElementById('parsedSupabaseUrlInput');
+    const keyEl = document.getElementById('parsedSupabaseKeyInput');
+    if (urlEl && !urlEl.value) urlEl.value = SUPABASE_URL || '';
+    if (keyEl && !keyEl.value) keyEl.value = SUPABASE_PUBLISHABLE_KEY || '';
+    updateStatusSupabaseKeysCloudInfo(SUPABASE_URL, 'Konfigurasi Aktif');
+  }
+}
+window.bukaModalSetupSupabaseKeys = bukaModalSetupSupabaseKeys;
+
+function tutupModalSetupSupabaseKeys() {
+  const modal = document.getElementById('modalSetupSupabaseKeys');
+  if (modal) modal.style.display = 'none';
+}
+window.tutupModalSetupSupabaseKeys = tutupModalSetupSupabaseKeys;
+
+async function simpanSetupSupabaseKeysToFirebase() {
+  const urlVal = (document.getElementById('parsedSupabaseUrlInput')?.value || '').trim();
+  const keyVal = (document.getElementById('parsedSupabaseKeyInput')?.value || '').trim();
+
+  if (!urlVal || !urlVal.startsWith('http')) {
+    if (typeof showNotif === 'function') showNotif('URL SUPABASE TIDAK VALID! (Harus diawali https://)', 'warning');
+    return;
+  }
+  if (!keyVal || keyVal.length < 10) {
+    if (typeof showNotif === 'function') showNotif('KUNCI SUPABASE (ANON/PUBLISHABLE KEY) TIDAK VALID!', 'warning');
+    return;
+  }
+
+  if (typeof showLoading === 'function') showLoading('MENYIMPAN KONFIGURASI SUPABASE KE FIREBASE CLOUD...');
+  try {
+    const payload = {
+      url: urlVal,
+      anonKey: keyVal,
+      updatedBy: (typeof currentUser !== 'undefined' && currentUser ? (currentUser.fullName || currentUser.username) : 'ADMIN'),
+      updatedAt: new Date().toISOString()
+    };
+
+    if (typeof firebase !== 'undefined' && firebase.database) {
+      await firebase.database().ref('config/supabase_credentials').set(payload);
+    }
+    if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+      await dbFirestore.collection('config').doc('supabase_credentials').set(payload);
+    }
+
+    reinitSupabaseClient(urlVal, keyVal);
+
+    if (typeof hideLoading === 'function') hideLoading();
+    tutupModalSetupSupabaseKeys();
+    if (typeof showNotif === 'function') {
+      showNotif('KONFIGURASI SUPABASE BERHASIL DISIMPAN KE FIREBASE!\n\nSeluruh perangkat otomatis memperbarui koneksi database.', 'success');
+    }
+  } catch (err) {
+    if (typeof hideLoading === 'function') hideLoading();
+    console.error('[SIMPAN SUPABASE KEYS FIREBASE ERROR]:', err);
+    if (typeof showNotif === 'function') showNotif('GAGAL MENYIMPAN KUNCI SUPABASE: ' + err.message, 'warning');
+  }
+}
+window.simpanSetupSupabaseKeysToFirebase = simpanSetupSupabaseKeysToFirebase;
+
+// Auto-listen Firebase Supabase credentials on load
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadSupabaseKeysFromFirebase);
+  } else {
+    loadSupabaseKeysFromFirebase();
+  }
+} catch(e) {}
+
 window.isFirebaseOnline = true;
-window.isSupabaseOnline = true;
+window.isSupabaseOnline = (typeof supabase !== 'undefined' && supabase !== null && typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL.startsWith('http')) ? true : false;
 
 function klikStatusKoneksiServer() {
-  const isOnline = (typeof navigator !== 'undefined' && navigator.onLine !== false) && (window.isSupabaseOnline !== false);
+  const isOnline = (typeof navigator !== 'undefined' && navigator.onLine !== false) && (window.isSupabaseOnline === true) && (typeof supabase !== 'undefined' && supabase !== null);
   if (isOnline) {
     if (typeof showNotif === 'function') {
       showNotif('TERHUBUNG KE SUPABASE CLOUD\n\nStatus: Online & Database Cloud Realtime Aktif.', 'success');
@@ -158,9 +738,9 @@ function klikStatusKoneksiServer() {
     }
   } else {
     if (typeof showNotif === 'function') {
-      showNotif('KONEKSI SUPABASE OFFLINE / TERPUTUS\n\nSilakan periksa koneksi internet atau jaringan Anda.', 'warning');
+      showNotif('KONEKSI SUPABASE OFFLINE / BELUM DI-SETUP\n\nSilakan atur kunci Supabase via Admin atau periksa koneksi Anda.', 'warning');
     } else {
-      alert('KONEKSI SUPABASE OFFLINE / TERPUTUS');
+      alert('KONEKSI SUPABASE OFFLINE / BELUM DI-SETUP');
     }
   }
 }
@@ -172,20 +752,20 @@ function updateGlobalConnectionDotStatus() {
   if (!dot) return;
 
   const fb = !!window.isFirebaseOnline;
-  const sb = !!window.isSupabaseOnline;
+  const sb = !!window.isSupabaseOnline && (typeof supabase !== 'undefined' && supabase !== null) && (typeof SUPABASE_URL !== 'undefined' && SUPABASE_URL.startsWith('http'));
 
   if (fb && sb) {
-    dot.style.background = '#10b981';
-    dot.style.boxShadow = '0 0 10px #10b981';
-    dot.title = 'STATUS KONEKSI: TERHUBUNG KE SUPABASE (KLIK UNTUK LIHAT STATUS)';
-  } else if (fb || sb) {
-    dot.style.background = '#f59e0b';
-    dot.style.boxShadow = '0 0 10px #f59e0b';
-    dot.title = 'STATUS KONEKSI: TERHUBUNG (KLIK UNTUK LIHAT STATUS)';
+    dot.style.setProperty('background', '#10b981', 'important');
+    dot.style.setProperty('box-shadow', '0 0 10px #10b981', 'important');
+    dot.title = 'STATUS KONEKSI: TERHUBUNG KE SUPABASE (ONLINE)';
+  } else if (sb && !fb) {
+    dot.style.setProperty('background', '#f59e0b', 'important');
+    dot.style.setProperty('box-shadow', '0 0 10px #f59e0b', 'important');
+    dot.title = 'STATUS KONEKSI: SUPABASE ONLINE, FIREBASE OFFLINE';
   } else {
-    dot.style.background = '#ef4444';
-    dot.style.boxShadow = '0 0 10px #ef4444';
-    dot.title = 'STATUS SERVER: OFFLINE / TERPUTUS (KLIK UNTUK LIHAT STATUS)';
+    dot.style.setProperty('background', '#ef4444', 'important');
+    dot.style.setProperty('box-shadow', '0 0 10px #ef4444', 'important');
+    dot.title = 'STATUS SERVER: SUPABASE OFFLINE / BELUM DI-SETUP (KLIK UNTUK DETAIL)';
   }
   dot.onclick = () => klikStatusKoneksiServer();
 }
@@ -1828,6 +2408,33 @@ function getFormattedDateDDMMYYYY(dObj = new Date()) {
   return `${day}/${month}/${year}`;
 }
 
+
+function formatDateTimeWIB(input) {
+  if (!input) return '-';
+  const str = String(input).trim();
+  if (!str || str === '-') return '-';
+
+  try {
+    const d = new Date(str);
+    if (!isNaN(d.getTime())) {
+      const day = String(d.getDate()).padStart(2, '0');
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const year = d.getFullYear();
+      const hours = String(d.getHours()).padStart(2, '0');
+      const minutes = String(d.getMinutes()).padStart(2, '0');
+      return `${day}/${month}/${year} ${hours}:${minutes} WIB`;
+    }
+  } catch(e) {}
+
+  const match = str.match(/^(\d{4})[-/](\d{2})[-/](\d{2})[T\s](\d{2}):(\d{2})/);
+  if (match) {
+    return `${match[3]}/${match[2]}/${match[1]} ${match[4]}:${match[5]} WIB`;
+  }
+
+  return str;
+}
+window.formatDateTimeWIB = formatDateTimeWIB;
+
 function formatDateDDMMYYYYString(input) {
   if (!input) return '-';
   const str = String(input).trim();
@@ -2381,18 +2988,14 @@ function initFirebaseDB() {
       if (dbFirestore || dbRealtime) {
         try {
 
-          const dot = document.getElementById('firebaseOnlineDot');
-          if (dot) {
-            dot.style.background = '#10b981';
-            dot.style.boxShadow = '0 0 10px #10b981';
-            dot.title = `ONLINE: FIRESTORE CHAT & NOTIFIKASI AKTIF (${activeConfig.projectId})`;
-          }
+          window.isFirebaseOnline = true;
+          if (typeof updateGlobalConnectionDotStatus === 'function') updateGlobalConnectionDotStatus();
 
           // AKTIFKAN REAL-TIME LISTENER CHAT & NOTIFIKASI VIA FIRESTORE
           startFirebaseRealtimeChatListener();
           startFirebaseRealtimeNotifListener();
           startFirebaseRealtimeAppSettingsListener();
-                              startFirebaseRealtimeChatListener();
+          if (typeof loadSupabaseKeysFromFirebase === 'function') loadSupabaseKeysFromFirebase();
 
           // SUPABASE PURE SINGLE SOURCE OF TRUTH: SAAT REFRESH/AWAL BUKA HANYA PULL DATA DARI SUPABASE (TANPA AUTOMATIC PUSH)
 if (typeof syncSupabaseRequestsToLocalCache === 'function') {
@@ -5949,7 +6552,8 @@ function pushPopupHistoryState() {
 
 function seedDashboardHistoryState() {
   try {
-    history.pushState({ isDashboardGuard: true, page: 'dashboardPage' }, '', location.href);
+    history.pushState({ isDashboardGuard: true, page: 'dashboardPage', level: 1 }, '', location.href);
+    history.pushState({ isDashboardGuard: true, page: 'dashboardPage', level: 2 }, '', location.href);
   } catch (e) {}
 }
 
@@ -5957,6 +6561,8 @@ function initMobileBackButtonEngine() {
   seedDashboardHistoryState();
 
   window.addEventListener('popstate', (e) => {
+    // SANGAT PENTING: Lock history stack seketika pada popstate agar browser HP tidak langsung keluar ke link/web luar
+    seedDashboardHistoryState();
     // JIKA POPUP UBAH STATUS ADMIN TERBUKA & DI-BACK DARI HP -> TUTUP MODAL STATUS & KEMBALI KE DETAIL / MASTER
     const popUbahStatus = document.getElementById('popupUbahStatusAdminModal');
     const isUbahStatusOpen = popUbahStatus && (popUbahStatus.classList.contains('show') || popUbahStatus.style.display === 'flex' || popUbahStatus.style.display === 'block');
@@ -6072,6 +6678,8 @@ window.triggerConfirmBoxFlash = triggerConfirmBoxFlash;
 
     // 4. MODAL UTAMA LAINNYA (DITUTUP SATU PER SATU DARI LAPISAN PALING ATAS KE LAPISAN BELAKANG)
     const modalPriorityStack = [
+      { id: 'modalViewMasterSqlSupabase', closeFn: () => { if (typeof tutupModalViewMasterSqlSupabase === 'function') tutupModalViewMasterSqlSupabase(); } },
+      { id: 'modalSetupSupabaseKeys', closeFn: () => { if (typeof tutupModalSetupSupabaseKeys === 'function') tutupModalSetupSupabaseKeys(); } },
       { id: 'popupEditKeteranganPartSingle', closeFn: () => { if (typeof tutupModalEditKetPartSingle === 'function') tutupModalEditKetPartSingle(); } },
       { id: 'popupSecurityPinHapusLokal', closeFn: () => { if (typeof tutupModalPinHapusLokal === 'function') tutupModalPinHapusLokal(); } },
       { id: 'popupOfflineSafetyModal', closeFn: () => { if (typeof tutupModalOfflineSafety === 'function') tutupModalOfflineSafety(); } },
@@ -7560,6 +8168,7 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
       dmTTD: '',
       tokoTTD: pemohonTTD,
       pemohonTTD: pemohonTTD,
+      isGBJ: isLoginGBJ,
       createdBy: currentUser.fullName,
       createdAt: `${getFormattedDateDDMMYYYY(now)} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`,
       log: initialLog
@@ -7748,7 +8357,7 @@ function filterRiwayat() {
 
   if (data.length === 0) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted); border-bottom: 1px solid var(--border-color) !important;">BELUM ADA DATA PERMINTAAN.</td></tr>`;
-    for (let k = 1; k < 12; k++) {
+    for (let k = 0; k < 20; k++) {
       const emptyTr = document.createElement('tr');
       emptyTr.className = 'empty-grid-row';
       emptyTr.innerHTML = `
@@ -7762,6 +8371,10 @@ function filterRiwayat() {
       `;
       tbody.appendChild(emptyTr);
     }
+    const spacerTr = document.createElement('tr');
+    spacerTr.className = 'table-spacer-fill-row';
+    spacerTr.innerHTML = `<td colspan="7">&nbsp;</td>`;
+    tbody.appendChild(spacerTr);
     return;
   }
 
@@ -7903,7 +8516,7 @@ function filterRiwayat() {
     tbody.appendChild(tr);
   });
 
-  const emptyRowsNeeded = Math.max(2, 12 - data.length);
+  const emptyRowsNeeded = Math.max(2, 20 - data.length);
   if (emptyRowsNeeded > 0) {
     for (let k = 0; k < emptyRowsNeeded; k++) {
       const emptyTr = document.createElement('tr');
@@ -7920,6 +8533,11 @@ function filterRiwayat() {
       tbody.appendChild(emptyTr);
     }
   }
+
+  const spacerTr = document.createElement('tr');
+  spacerTr.className = 'table-spacer-fill-row';
+  spacerTr.innerHTML = `<td colspan="7">&nbsp;</td>`;
+  tbody.appendChild(spacerTr);
 }
 
 function lihatFotoByNoSurat(noSurat) {
@@ -9582,7 +10200,9 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
   }).join('');
 
   const totalDetailCols = (isDus ? 7 : 6) + (showKetPartCol ? 1 : 0) + (canServiceRowActions ? 1 : 0);
-  const emptyRowsCount = 2;
+  const minDetailRows = 10;
+  const actualCount = itemsList ? itemsList.length : 0;
+  const emptyRowsCount = Math.max(2, minDetailRows - actualCount);
   let emptyGridRowsHtml = '';
   for (let e = 0; e < emptyRowsCount; e++) {
     emptyGridRowsHtml += `
@@ -9591,6 +10211,11 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
       </tr>
     `;
   }
+  emptyGridRowsHtml += `
+    <tr class="table-spacer-fill-row" style="background: var(--bg-box) !important;">
+      <td colspan="${totalDetailCols}" style="border: none !important; border-bottom: none !important; padding: 0 !important; background: var(--bg-box) !important;">&nbsp;</td>
+    </tr>
+  `;
   itemsHtml += emptyGridRowsHtml;
 
   let bottomActionsHtml = '';
@@ -10789,7 +11414,12 @@ function renderFullPdfPreviewDocument(modelId) {
           <div style="font-weight: 500; color: #0f172a; text-transform: uppercase;">PEMOHON</div>
           <div style="flex: 1; display: flex; align-items: center; justify-content: center; min-height: 48px;">
             ${(() => {
-              const tokoSig = (currentUser && currentUser.category === 'TOKO' && isValidSig(currentUser.ttd)) ? currentUser.ttd : getUserRealSignature('TOKO');
+              const isGBJDemo = currentUser && (
+                currentUser.category === 'GBJ' || 
+                String(currentUser.username || '').toUpperCase().includes('GBJ') || 
+                String(currentUser.fullName || '').toUpperCase().includes('GBJ')
+              );
+              const tokoSig = isGBJDemo ? ((currentUser && isValidSig(currentUser.ttd)) ? currentUser.ttd : getUserRealSignature('GBJ')) : '';
               return renderSafeTtdImageTag(tokoSig, 'max-height: 46px; max-width: 90%; object-fit: contain;');
             })()}
           </div>
@@ -10948,34 +11578,35 @@ function bukaPdfModal(noSurat, includePhotos = null, autoPrint = true) {
     dmTTD = ''; // KOSONGKAN DI PDF JIKA USER DM BELUM MEMPUNYAI TTD
   }
 
+  const creatorUser = users.find(u => u && (
+    (req.userId && (String(u.id).toUpperCase() === String(req.userId).toUpperCase() || String(u.username).toUpperCase() === String(req.userId).toUpperCase())) ||
+    (req.createdBy && (String(u.username).toUpperCase() === String(req.createdBy).toUpperCase() || String(u.fullName).toUpperCase() === String(req.createdBy).toUpperCase())) ||
+    (req.toko && (String(u.username).toUpperCase() === String(req.toko).toUpperCase() || String(u.fullName).toUpperCase() === String(req.toko).toUpperCase()))
+  ));
+
   const isReqFromGBJ = (
+    req.isGBJ === true ||
+    (creatorUser && (
+      creatorUser.category === 'GBJ' ||
+      String(creatorUser.username || '').toUpperCase().includes('GBJ') ||
+      String(creatorUser.fullName || '').toUpperCase().includes('GBJ') ||
+      String(creatorUser.storeCode || '').toUpperCase().includes('GBJ')
+    )) ||
     (req.createdBy && String(req.createdBy).toUpperCase().includes('GBJ')) ||
-    (req.toko && String(req.toko).toUpperCase().includes('GBJ')) ||
-    req.isGBJ === true
+    (req.toko && String(req.toko).toUpperCase().includes('GBJ'))
   );
 
   let pemohonTTD = req.pemohonTTD || req.tokoTTD || '';
-  let pemohonName = req.toko || req.createdBy || 'PEMOHON';
+  let pemohonName = req.toko || req.createdBy || (creatorUser ? (creatorUser.fullName || creatorUser.username) : 'PEMOHON');
   let pemohonRoleTitle = 'PEMOHON (TOKO)';
 
   if (isReqFromGBJ) {
-    const gbjUser = users.find(u => u && (
-      (u.id && String(u.id).toUpperCase() === String(req.createdBy || '').toUpperCase()) ||
-      (u.username && String(u.username).toUpperCase() === String(req.createdBy || '').toUpperCase()) ||
-      (u.fullName && String(u.fullName).toUpperCase() === String(req.createdBy || '').toUpperCase()) ||
-      u.category === 'GBJ'
-    ));
-
-    pemohonName = (gbjUser ? (gbjUser.fullName || gbjUser.username) : '') || req.createdBy || req.toko || 'GBJ';
     pemohonRoleTitle = 'GUDANG BARANG JADI (GBJ)';
-
     if (!isValidSig(pemohonTTD)) {
-      pemohonTTD = (gbjUser && isValidSig(gbjUser.ttd)) ? gbjUser.ttd : getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy);
+      pemohonTTD = (creatorUser && isValidSig(creatorUser.ttd)) ? creatorUser.ttd : getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy);
     }
   } else {
-    if (!isValidSig(pemohonTTD)) {
-      pemohonTTD = getUserRealSignature('TOKO', req.area, req.createdBy, req.toko);
-    }
+    pemohonTTD = '';
   }
 
   if (!isValidSig(pemohonTTD)) {
@@ -14216,6 +14847,19 @@ function loadMasterDbTable() {
 
   if (requests.length === 0) {
     tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:30px; color:var(--text-muted);">BELUM ADA DATA PERMINTAAN TERDAFTAR.</td></tr>`;
+    for (let k = 0; k < 20; k++) {
+      const emptyTr = document.createElement('tr');
+      emptyTr.className = 'empty-grid-row';
+      emptyTr.innerHTML = `
+        <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+        <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+      `;
+      tbody.appendChild(emptyTr);
+    }
+    const spacerTr = document.createElement('tr');
+    spacerTr.className = 'table-spacer-fill-row';
+    spacerTr.innerHTML = `<td colspan="10">&nbsp;</td>`;
+    tbody.appendChild(spacerTr);
     updateMultiMasterDbBtnState();
     return;
   }
@@ -14255,15 +14899,23 @@ function loadMasterDbTable() {
     tbody.appendChild(tr);
   });
 
-  for (let k = 0; k < 2; k++) {
-    const emptyTr = document.createElement('tr');
-    emptyTr.className = 'empty-grid-row';
-    emptyTr.innerHTML = `
-      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-      <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
-    `;
-    tbody.appendChild(emptyTr);
+  const emptyRowsNeeded = Math.max(2, 20 - requests.length);
+  if (emptyRowsNeeded > 0) {
+    for (let k = 0; k < emptyRowsNeeded; k++) {
+      const emptyTr = document.createElement('tr');
+      emptyTr.className = 'empty-grid-row';
+      emptyTr.innerHTML = `
+        <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+        <td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td>
+      `;
+      tbody.appendChild(emptyTr);
+    }
   }
+
+  const spacerTr = document.createElement('tr');
+  spacerTr.className = 'table-spacer-fill-row';
+  spacerTr.innerHTML = `<td colspan="10">&nbsp;</td>`;
+  tbody.appendChild(spacerTr);
   updateMultiMasterDbBtnState();
 }
 
@@ -18922,6 +19574,11 @@ window.syncSupabaseBreakdownParsialToLocalCache = syncSupabaseBreakdownParsialTo
 
 function kirimNotifDanWaBreakdown(noSurat, partialId, statusType, extra = {}) {
   if (!noSurat || !partialId) return;
+
+  // JIKA APPROVAL DM DIMATIKAN (TANPA APPROVAL DM), JANGAN KIRIM NOTIFIKASI PENDING APPROVAL KE DM
+  if (statusType === 'PENDING' && window.REQUIRE_DM_APPROVAL_PARSIAL === false) {
+    return;
+  }
   
   const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
   const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
@@ -19475,6 +20132,9 @@ async function prosesKirimPengajuanBreakdown() {
     const isEditing = Boolean(window._editingPartialId);
     const targetPartialId = isEditing ? window._editingPartialId : partialId;
 
+    const requireDM = window.REQUIRE_DM_APPROVAL_PARSIAL !== false;
+    const initialStatus = requireDM ? 'PENDING' : 'APPROVE';
+
     const existingPartials = getPartialBreakdownsFromDB(noSurat);
     if (isEditing) {
       const pIdx = existingPartials.findIndex(p => p && (p.partial_id === targetPartialId || p.partialId === targetPartialId || String(p.id).endsWith(`_${targetPartialId}`)));
@@ -19495,23 +20155,25 @@ async function prosesKirimPengajuanBreakdown() {
         partial_id: partialId,
         items: selectedItems,
         photos: sanitizedPhotos,
-        status: 'PENDING',
+        status: initialStatus,
         created_by: currentUser ? (currentUser.fullName || currentUser.full_name || currentUser.username) : 'SERVICE',
         created_at: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`,
-        approved_by: '',
-        approved_at: null,
+        approved_by: !requireDM ? 'SYSTEM (AUTO)' : '',
+        approved_at: !requireDM ? `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}` : null,
         reject_reason: ''
       };
       existingPartials.push(newPartial);
       savePartialBreakdownsToDB(existingPartials, noSurat);
       await pushPartialBreakdownsToCloud(existingPartials, noSurat);
       window._tempParsialPhotos = [];
-      if (typeof showNotif === 'function') showNotif('PENGAJUAN BERHASIL DI KIRIM.', 'success');
+      if (typeof showNotif === 'function') {
+        showNotif(requireDM ? 'PENGAJUAN BERHASIL DI KIRIM.' : 'PENGAJUAN PARSIAL BERHASIL & OTOMATIS DISETUJUI (TANPA APPROVAL DM).', 'success');
+      }
     }
 
     tutupModalBuatParsial();
 
-    if (typeof kirimNotifDanWaBreakdown === 'function') {
+    if (requireDM && typeof kirimNotifDanWaBreakdown === 'function') {
       kirimNotifDanWaBreakdown(noSurat, targetPartialId, 'PENDING');
     }
 
@@ -19694,7 +20356,7 @@ async function bukaModalRiwayatParsialList(noSurat) {
                     String(usr.fullName || usr.full_name || '').toUpperCase() === v.toUpperCase()
                   ));
                   return (u && (u.fullName || u.full_name)) ? (u.fullName || u.full_name) : v;
-                })(p.created_by || p.createdBy || 'SERVICE')}</strong> | Waktu: <strong>${p.created_at || p.createdAt || '-'}</strong>
+                })(p.created_by || p.createdBy || 'SERVICE')}</strong> | Waktu: <strong>${formatDateTimeWIB(p.created_at || p.createdAt)}</strong>
               </div>
             </div>
 
@@ -20242,25 +20904,35 @@ function cetakPdfSuratParsial(noSurat, partialId) {
     dmTTD = '';
   }
 
+  const creatorUser2 = users.find(u => u && (
+    (req.userId && (String(u.id).toUpperCase() === String(req.userId).toUpperCase() || String(u.username).toUpperCase() === String(req.userId).toUpperCase())) ||
+    (req.createdBy && (String(u.username).toUpperCase() === String(req.createdBy).toUpperCase() || String(u.fullName).toUpperCase() === String(req.createdBy).toUpperCase())) ||
+    (req.toko && (String(u.username).toUpperCase() === String(req.toko).toUpperCase() || String(u.fullName).toUpperCase() === String(req.toko).toUpperCase()))
+  ));
+
   const isReqFromGBJ = (
+    req.isGBJ === true ||
+    (creatorUser2 && (
+      creatorUser2.category === 'GBJ' ||
+      String(creatorUser2.username || '').toUpperCase().includes('GBJ') ||
+      String(creatorUser2.fullName || '').toUpperCase().includes('GBJ') ||
+      String(creatorUser2.storeCode || '').toUpperCase().includes('GBJ')
+    )) ||
     (req.createdBy && String(req.createdBy).toUpperCase().includes('GBJ')) ||
-    (req.toko && String(req.toko).toUpperCase().includes('GBJ')) ||
-    req.isGBJ === true
+    (req.toko && String(req.toko).toUpperCase().includes('GBJ'))
   );
 
-  let pemohonName = req.toko || req.createdBy || 'PEMOHON';
+  let pemohonName = req.toko || req.createdBy || (creatorUser2 ? (creatorUser2.fullName || creatorUser2.username) : 'PEMOHON');
   let pemohonRoleTitle = 'PEMOHON (TOKO)';
   let pemohonTTD = req.pemohonTTD || req.tokoTTD || '';
 
   if (isReqFromGBJ) {
     pemohonRoleTitle = 'GUDANG BARANG JADI (GBJ)';
-    if (typeof getUserRealSignature === 'function') {
-      pemohonTTD = getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy) || pemohonTTD;
+    if (!isValidSig(pemohonTTD) && typeof getUserRealSignature === 'function') {
+      pemohonTTD = (creatorUser2 && isValidSig(creatorUser2.ttd)) ? creatorUser2.ttd : getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy);
     }
   } else {
-    if (typeof getUserRealSignature === 'function') {
-      pemohonTTD = getUserRealSignature('TOKO', req.area, req.createdBy, req.toko) || pemohonTTD;
-    }
+    pemohonTTD = '';
   }
 
   const nowPrint = new Date();

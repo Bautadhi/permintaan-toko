@@ -31,8 +31,8 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics-compat.js"></script>
 
   <!-- Master Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=20260824_v1787576394">
-  <script src="app.js?v=20260824_v1787576394"></script>
+  <link rel="stylesheet" href="styles.css?v=20260825_v1787700000">
+  <script src="app.js?v=20260825_v1787700000"></script>
 
   <!-- Global Failsafe Gemini AI Key Handler -->
   <script>
@@ -268,10 +268,10 @@
       </div>
 
       <!-- Admin Conversation Room List -->
-      <div id="chatList" style="display:none; flex:1; overflow-y:auto; padding:2mm 0 0 0;"></div>
+      <div id="chatList" style="display:none; flex:1; overflow-y:auto; padding:1mm 0 0 0;"></div>
 
       <!-- Admin User Picker for Starting New Chat -->
-      <div id="chatUserPicker" style="display:none; flex:1; overflow-y:auto; padding:2mm 0 0 0; flex-direction:column;">
+      <div id="chatUserPicker" style="display:none; flex:1; overflow-y:auto; padding:1mm 0 0 0; flex-direction:column;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
           <div style="font-weight:700; font-size:13px; color:var(--text-main); display:flex; align-items:center; gap:6px;">
             <span class="material-symbols-rounded" style="color:var(--primary); font-size:18px;">contacts</span> PILIH TOKO / USER
@@ -498,9 +498,9 @@
         <!-- Baris Pilihan Toko & Kolom Pencarian Toko Cepat (Rata Kanan Sempurna 100% Lebar) -->
         <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px; width: 100%; box-sizing: border-box;">
           <select id="toko" style="flex: 3; min-width: 0; height: 44px; margin: 0; border-radius: 5px; box-sizing: border-box;"></select>
-          <div id="wrapperCariToko" style="flex: 0 0 95px; min-width: 85px; max-width: 100px; position: relative; height: 44px; box-sizing: border-box; margin: 0;">
-            <span class="material-symbols-rounded" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 18px; color: var(--text-muted); pointer-events: none;">search</span>
-            <input type="text" id="cariTokoInput" placeholder="CARI TOKO" style="width: 100%; height: 44px; padding: 0 28px 0 34px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 12px; text-transform: uppercase; box-sizing: border-box; margin: 0;" oninput="filterDropdownToko(this.value)">
+          <div id="wrapperCariToko" style="flex: 0 0 108px !important; min-width: 98px !important; max-width: 123px !important; position: relative; height: 44px; box-sizing: border-box; margin: 0;">
+            <span class="material-symbols-rounded" style="position: absolute; left: 8px; top: 9px; font-size: 17px; color: var(--text-muted); pointer-events: none;">search</span>
+            <input type="text" id="cariTokoInput" placeholder="CARI TOKO" style="width: 100%; height: 44px; padding: 6px 24px 0 30px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 13px !important; font-weight: 400 !important; line-height: 1.2 !important; text-transform: uppercase; box-sizing: border-box; margin: 0;" oninput="filterDropdownToko(this.value)">
             <button type="button" id="btnHapusCariToko" onclick="resetCariToko()" title="Hapus Pencarian" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-muted); cursor: pointer; display: none; padding: 2px; align-items: center;">
               <span class="material-symbols-rounded" style="font-size: 16px;">cancel</span>
             </button>
@@ -733,6 +733,44 @@
           </div>
           <button type="button" class="btnDownload" style="background: #dc2626; height: 42px; padding: 0 20px; font-weight: 800;" onclick="hapusSemuaNotifFirebaseDanLokal()">
             <span class="material-symbols-rounded">delete_sweep</span> HAPUS SEMUA NOTIFIKASI
+          </button>
+        </div>
+      </div>
+
+      <!-- ADMIN CONTROL: PENGATURAN APPROVAL BREAKDOWN PARSIAL -->
+      <div id="containerSetupApprovalParsialAdmin" class="box" style="border-left: 4px solid #0ea5e9; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="color: #0ea5e9; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="material-symbols-rounded">call_split</span> APPROVAL DM BREAKDOWN PARSIAL
+            </h3>
+            <p id="descApprovalParsialStatus" style="font-size: 12px; color: var(--text-muted); margin: 0;">
+              STATUS SAAT INI: <strong id="txtStatusApprovalParsialDesc" style="color: #0ea5e9;">PERLU APPROVAL DM</strong> (Pengajuan parsial butuh persetujuan DM & notifikasi dikirim ke DM).
+            </p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <label class="switch-toggle" style="position: relative; display: inline-block; width: 52px; height: 28px;">
+              <input type="checkbox" id="toggleApprovalParsialSwitch" checked onchange="simpanApprovalParsialSettingToCloud(this.checked)" style="opacity: 0; width: 0; height: 0;">
+              <span class="slider-round" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #64748b; transition: .3s; border-radius: 34px;"></span>
+            </label>
+            <span id="labelApprovalParsialToggle" style="font-size: 13px; font-weight: 800; color: #10b981;">PERLU APPROVAL DM</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADMIN CONTROL: PENGATURAN KUNCI SUPABASE VIA FIREBASE -->
+      <div id="containerSetupSupabaseKeysAdmin" class="box" style="border-left: 4px solid #8b5cf6; margin-bottom: 1mm !important; background: var(--bg-card);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+          <div>
+            <h3 style="color: #8b5cf6; display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <span class="material-symbols-rounded">vpn_key</span> PENGATURAN KUNCI SUPABASE VIA FIREBASE
+            </h3>
+            <p style="font-size: 12px; color: var(--text-muted); margin: 0;">
+              TEMPELKAN (COPY-PASTE) KUNCI SUPABASE MURNI DARI DASHBOARD (.ENV) UNTUK DISIMPAN DI FIREBASE.
+            </p>
+          </div>
+          <button type="button" class="btnDownload" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); height: 42px; padding: 0 20px; font-weight: 800; border: none; border-radius: 5px; color: #ffffff; cursor: pointer; box-shadow: 0 2px 6px rgba(139, 92, 246, 0.25);" onclick="bukaModalSetupSupabaseKeys()">
+            <span class="material-symbols-rounded">vpn_key</span> ATUR KUNCI SUPABASE
           </button>
         </div>
       </div>
@@ -1139,14 +1177,16 @@
   <!-- MODAL PILIH TEMPLATE EXCEL DUS / DEFAULT   -->
   <!-- ========================================== -->
   <div id="excelTemplateOverlay" class="popupOverlay modalBackdrop" onclick="if(event.target === this) closeExcelTemplateModal();" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center; padding: 2mm; box-sizing: border-box;">
-    <div class="modalBox" onclick="event.stopPropagation()" style="width: 100%; max-width: 400px; background: var(--bg-box); border-radius: 4px !important; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); border: 1.5px solid #107c41; box-sizing: border-box; margin: 0 auto; animation: popIn 0.2s ease-out;">
+    <div class="modalBox excelTemplateBox" onclick="event.stopPropagation()" style="width: 100%; max-width: 400px; background: var(--bg-card); border-radius: 5px !important; overflow: hidden; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4); border: 1.5px solid var(--primary) !important; box-sizing: border-box; margin: 0 auto; animation: popIn 0.2s ease-out;">
       <!-- HEADER POPUP -->
-      <div style="background: linear-gradient(135deg, #107c41, #0f7b40); color: #ffffff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box;">
-        <span style="display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 13.5px; letter-spacing: 0.5px;">
-          <span class="material-symbols-rounded" style="font-size: 20px;">download_for_offline</span>
-          <span>DOWNLOAD TEMPLATE EXCEL</span>
+      <div class="excelTemplateHeader" style="background: var(--primary) !important; color: #ffffff !important; padding: 12px 16px; display: flex !important; align-items: center !important; justify-content: space-between !important; box-sizing: border-box;">
+        <span style="display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 13.5px; letter-spacing: 0.5px; color: #ffffff !important;">
+          <span class="material-symbols-rounded" style="font-size: 20px; font-weight: 900; color: #ffffff !important;">download_for_offline</span>
+          <span style="color: #ffffff !important; font-weight: 900;">DOWNLOAD TEMPLATE EXCEL</span>
         </span>
-        <button type="button" onclick="closeExcelTemplateModal()" class="popupClose" style="color: #ffffff !important; font-size: 26px !important; font-weight: 900 !important; background: transparent !important; border: none !important; cursor: pointer !important; padding: 0 !important; margin: 0 !important; line-height: 1 !important;" title="TUTUP">&times;</button>
+        <button type="button" onclick="closeExcelTemplateModal()" class="btnHeaderCloseX excelCloseX" style="color: #ffffff !important; font-size: 24px !important; font-weight: 900 !important; background: transparent !important; border: none !important; cursor: pointer !important; padding: 0 !important; margin: 0 0 0 auto !important; display: inline-flex !important; align-items: center !important; justify-content: center !important; line-height: 1 !important;" title="TUTUP">
+          <span class="material-symbols-rounded" style="font-size: 24px; font-weight: 900; color: #ffffff !important;">close</span>
+        </button>
       </div>
 
       <!-- BODY POPUP -->
@@ -1171,11 +1211,6 @@
             <span>JENIS DEFAULT (TANPA SN DUS)</span>
           </span>
           <span class="material-symbols-rounded" style="font-size: 18px;">download</span>
-        </button>
-
-        <!-- BATAL -->
-        <button type="button" onclick="closeExcelTemplateModal()" style="margin-top: 4px; width: 100%; height: 36px; background: var(--bg-body); color: var(--text-main); border: 1px solid var(--border-color); border-radius: 3px !important; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
-          BATAL
         </button>
       </div>
 
@@ -1422,7 +1457,7 @@
               <th style="position: sticky; top: 0; z-index: 2;">NO. HP</th>
               <th style="position: sticky; top: 0; z-index: 2;">KATEGORI</th>
               <th style="position: sticky; top: 0; z-index: 2;">AREA</th>
-              <th style="position: sticky; top: 0; z-index: 2; text-align: right; min-width: 90px;">AKSI</th>
+              <th style="position: sticky; top: 0; z-index: 2; text-align: center; min-width: 90px;">AKSI</th>
             </tr>
           </thead>
           <tbody id="userTableBodyModal">
@@ -1670,6 +1705,82 @@
       </div>
     </div>
   </div>
+  </div>
+
+  <!-- MODAL SETUP KUNCI SUPABASE VIA FIREBASE -->
+  <div id="modalSetupSupabaseKeys" class="modalBackdrop" style="display: none; align-items: center; justify-content: center; z-index: 999999;" onclick="if (event.target === this) tutupModalSetupSupabaseKeys();">
+    <div class="rejectModalContent" style="max-width: 520px; width: 92%; border-radius: 8px; overflow: hidden; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+      <div class="rejectHeaderPopup" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: relative;">
+        <h4 style="margin: 0; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px; font-size: 15px;">
+          <span class="material-symbols-rounded">vpn_key</span> PENGATURAN KUNCI SUPABASE VIA FIREBASE
+        </h4>
+        <button type="button" class="btnHeaderCloseX" onclick="tutupModalSetupSupabaseKeys()" style="background: none !important; border: none !important; color: #ffffff !important; font-size: 26px !important; font-weight: 900 !important; cursor: pointer !important; line-height: 1 !important; padding: 0 4px !important; margin-left: auto !important;" title="TUTUP">&times;</button>
+      </div>
+
+      <div style="padding: 16px; box-sizing: border-box; background: var(--bg-card); color: var(--text-main);">
+        <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 0; margin-bottom: 12px; line-height: 1.4;">
+          Tempelkan (copy-paste) teks murni dari dashboard Supabase atau file <code>.env</code> Anda di kotak bawah ini. Sistem akan otomatis mengekstrak <strong>URL</strong> dan <strong>ANON KEY</strong> secara otomatis.
+        </p>
+
+        <label style="display: block; font-size: 11px; font-weight: 800; color: #8b5cf6; margin-bottom: 4px; text-transform: uppercase;">
+          1. TEMPEL TEKS MURNI DASHBOARD SUPABASE / .ENV (AUTO PARSE):
+        </label>
+        <textarea id="rawSupabaseKeyText" placeholder="Contoh copas bebas:
+SUPABASE_URL=https://bfkmxhvqezdobsbgxmzg.supabase.co
+SUPABASE_PUBLISHABLE_KEY=sb_publishable_FMzN5oje55yHwz3Sv1s6ww_...
+SUPABASE_SECRET_KEY=..." style="width: 100%; height: 90px; padding: 8px 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: var(--text-main); font-size: 11.5px; font-family: monospace; box-sizing: border-box; resize: vertical; margin-bottom: 12px;" oninput="prosesAutoParseRawSupabaseText(this.value)"></textarea>
+
+        <div style="background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 5px; padding: 10px; margin-bottom: 12px;">
+          <label style="display: block; font-size: 10.5px; font-weight: 800; color: var(--text-muted); margin-bottom: 4px;">HASIL EKSTRAKSI SUPABASE URL:</label>
+          <input type="text" id="parsedSupabaseUrlInput" placeholder="https://xyz.supabase.co" style="width: 100%; height: 34px; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 11.5px; font-weight: 700; font-family: monospace; box-sizing: border-box; margin-bottom: 8px;">
+
+          <label style="display: block; font-size: 10.5px; font-weight: 800; color: var(--text-muted); margin-bottom: 4px;">HASIL EKSTRAKSI SUPABASE ANON / PUBLISHABLE KEY:</label>
+          <input type="text" id="parsedSupabaseKeyInput" placeholder="sb_publishable_... / eyJ..." style="width: 100%; height: 34px; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-main); font-size: 11.5px; font-weight: 700; font-family: monospace; box-sizing: border-box;">
+        </div>
+
+        <div id="statusSupabaseKeysCloudInfo" style="font-size: 11px; color: var(--primary); font-weight: 700; margin-bottom: 12px; line-height: 1.3;">
+          Status: Mengambil konfigurasi dari Cloud Firebase...
+        </div>
+
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px;">
+          <button type="button" onclick="salinKodeMasterSqlSupabase()" style="flex: 1; height: 38px; border-radius: 5px; background: linear-gradient(135deg, #0ea5e9, #0284c7) !important; color: #ffffff !important; font-weight: 800; border: none !important; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span class="material-symbols-rounded" style="font-size: 16px;">content_copy</span> COPY SQL SETUP SUPABASE
+          </button>
+        </div>
+
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btnBatal" onclick="tutupModalSetupSupabaseKeys()" style="flex: 1; height: 38px; border-radius: 5px; font-weight: 700; background: var(--bg-body) !important; color: var(--text-main) !important; border: 1px solid var(--border-color) !important;">BATAL</button>
+          <button type="button" class="btnOkNotif" onclick="simpanSetupSupabaseKeysToFirebase()" style="flex: 1; height: 38px; border-radius: 5px; background: linear-gradient(135deg, #8b5cf6, #6d28d9) !important; color: #ffffff !important; font-weight: 800; border: none !important; cursor: pointer;">SIMPAN KE FIREBASE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PREVIEW & COPY MASTER SQL SUPABASE -->
+  <div id="modalViewMasterSqlSupabase" class="modalBackdrop" style="display: none; align-items: center; justify-content: center; z-index: 9999999;" onclick="if (event.target === this) tutupModalViewMasterSqlSupabase();">
+    <div class="rejectModalContent" style="max-width: 680px; width: 94%; border-radius: 8px; overflow: hidden; background: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); box-shadow: 0 10px 30px rgba(0,0,0,0.4);">
+      <div class="rejectHeaderPopup" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; position: relative;">
+        <h4 style="margin: 0; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 8px; font-size: 15px;">
+          <span class="material-symbols-rounded">terminal</span> KODE DDL MASTER SETUP SQL SUPABASE
+        </h4>
+        <button type="button" class="btnHeaderCloseX" onclick="tutupModalViewMasterSqlSupabase()" style="background: none !important; border: none !important; color: #ffffff !important; font-size: 26px !important; font-weight: 900 !important; cursor: pointer !important; line-height: 1 !important; padding: 0 4px !important; margin-left: auto !important;" title="TUTUP">&times;</button>
+      </div>
+
+      <div style="padding: 16px; box-sizing: border-box; background: var(--bg-card); color: var(--text-main);">
+        <p style="font-size: 11.5px; color: var(--text-muted); margin-top: 0; margin-bottom: 10px; line-height: 1.4;">
+          Salin kode SQL di bawah ini, lalu tempelkan ke <strong>Supabase Dashboard &rarr; SQL Editor &rarr; RUN</strong> untuk membuat seluruh tabel, kebijakan RLS, dan Realtime secara otomatis.
+        </p>
+
+        <textarea id="txtMasterSqlSupabasePreview" readonly style="width: 100%; height: 260px; padding: 10px; border-radius: 5px; border: 1px solid var(--border-color); background: var(--bg-body); color: #38bdf8; font-size: 11px; font-family: monospace; box-sizing: border-box; resize: vertical; margin-bottom: 12px; outline: none;"></textarea>
+
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btnBatal" onclick="tutupModalViewMasterSqlSupabase()" style="flex: 1; height: 38px; border-radius: 5px; font-weight: 700; background: var(--bg-body) !important; color: var(--text-main) !important; border: 1px solid var(--border-color) !important;">TUTUP</button>
+          <button type="button" class="btnOkNotif" onclick="eksekusiSalinMasterSqlToClipboard()" style="flex: 1; height: 38px; border-radius: 5px; background: linear-gradient(135deg, #0ea5e9, #0284c7) !important; color: #ffffff !important; font-weight: 800; border: none !important; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <span class="material-symbols-rounded" style="font-size: 16px;">content_copy</span> SALIN KODE SQL
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
 </body>
