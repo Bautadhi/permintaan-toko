@@ -14707,11 +14707,18 @@ html body #popupBantuan .chatBody {
 }
 
 @media (max-width: 768px) {
-  #popupBantuan,
-  .popupBantuan,
-  html body #popupBantuan,
-  html body .popupBantuan,
-  html body #popupBantuan.popupOverlay {
+  #popupBantuan[style*="display: none"],
+  html body #popupBantuan[style*="display: none"],
+  html body .popupBantuan[style*="display: none"] {
+    display: none !important;
+  }
+
+  #popupBantuan.show,
+  .popupBantuan.show,
+  html body #popupBantuan.show,
+  html body .popupBantuan.show,
+  html body #popupBantuan[style*="display: flex"],
+  html body #popupBantuan[style*="display: block"] {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -14725,8 +14732,8 @@ html body #popupBantuan .chatBody {
   html body .popupBantuan .chatBox {
     width: calc(100vw - 20px) !important;
     max-width: 480px !important;
-    height: 72vh !important;
-    max-height: 520px !important;
+    height: calc(72vh + 10mm) !important;
+    max-height: calc(520px + 10mm) !important;
     min-height: 380px !important;
     margin: auto !important;
     border-radius: 12px !important;

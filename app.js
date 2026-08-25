@@ -1024,14 +1024,20 @@ function parsePhotosArray(rawPhotos) {
 }
 window.parsePhotosArray = parsePhotosArray;
 
-// CLEAN KEEP-ALIVE PING (PREVENTS 404 & 401 CONSOLE ERRORS)
-async function pingSupabaseKeepAlive() {
-  if (supabase) {
+// CLEAN KEEP-ALIVE PING (PREVENTS SUPABASE FREE TIER SLEEP MODE & MONITORS HEALTH)
+async function pingSupabaseKeepAlive(force = false) {
+  // If tab is in background/minimized and not forced, skip to save resources
+  if (!force && document.hidden) return;
+
+  if (supabase && SUPABASE_URL && SUPABASE_PUBLISHABLE_KEY) {
     try {
-      const res = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
-        headers: { 'apikey': SUPABASE_PUBLISHABLE_KEY }
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/system_settings?select=id&limit=1`, {
+        headers: {
+          'apikey': SUPABASE_PUBLISHABLE_KEY,
+          'Authorization': `Bearer ${SUPABASE_PUBLISHABLE_KEY}`
+        }
       });
-      window.isSupabaseOnline = (res.ok || res.status === 200);
+      window.isSupabaseOnline = (res.ok || res.status === 200 || res.status === 206);
     } catch (e) {
       window.isSupabaseOnline = false;
     }
@@ -1040,11 +1046,23 @@ async function pingSupabaseKeepAlive() {
   }
   updateGlobalConnectionDotStatus();
 }
+
+function startSupabaseKeepalive() {
+  pingSupabaseKeepAlive(true);
+  if (!window._supabaseKeepaliveInterval) {
+    window._supabaseKeepaliveInterval = setInterval(() => {
+      pingSupabaseKeepAlive(false);
+    }, 15 * 60 * 1000); // Smart ping every 15 minutes
+  }
+}
+window.startSupabaseKeepalive = startSupabaseKeepalive;
+window.pingSupabaseKeepAlive = pingSupabaseKeepAlive;
+
 try {
-  pingSupabaseKeepAlive();
+  startSupabaseKeepalive();
   setTimeout(() => {
     if (typeof initSupabaseRealtimeEngine === 'function') initSupabaseRealtimeEngine();
-  if (typeof syncSupabaseIncremental === 'function') syncSupabaseIncremental();
+    if (typeof syncSupabaseIncremental === 'function') syncSupabaseIncremental();
   }, 100);
 } catch (e) {}
 
