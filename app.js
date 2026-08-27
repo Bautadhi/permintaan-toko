@@ -7348,12 +7348,22 @@ function eksekusiPurgeCachePerangkatLokal(clearTime) {
   try {
     const timeToSave = clearTime || Date.now();
     
+    // SIMPAN SESI LOGIN AKTIF AGAR USER/ADMIN TIDAK TERLOGOUT SECARA TIDAK SENGAJA
+    const curSession = (typeof appStorage !== 'undefined' && appStorage) ? appStorage.getItem(SESSION_KEY) : null;
+    const localSession = (typeof localStorage !== 'undefined' && localStorage) ? localStorage.getItem(SESSION_KEY) : null;
+    const activeSession = curSession || localSession;
+
+    const curToken = (typeof appStorage !== 'undefined' && appStorage) ? appStorage.getItem('MY_SESSION_TOKEN') : null;
+    const localToken = (typeof localStorage !== 'undefined' && localStorage) ? localStorage.getItem('MY_SESSION_TOKEN') : null;
+    const activeToken = curToken || localToken;
+
+    const rememberCreds = (typeof localStorage !== 'undefined' && localStorage) ? localStorage.getItem(STORE_REMEMBER_LOGIN_CREDS_KEY) : null;
+
     if (typeof appStorage !== 'undefined' && appStorage && typeof appStorage.clear === 'function') {
       appStorage.clear();
     }
     if (typeof localStorage !== 'undefined' && localStorage) {
       localStorage.clear();
-      try { localStorage.setItem(LAST_DEVICE_CLEAR_CACHE_TIME_KEY, String(timeToSave)); } catch(e) {}
     }
     if (typeof sessionStorage !== 'undefined' && sessionStorage) {
       sessionStorage.clear();
@@ -7372,6 +7382,21 @@ function eksekusiPurgeCachePerangkatLokal(clearTime) {
         }
       }).catch(e => {});
     }
+
+    // KEMBALIKAN SESI LOGIN & MEMORY LOKAL AGAR AKUN TETAP AKTIF LOGGED IN
+    if (activeSession) {
+      if (typeof appStorage !== 'undefined' && appStorage) appStorage.setItem(SESSION_KEY, activeSession);
+      try { localStorage.setItem(SESSION_KEY, activeSession); } catch(e) {}
+    }
+    if (activeToken) {
+      if (typeof appStorage !== 'undefined' && appStorage) appStorage.setItem('MY_SESSION_TOKEN', activeToken);
+      try { localStorage.setItem('MY_SESSION_TOKEN', activeToken); } catch(e) {}
+    }
+    if (rememberCreds) {
+      try { localStorage.setItem(STORE_REMEMBER_LOGIN_CREDS_KEY, rememberCreds); } catch(e) {}
+    }
+
+    try { localStorage.setItem(LAST_DEVICE_CLEAR_CACHE_TIME_KEY, String(timeToSave)); } catch(e) {}
   } catch(e) {
     console.warn('[PURGE CACHE LOKAL EXCEPTION]:', e);
   }
@@ -7388,6 +7413,12 @@ function periksaDanEksekusiGlobalClearCache(remoteClearTime) {
   try {
     localLastClear = parseFloat(localStorage.getItem(LAST_DEVICE_CLEAR_CACHE_TIME_KEY) || '0') || 0;
   } catch(e) {}
+
+  if (!localLastClear) {
+    // PERANGKAT BARU/PERTAMA KALI LOAD: SIMPAN TIMESTAMP TANPA LAKUKAN PURGE/RELOAD PAKSA
+    try { localStorage.setItem(LAST_DEVICE_CLEAR_CACHE_TIME_KEY, String(numRemoteTime)); } catch(e) {}
+    return;
+  }
 
   if (numRemoteTime > localLastClear) {
     console.info('🚀 [GLOBAL CLEAR CACHE TRIGGERED]: Remote timestamp', numRemoteTime, 'is newer than local', localLastClear);
