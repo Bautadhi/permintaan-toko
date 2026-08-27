@@ -19,10 +19,12 @@ CREATE TABLE IF NOT EXISTS public.users (
     phone TEXT DEFAULT '-',
     category TEXT NOT NULL DEFAULT 'TOKO',
     area TEXT NOT NULL DEFAULT 'BDG',
+    can_print_pdf BOOLEAN DEFAULT false,
     theme TEXT DEFAULT '',
     created_at TEXT DEFAULT '',
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE public.users ADD COLUMN IF NOT EXISTS can_print_pdf BOOLEAN DEFAULT false;
 
 -- 2. TABEL: LOOKUP (ID AUTO INCREMENT, KEY, VALUE, TYPE, UPDATED_AT)
 CREATE TABLE IF NOT EXISTS public.lookup (
@@ -150,7 +152,7 @@ VALUES
     ('USR-1786584873337-351', 'CRB', '1', 'SUMARWAN', 'SU', '081809693898', 'SERVICE', 'CRB', '', '13/08/2026'),
     ('USR-1786584921101-816', 'SBN', '1', 'DARWANTO', 'DR', '085201433549', 'SERVICE', 'SBN', '', '13/08/2026'),
     ('USR-1787124294394-416', 'TSM', '1', 'BAUT ADHI WISMANTORO', 'BAW', '120363424747010987@g.us', 'SERVICE', 'TSM', 'dark-mode', '19/08/2026'),
-    ('USR-ADMIN', 'ADMIN', '0', 'SUPER ADMIN', '', '-', 'ADMIN', 'ALL', '', '31/07/2026')
+    ('USR-ADMIN', 'ADMIN', '000', 'SUPER ADMIN', '', '-', 'ADMIN', 'ALL', '', '31/07/2026')
 ON CONFLICT (username) DO UPDATE SET
     password = EXCLUDED.password,
     full_name = EXCLUDED.full_name,

@@ -3625,27 +3625,29 @@ html body #popupUserForm.popupOverlay {
   z-index: 10000005 !important;
   align-items: center !important;
   justify-content: center !important;
-  padding-top: 1mm !important;
-  padding-bottom: 2cm !important;
-  padding-left: 2mm !important;
-  padding-right: 2mm !important;
+  padding: 8px !important;
   box-sizing: border-box !important;
 }
 
 #popupUserForm .popupBox,
-html body #popupUserForm .popupBox {
+html body #popupUserForm .popupBox,
+#popupUserForm .userFormCard,
+html body #popupUserForm .userFormCard {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
   margin-left: auto !important;
   margin-right: auto !important;
   transform: none !important;
-  max-height: calc(100vh - 2cm) !important;
+  height: auto !important;
+  max-height: calc(100vh - 16px) !important;
+  max-height: calc(100dvh - 16px) !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   -webkit-overflow-scrolling: touch !important;
   background: var(--bg-box) !important;
   border: 1px solid var(--border-color) !important;
   box-shadow: 0 10px 30px rgba(0,0,0,0.45) !important;
-  border-radius: 5px !important;
+  border-radius: 8px !important;
 }
 
 #popupUserForm .popupClose {
@@ -6716,13 +6718,23 @@ html body .lastHeader > div {
 
 /* ANIMASI BERKEDIP SANGAT JELAS PADA BARIS TABEL (TR) UNTUK STATUS TUNGGU SERVICE & TUNGGU DM */
 @keyframes rowLetterBlink {
-  0%, 45% {
+  0%, 49% {
     opacity: 1 !important;
     visibility: visible !important;
+    box-shadow: none !important;
+    filter: none !important;
   }
-  50%, 95% {
-    opacity: 0.08 !important;
-    visibility: hidden !important;
+  50%, 99% {
+    opacity: 0.15 !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+  100% {
+    opacity: 1 !important;
+    visibility: visible !important;
+    box-shadow: none !important;
+    filter: none !important;
   }
 }
 
@@ -6732,8 +6744,9 @@ tr.rowWaitingDmBlink,
 .dashboardTable tbody tr.status-blinking-row,
 .dashboardTable tbody tr.blink-row-red,
 .historyTable tbody tr.status-blinking-row {
-  animation: rowLetterBlink 0.75s infinite !important;
-  will-change: opacity, visibility !important;
+  animation: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
 }
 
 tr.status-blinking-row td,
@@ -10315,10 +10328,7 @@ html body #artemisOverlay .artemisBodyPopup {
 
 /* POPUP FORM USER (#popupUserForm) */
 #popupUserForm {
-  padding-top: 1mm !important;
-  padding-bottom: 2cm !important;
-  padding-left: 4px !important;
-  padding-right: 4px !important;
+  padding: 8px !important;
 }
 
 /* POPUP TTD OVERLAY HIGHER Z-INDEX THAN POPUP AKUN */
@@ -11180,18 +11190,19 @@ html body #inputPage .inputPageHeader {
   -webkit-transform: translateZ(0) !important;
 }
 
-/* POPUP SHAKE & FLASH ANIMATION FOR STRICT CONFIRMATION LOCK */
+/* POPUP SHAKE ANIMATION FOR STRICT CONFIRMATION LOCK (CLEAN SHAKE, NO BAYANGAN / NO BOX-SHADOW) */
 @keyframes modalShakeFlash {
-  0% { transform: scale(1) translate(0, 0); box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
-  20% { transform: scale(1.04) translate(-7px, 0); box-shadow: 0 0 25px rgba(239, 68, 68, 0.95); border: 2px solid #ef4444 !important; }
-  40% { transform: scale(1.04) translate(7px, 0); box-shadow: 0 0 25px rgba(239, 68, 68, 0.95); border: 2px solid #ef4444 !important; }
-  60% { transform: scale(1.04) translate(-5px, 0); box-shadow: 0 0 25px rgba(239, 68, 68, 0.95); border: 2px solid #ef4444 !important; }
-  80% { transform: scale(1.02) translate(5px, 0); box-shadow: 0 0 25px rgba(239, 68, 68, 0.95); border: 2px solid #ef4444 !important; }
-  100% { transform: scale(1) translate(0, 0); box-shadow: 0 0 0 rgba(239, 68, 68, 0); }
+  0% { transform: translateX(0); box-shadow: none !important; filter: none !important; }
+  20% { transform: translateX(-6px); box-shadow: none !important; filter: none !important; }
+  40% { transform: translateX(6px); box-shadow: none !important; filter: none !important; }
+  60% { transform: translateX(-4px); box-shadow: none !important; filter: none !important; }
+  80% { transform: translateX(4px); box-shadow: none !important; filter: none !important; }
+  100% { transform: translateX(0); box-shadow: none !important; filter: none !important; }
 }
 
 .modal-shake-flash {
-  animation: modalShakeFlash 0.45s ease-in-out !important;
+  animation: modalShakeFlash 0.4s ease-in-out !important;
+  will-change: transform !important;
 }
 
 @keyframes spinLoader {
@@ -12467,7 +12478,7 @@ html body #popupUserManagementModal .btnTutupUserModal .material-symbols-rounded
   color: #ffffff !important;
   width: 32px !important;
   height: 32px !important;
-  border-radius: 50% !important;
+  border-radius: 4px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -15107,4 +15118,103 @@ html body #popupAkun #containerLogoutButtons .btnForceLogoutAll {
   padding: 0 !important;
   vertical-align: middle !important;
   display: inline-block !important;
+}
+
+/* ==========================================================================
+   STRICT GLOBAL Z-INDEX HIERARCHY OVERRIDES (NOTIFICATIONS ALWAYS IN FRONT)
+   ========================================================================== */
+#artemisOverlay,
+html body #artemisOverlay,
+#artemisOverlay.show,
+html body #artemisOverlay.show,
+#uploadBuktiPermintaanOverlay,
+html body #uploadBuktiPermintaanOverlay,
+#popupEditKeteranganPartSingle,
+html body #popupEditKeteranganPartSingle,
+#popupEditStatusPart,
+html body #popupEditStatusPart,
+#popupDetailBarangV2,
+html body #popupDetailBarangV2 {
+  z-index: 200000000 !important;
+}
+
+#confirmOverlay,
+html body #confirmOverlay,
+.popupOverlay#confirmOverlay,
+#confirmBoxCard,
+html body #confirmBoxCard,
+.confirmBoxCard,
+#popupNotif,
+html body #popupNotif,
+.popupOverlay#popupNotif,
+#popupNotifCard,
+html body #popupNotifCard,
+.popupNotifCard,
+#loadingOverlay,
+html body #loadingOverlay,
+.loadingOverlay,
+#popupSecurityPinHapusLokal,
+html body #popupSecurityPinHapusLokal,
+#popupOfflineSafetyModal,
+html body #popupOfflineSafetyModal {
+  z-index: 2147483647 !important;
+}
+
+/* =============================================================================
+   MODAL BLINK / FLASH ANIMATION ON BACKDROP CLICK (PERFECT CLEAN BLINK, NO BAYANGAN / NO BOX-SHADOW)
+   ============================================================================= */
+@keyframes modalBlinkFlash {
+  0% {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+  25% {
+    opacity: 0.15 !important;
+    transform: scale(1) !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+  50% {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+  75% {
+    opacity: 0.15 !important;
+    transform: scale(1) !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+  100% {
+    opacity: 1 !important;
+    transform: scale(1) !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+}
+
+.modal-blink-anim {
+  animation: modalBlinkFlash 0.4s ease-in-out !important;
+  will-change: opacity !important;
+}
+
+
+
+
+/* GLOBAL OVERRIDE: HILANGKAN SEMUA ANIMASI KEDIP SESUAI PERMINTAAN USER */
+tr.blink-row-red,
+tr.status-blinking-row,
+tr.rowWaitingDmBlink,
+.blink-row-red,
+.status-blinking-row,
+.rowWaitingDmBlink,
+.modal-blink-anim,
+.modal-shake-flash {
+  animation: none !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  background-color: transparent !important;
 }

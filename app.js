@@ -2546,7 +2546,7 @@ const SEED_USERS = [
   {
     id: 'USR-ADMIN',
     username: 'ADMIN',
-    password: '00',
+    password: '000',
     fullName: 'SUPER ADMIN',
     phone: '',
     category: 'ADMIN',
@@ -3420,6 +3420,39 @@ async function initSupabaseRealtimeEngine() {
       )
       .on(
         'broadcast',
+        { event: 'force_logout' },
+        (event) => {
+          if (event && event.payload && event.payload.username && currentUser) {
+            const target = String(event.payload.username).trim().toUpperCase();
+            const myUname = String(currentUser.username || '').trim().toUpperCase();
+            if (target === myUname) {
+              console.warn('⚠️ [FORCE LOGOUT BROADCAST DETECTED]: Logging out this device...');
+              if (typeof forceLogoutThisDevice === 'function') {
+                forceLogoutThisDevice(event.payload.reason || 'AKUN DI LOGOUT OLEH ADMIN, SILAHKAN LOGIN KEMBALI');
+              }
+            }
+          }
+        }
+      )
+      .on(
+        'broadcast',
+        { event: 'force_logout_all' },
+        (event) => {
+          if (currentUser) {
+            const myUname = String(currentUser.username || '').trim().toUpperCase();
+            const except = event && event.payload && event.payload.exceptAdmin ? String(event.payload.exceptAdmin).trim().toUpperCase() : 'ADMIN';
+            const isMyUserAdmin = (myUname === 'ADMIN' || String(currentUser.category || '').toUpperCase() === 'ADMIN');
+            if (myUname !== except && !isMyUserAdmin) {
+              console.warn('⚠️ [FORCE LOGOUT ALL BROADCAST DETECTED]: Logging out this device...');
+              if (typeof forceLogoutThisDevice === 'function') {
+                forceLogoutThisDevice(event.payload.reason || 'AKUN DI LOGOUT OLEH ADMIN, SILAHKAN LOGIN KEMBALI');
+              }
+            }
+          }
+        }
+      )
+      .on(
+        'broadcast',
         { event: 'chat_message' },
         (event) => {
           if (event && event.payload && event.payload.chat) {
@@ -3601,6 +3634,7 @@ function formatSupabaseRequestRow(row) {
     items: Array.isArray(row.items) ? row.items : (typeof row.items === 'string' ? JSON.parse(row.items || '[]') : []),
     photos: parsePhotosArray(row.photos || row.foto),
     artemisPhotos: parsePhotosArray(row.artemis_photos || row.artemisPhotos),
+    buktiPermintaan: parsePhotosArray(row.bukti_permintaan || row.buktiPermintaan),
     status: row.status || 'PENDING',
     serviceApprove: row.service_approve !== undefined ? !!row.service_approve : !!row.serviceApprove,
     serviceUserName: row.service_user_name || row.serviceUserName || '',
@@ -4019,6 +4053,7 @@ function handleRealtimeUserChange(payload) {
         phone: String(u.phone || '').trim(),
         category: String(u.category || 'TOKO').trim().toUpperCase(),
         area: String(u.area || 'BDG').trim().toUpperCase(),
+        canPrintPdf: u.can_print_pdf !== undefined ? (u.can_print_pdf === true || u.can_print_pdf === 'true' || u.can_print_pdf === 1) : (u.canPrintPdf !== undefined ? (u.canPrintPdf === true || u.canPrintPdf === 'true' || u.canPrintPdf === 1) : false),
         ttd: u.ttd || '',
         createdAt: u.created_at || (typeof getFormattedDateDDMMYYYY === 'function' ? getFormattedDateDDMMYYYY() : '')
       };
@@ -4035,7 +4070,7 @@ function handleRealtimeUserChange(payload) {
 
       if (currentUser && (
         (formatted.id && currentUser.id && String(currentUser.id) === String(formatted.id)) ||
-        (formatted.username && currentUser.username && String(currentUser.username).toUpperCase() === String(formatted.username).toUpperCase())
+        (formatted.username && currentUser.username && String(currentUser.username).toUpperCase() === formatted.username.toUpperCase())
       )) {
         currentUser = { ...currentUser, ...formatted };
         appStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
@@ -4065,9 +4100,24 @@ function handleRealtimeUserChange(payload) {
       if (typeof loadDashboard === 'function') loadDashboard();
       if (typeof loadUsersManagement === 'function') loadUsersManagement();
       if (typeof loadDaftarTokoModal === 'function') loadDaftarTokoModal();
+      if (typeof filterRiwayat === 'function') filterRiwayat();
     } else if (eventType === 'DELETE' && payload.old) {
       const delId = payload.old.id ? String(payload.old.id) : '';
       const delUname = payload.old.username ? String(payload.old.username).toUpperCase() : '';
+      
+      // LOGOUT OTOMATIS JIKA AKUN AKTIF PERANGKAT INI DIHAPUS OLEH ADMIN
+      if (currentUser) {
+        const myUname = String(currentUser.username || '').toUpperCase();
+        const myId = currentUser.id ? String(currentUser.id) : '';
+        if ((delUname && delUname === myUname) || (delId && delId === myId)) {
+          console.warn('⚠️ [AKUN DIHAPUS ADMIN]: Logging out this device...');
+          if (typeof forceLogoutThisDevice === 'function') {
+            forceLogoutThisDevice('AKUN ANDA TELAH DIHAPUS OLEH ADMIN!');
+          }
+          return;
+        }
+      }
+
       users = users.filter(x => {
         if (!x) return false;
         if (delId && x.id && String(x.id) === delId) return false;
@@ -4395,22 +4445,44 @@ async function syncSupabaseUsersToLocalCache() {
   try {
     const { data: supaUsers, error } = await supabase.from('users').select('*');
     if (!error && Array.isArray(supaUsers)) {
-      // DATABASE IS SINGLE SOURCE OF TRUTH: Supabase langsung menggantikan cache lokal users
-      const formatted = supaUsers.map(u => ({
-        id: u.id || u.username,
-        username: String(u.username || '').trim(),
-        password: String(u.password || '').trim(),
-        fullName: String(u.full_name || u.fullName || '').trim(),
-        storeCode: String(u.store_code || u.storeCode || '').trim(),
-        phone: String(u.phone || '').trim(),
-        category: String(u.category || 'TOKO').trim().toUpperCase(),
-        area: String(u.area || 'BDG').trim().toUpperCase(),
-        ttd: u.ttd || '',
-        createdAt: u.created_at || (typeof getFormattedDateDDMMYYYY === 'function' ? getFormattedDateDDMMYYYY() : '')
-      })).filter(u => !!u.username);
+      const existingLocal = getUsersFromDB();
+      const existingMap = new Map();
+      if (Array.isArray(existingLocal)) {
+        existingLocal.forEach(x => {
+          if (x && x.username) existingMap.set(String(x.username).toUpperCase(), x);
+        });
+      }
+
+      const formatted = supaUsers.map(u => {
+        const uname = String(u.username || '').trim();
+        const oldUser = existingMap.get(uname.toUpperCase());
+        let canPrint = false;
+        if (u.can_print_pdf !== undefined && u.can_print_pdf !== null) {
+          canPrint = (u.can_print_pdf === true || u.can_print_pdf === 'true' || u.can_print_pdf === 1);
+        } else if (u.canPrintPdf !== undefined && u.canPrintPdf !== null) {
+          canPrint = (u.canPrintPdf === true || u.canPrintPdf === 'true' || u.canPrintPdf === 1);
+        } else if (oldUser && oldUser.canPrintPdf !== undefined && oldUser.canPrintPdf !== null) {
+          canPrint = (oldUser.canPrintPdf === true || oldUser.canPrintPdf === 'true' || oldUser.canPrintPdf === 1);
+        }
+
+        const isMasterAdmin = (uname === 'ADMIN');
+        return {
+          id: u.id || uname,
+          username: uname,
+          password: isMasterAdmin ? '000' : String(u.password || '').trim(),
+          fullName: String(u.full_name || u.fullName || '').trim(),
+          storeCode: String(u.store_code || u.storeCode || '').trim(),
+          phone: String(u.phone || '').trim(),
+          category: isMasterAdmin ? 'ADMIN' : String(u.category || 'TOKO').trim().toUpperCase(),
+          area: isMasterAdmin ? 'ALL' : String(u.area || 'BDG').trim().toUpperCase(),
+          canPrintPdf: canPrint,
+          ttd: u.ttd || '',
+          createdAt: u.created_at || (typeof getFormattedDateDDMMYYYY === 'function' ? getFormattedDateDDMMYYYY() : '')
+        };
+      }).filter(u => !!u.username);
 
       if (!formatted.some(x => x.username.toUpperCase() === 'ADMIN')) {
-        formatted.unshift({ id: 'ADMIN', username: 'ADMIN', password: '00', fullName: 'SUPER ADMIN', category: 'ADMIN', area: 'ALL', phone: '-', storeCode: '' });
+        formatted.unshift({ id: 'ADMIN', username: 'ADMIN', password: '000', fullName: 'SUPER ADMIN', category: 'ADMIN', area: 'ALL', phone: '-', storeCode: '' });
       }
 
       appStorage.setItem(USERS_DB_KEY, JSON.stringify(formatted));
@@ -4467,7 +4539,7 @@ async function getSupabaseUserColumns(client) {
       return _supabaseUserColumnsCache;
     }
   } catch (e) {}
-  return ['id', 'username', 'password', 'full_name', 'store_code', 'phone', 'category', 'area', 'ttd', 'theme', 'bg_image', 'created_at', 'updated_at'];
+  return ['id', 'username', 'password', 'full_name', 'store_code', 'phone', 'category', 'area', 'can_print_pdf', 'ttd', 'theme', 'bg_image', 'created_at', 'updated_at'];
 }
 
 async function simpanUserKeSupabase(userObj) {
@@ -4476,6 +4548,8 @@ async function simpanUserKeSupabase(userObj) {
   try {
     const username = String(userObj.username || userObj.id || '').trim();
     if (!username) return;
+
+    const userCanPrint = userObj.canPrintPdf === true || userObj.can_print_pdf === true || userObj.canPrintPdf === 'true' || userObj.can_print_pdf === 'true' || userObj.canPrintPdf === 1 || userObj.can_print_pdf === 1;
 
     const fullPayload = {
       id: userObj.id || ('USR-' + username),
@@ -4486,6 +4560,7 @@ async function simpanUserKeSupabase(userObj) {
       phone: String(userObj.phone || '-').trim(),
       category: String(userObj.category || 'TOKO').trim().toUpperCase(),
       area: String(userObj.area || 'BDG').trim().toUpperCase(),
+      can_print_pdf: userCanPrint,
       ttd: userObj.ttd || '',
       theme: userObj.theme || 'dark-mode',
       bg_image: userObj.bg_image || '',
@@ -4493,21 +4568,35 @@ async function simpanUserKeSupabase(userObj) {
       updated_at: new Date().toISOString()
     };
 
-    const validCols = await getSupabaseUserColumns(client);
-    const sanitizedPayload = {};
+    let validCols = await getSupabaseUserColumns(client);
+    let sanitizedPayload = {};
     Object.keys(fullPayload).forEach(k => {
       if (validCols.includes(k)) {
         sanitizedPayload[k] = fullPayload[k];
       }
     });
 
-    const { error: err1 } = await client.from('users').upsert(sanitizedPayload, { onConflict: 'id' });
+    let { error: err1 } = await client.from('users').upsert(sanitizedPayload, { onConflict: 'id' });
+    if (err1 && sanitizedPayload.can_print_pdf !== undefined) {
+      // Retrying without can_print_pdf if column does not exist in Supabase table
+      delete sanitizedPayload.can_print_pdf;
+      if (_supabaseUserColumnsCache) {
+        _supabaseUserColumnsCache = _supabaseUserColumnsCache.filter(c => c !== 'can_print_pdf');
+      }
+      const retryRes = await client.from('users').upsert(sanitizedPayload, { onConflict: 'id' });
+      err1 = retryRes.error;
+    }
     if (!err1) return;
 
-    const { error: err2 } = await client.from('users').upsert(sanitizedPayload);
+    let { error: err2 } = await client.from('users').upsert(sanitizedPayload);
+    if (err2 && sanitizedPayload.can_print_pdf !== undefined) {
+      delete sanitizedPayload.can_print_pdf;
+      const retryRes2 = await client.from('users').upsert(sanitizedPayload);
+      err2 = retryRes2.error;
+    }
     if (!err2) return;
 
-    await client.from('users').update(sanitizedPayload).eq('username', username);
+    await client.from('users').update(sanitizedPayload).eq('username', username).catch(() => {});
   } catch (e) {
     console.warn('[SUPABASE USER UPSERT EXCEPTION]:', e);
   }
@@ -4683,6 +4772,7 @@ function sanitizePermintaanTokoRow(r) {
     items: Array.isArray(r.items) ? r.items : (typeof r.items === 'string' ? (JSON.parse(r.items || '[]')) : []),
     photos: Array.isArray(r.photos) ? r.photos : (typeof r.photos === 'string' ? (JSON.parse(r.photos || '[]')) : []),
     artemis_photos: Array.isArray(r.artemisPhotos || r.artemis_photos) ? (r.artemisPhotos || r.artemis_photos) : [],
+    bukti_permintaan: Array.isArray(r.buktiPermintaan || r.bukti_permintaan) ? (r.buktiPermintaan || r.bukti_permintaan) : [],
     status: r.status || 'PENDING',
     service_approve: !!(r.serviceApprove || r.service_approve),
     service_user_name: r.serviceUserName || r.service_user_name || '',
@@ -4704,21 +4794,41 @@ async function safeSupabaseUpsertPermintaan(payload) {
   const rows = Array.isArray(payload) ? payload : [payload];
   if (!rows.length) return { data: [], error: null };
 
-  const preparedRows = rows.map(r => sanitizePermintaanTokoRow(r)).filter(Boolean);
+  let preparedRows = rows.map(r => sanitizePermintaanTokoRow(r)).filter(Boolean);
   if (!preparedRows.length) return { data: [], error: null };
 
-  // TIER 1: UPSERT PRIMARY KEY (id) - Standar PostgreSQL Supabase (Bebas 400 Bad Request & 409 Conflict)
-  try {
-    const { data: upsertData, error: upsertErr } = await supabase
-      .from('permintaan_toko')
-      .upsert(preparedRows, { onConflict: 'id' });
+  const extractMissingColumn = (err) => {
+    const msg = typeof err === 'string' ? err : (err && err.message ? err.message : '');
+    if (!msg) return null;
+    const match = msg.match(/Could not find the ['"]([^'"]+)['"] column/i) ||
+                  msg.match(/column ['"]([^'"]+)['"] of relation/i) ||
+                  msg.match(/column ['"]([^'"]+)['"] does not exist/i);
+    return match ? match[1] : null;
+  };
 
-    if (!upsertErr) {
-      return { data: upsertData, error: null };
-    } else {
-      console.warn('[SUPABASE TIER 1 UPSERT NOTICE]:', upsertErr.message);
+  // TIER 1: UPSERT PRIMARY KEY (id) with Auto Schema Adapter
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { data: upsertData, error: upsertErr } = await supabase
+        .from('permintaan_toko')
+        .upsert(preparedRows, { onConflict: 'id' });
+
+      if (!upsertErr) {
+        return { data: upsertData, error: null };
+      } else {
+        const missingCol = extractMissingColumn(upsertErr);
+        if (missingCol) {
+          console.warn(`[SUPABASE AUTO-SCHEMA ADAPTER]: Kolom '${missingCol}' belum ada di Supabase PostgreSQL. Mengabaikan kolom '${missingCol}' agar sync tetap 100% lancar.`);
+          preparedRows.forEach(r => delete r[missingCol]);
+          continue; // Retry Tier 1 without missing column
+        }
+        console.warn('[SUPABASE TIER 1 UPSERT NOTICE]:', upsertErr.message);
+        break;
+      }
+    } catch (eTier1) {
+      break;
     }
-  } catch (eTier1) {}
+  }
 
   // TIER 2: INDIVIDUAL UPDATE-FIRST FALLBACK
   let lastError = null;
@@ -4739,6 +4849,14 @@ async function safeSupabaseUpsertPermintaan(payload) {
       if (!updIdErr && updIdData && updIdData.length > 0) {
         results.push(updIdData);
         continue;
+      } else if (updIdErr) {
+        const missingCol = extractMissingColumn(updIdErr);
+        if (missingCol) {
+          delete row[missingCol];
+          const { data: retryUpd } = await supabase.from('permintaan_toko').update(row).eq('id', docId);
+          results.push(retryUpd);
+          continue;
+        }
       }
 
       // 2. Coba UPDATE berdasarkan no_surat
@@ -4750,6 +4868,14 @@ async function safeSupabaseUpsertPermintaan(payload) {
       if (!updErr && updData && updData.length > 0) {
         results.push(updData);
         continue;
+      } else if (updErr) {
+        const missingCol = extractMissingColumn(updErr);
+        if (missingCol) {
+          delete row[missingCol];
+          const { data: retryUpd } = await supabase.from('permintaan_toko').update(row).eq('no_surat', ns);
+          results.push(retryUpd);
+          continue;
+        }
       }
 
       // 3. Upsert tunggal jika benar-benar baru
@@ -4760,7 +4886,14 @@ async function safeSupabaseUpsertPermintaan(payload) {
       if (!singleErr) {
         results.push(singleUpsert);
       } else {
-        lastError = singleErr;
+        const missingCol = extractMissingColumn(singleErr);
+        if (missingCol) {
+          delete row[missingCol];
+          const { data: retrySingle } = await supabase.from('permintaan_toko').upsert([row], { onConflict: 'id' });
+          results.push(retrySingle);
+        } else {
+          lastError = singleErr;
+        }
       }
     } catch(err) {
       lastError = err;
@@ -5098,6 +5231,7 @@ function normalizeUserList(users) {
       phone: String(user.phone || '').trim(),
       category: String(user.category || 'TOKO').trim().toUpperCase(),
       area: String(user.area || 'BDG').trim().toUpperCase(),
+      canPrintPdf: user.canPrintPdf !== undefined ? (user.canPrintPdf === true || user.canPrintPdf === 'true' || user.canPrintPdf === 1) : (user.can_print_pdf !== undefined ? (user.can_print_pdf === true || user.can_print_pdf === 'true' || user.can_print_pdf === 1) : false),
       ttd: user.ttd || ''
     };
 
@@ -5454,8 +5588,8 @@ function getUsersFromDB() {
   let updated = false;
   const adminIndex = users.findIndex(u => u && u.username && String(u.username).toUpperCase() === 'ADMIN');
   if (adminIndex !== -1) {
-    if (users[adminIndex].password !== '00' || users[adminIndex].area !== 'ALL') {
-      users[adminIndex].password = '00';
+    if (users[adminIndex].password !== '000' || users[adminIndex].area !== 'ALL') {
+      users[adminIndex].password = '000';
       users[adminIndex].area = 'ALL';
       users[adminIndex].category = 'ADMIN';
       updated = true;
@@ -5519,16 +5653,7 @@ function saveRequestsToDB(requests, targetReq = null, action = 'UPDATE') {
   appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(cleanReqs));
   try { localStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(cleanReqs)); } catch(e) {}
 
-  if (supabaseRealtimeChannel) {
-          try {
-            supabaseRealtimeChannel.send({
-              type: 'broadcast',
-              event: 'data_changed',
-              payload: { action: 'BATCH_DELETE', noSuratList: noSuratList, timestamp: Date.now() }
-            });
-          } catch(e) {}
-        }
-        if (typeof pushCentralCloudDB === 'function') {
+  if (typeof pushCentralCloudDB === 'function') {
     pushCentralCloudDB();
   }
 
@@ -5543,16 +5668,6 @@ function saveRequestsToDB(requests, targetReq = null, action = 'UPDATE') {
     cleanReqs.slice(0, 3).forEach(r => {
       if (r && r.noSurat) broadcastRealtimeDataChange(r.noSurat, r, 'UPDATE');
     });
-  }
-
-  if (supabaseRealtimeChannel) {
-    try {
-      supabaseRealtimeChannel.send({
-        type: 'broadcast',
-        event: 'user_data_changed',
-        payload: { username: targetUser ? targetUser.username : '', timestamp: Date.now() }
-      });
-    } catch(e) {}
   }
 
   if (currentUser) {
@@ -5626,16 +5741,7 @@ async function simpanFonteToken() {
     } catch(e) {}
   }
 
-  if (supabaseRealtimeChannel) {
-          try {
-            supabaseRealtimeChannel.send({
-              type: 'broadcast',
-              event: 'data_changed',
-              payload: { action: 'BATCH_DELETE', noSuratList: noSuratList, timestamp: Date.now() }
-            });
-          } catch(e) {}
-        }
-        if (typeof pushCentralCloudDB === 'function') {
+  if (typeof pushCentralCloudDB === 'function') {
     try { pushCentralCloudDB(); } catch(e) {}
   }
 
@@ -6775,6 +6881,16 @@ async function prosesLogin() {
         if (!error && Array.isArray(supaUsers) && supaUsers.length > 0) {
           const su = supaUsers[0];
           if (String(su.password).trim() === p) {
+            const existingUserLocal = getUsersFromDB().find(x => x && String(x.username).toUpperCase() === u.toUpperCase());
+            let canPrint = false;
+            if (su.can_print_pdf !== undefined && su.can_print_pdf !== null) {
+              canPrint = (su.can_print_pdf === true || su.can_print_pdf === 'true' || su.can_print_pdf === 1);
+            } else if (su.canPrintPdf !== undefined && su.canPrintPdf !== null) {
+              canPrint = (su.canPrintPdf === true || su.canPrintPdf === 'true' || su.canPrintPdf === 1);
+            } else if (existingUserLocal && existingUserLocal.canPrintPdf !== undefined && existingUserLocal.canPrintPdf !== null) {
+              canPrint = (existingUserLocal.canPrintPdf === true || existingUserLocal.canPrintPdf === 'true' || existingUserLocal.canPrintPdf === 1);
+            }
+
             user = {
               id: su.id,
               username: String(su.username || '').trim(),
@@ -6784,6 +6900,7 @@ async function prosesLogin() {
               phone: String(su.phone || '').trim(),
               category: String(su.category || 'TOKO').trim().toUpperCase(),
               area: String(su.area || 'BDG').trim().toUpperCase(),
+              canPrintPdf: canPrint,
               theme: su.theme || '',
               createdAt: su.created_at || (typeof getFormattedDateDDMMYYYY === 'function' ? getFormattedDateDDMMYYYY() : '')
             };
@@ -6838,6 +6955,7 @@ async function prosesLogin() {
 
       await bukaMainApp(true);
     } else {
+      if (typeof stopPendingSoundAlert === 'function') stopPendingSoundAlert();
       currentUser = null;
       appStorage.removeItem(SESSION_KEY);
       catatLogLogin(u, '-', '-', 'GAGAL - PASSWORD SALAH');
@@ -6874,6 +6992,7 @@ async function logout() {
   showConfirm(confirmMsg, function() {
     var _asyncTask = async function() {
       // Hapus sesi login saja (Penyimpanan lokal & cache tetap aman)
+      if (typeof stopPendingSoundAlert === 'function') stopPendingSoundAlert();
       currentUser = null;
       appStorage.removeItem(SESSION_KEY);
       try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
@@ -6906,16 +7025,17 @@ let _sessionTokenRealtimeRef = null;
 async function startSessionTokenRealtimeListener(isFreshLogin = false) {
   if (!currentUser || !currentUser.username) return;
 
-  const isAdmin = (
-    String(currentUser.category || '').toUpperCase() === 'ADMIN' ||
-    String(currentUser.username || '').toUpperCase() === 'ADMIN'
-  );
+  const catUpper = String(currentUser.category || currentUser.role || currentUser.kategori || '').toUpperCase();
+  const unameUpper = String(currentUser.username || '').toUpperCase();
 
-  // KHUSUS USER NON-ADMIN: Bebas multi-login di banyak perangkat bersamaan
-  if (!isAdmin) return;
+  const isAdmin = (catUpper === 'ADMIN' || unameUpper === 'ADMIN');
+  const isDMOrService = (catUpper === 'DM' || catUpper === 'SERVICE');
 
-  // KHUSUS AKUN ADMIN: Dibatasi HANYA 1 perangkat aktif (Single-Device Locking).
-  // Jika Admin login di perangkat baru, perangkat Admin sebelumnya akan otomatis di-logout.
+  // ATURAN BATASAN LOGIN PERANGKAT (DEVICE LIMITS):
+  // 1. ADMIN: Maksimal 1 Perangkat (1 Login) - Hanya 1 HP/Laptop aktif untuk akun ADMIN
+  // 2. SELAIN ADMIN (Toko, Service, DM, Sales, dll): Tidak ada batasan (Bebas login di perangkat mana saja)
+  const maxAllowedLogins = isAdmin ? 1 : 999999;
+
   const usernameKey = String(currentUser.username).replace(/[\/\.#$\[\]]/g, '_');
   const rtdb = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
   if (!rtdb) return;
@@ -6926,63 +7046,85 @@ async function startSessionTokenRealtimeListener(isFreshLogin = false) {
   }
 
   let myLocalToken = appStorage.getItem('MY_SESSION_TOKEN');
-
-  // Jika ini LOGIN BARU (Admin memasukkan username/password), buat token baru & update ke DB
-  if (isFreshLogin || !myLocalToken) {
+  if (!myLocalToken) {
     myLocalToken = 'ST_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     appStorage.setItem('MY_SESSION_TOKEN', myLocalToken);
-    try {
+  }
+
+  try {
+    const snap = await rtdb.ref(`user_sessions/${usernameKey}`).once('value');
+    const dbVal = snap.val() || {};
+
+    let activeTokens = [];
+    if (Array.isArray(dbVal.active_tokens)) {
+      activeTokens = dbVal.active_tokens.filter(t => t && typeof t === 'string');
+    } else if (dbVal.session_token) {
+      activeTokens = [dbVal.session_token];
+    }
+
+    if (isFreshLogin || !activeTokens.includes(myLocalToken)) {
+      if (!activeTokens.includes(myLocalToken)) {
+        activeTokens.push(myLocalToken);
+      }
+
+      // Potong token terlama jika jumlah perangkat melebihi maxAllowedLogins
+      while (activeTokens.length > maxAllowedLogins) {
+        activeTokens.shift();
+      }
+
       await rtdb.ref(`user_sessions/${usernameKey}`).set({
         session_token: myLocalToken,
+        active_tokens: activeTokens,
+        max_allowed: maxAllowedLogins,
+        role: catUpper,
         updated_at: new Date().toISOString()
       });
-    } catch(e) {
-      console.warn('[ADMIN SESSION WRITE NOTICE]:', e);
-    }
-  }
 
-  // Jika fresh login Admin: langsung pasang Realtime listener
-  if (isFreshLogin) {
-    _sessionTokenRealtimeRef = rtdb.ref(`user_sessions/${usernameKey}`).on('value', snap => {
-      if (!currentUser) return;
-      const dbVal = snap.val();
-      if (dbVal && dbVal.session_token) {
-        const curActiveToken = appStorage.getItem('MY_SESSION_TOKEN');
-        if (curActiveToken && dbVal.session_token !== curActiveToken) {
-          console.warn('⚠️ [ADMIN LOGOUT NOTICE]: Admin account logged in on another device!');
-          forceLogoutThisDevice('AKUN ADMIN TERDETEKSI LOGIN DI PERANGKAT LAIN. SESI DI PERANGKAT INI TELAH DI-LOGOUT.');
+      try {
+        if (typeof supabase !== 'undefined' && supabase) {
+          const cols = typeof getSupabaseUserColumns === 'function' ? await getSupabaseUserColumns(supabase) : [];
+          if (cols && cols.includes('session_token')) {
+            await supabase.from('users').update({ session_token: myLocalToken }).eq('username', currentUser.username);
+          }
         }
-      }
-    });
-    return;
-  }
-
-  // Cek sesi Admin saat re-open browser / refresh
-  try {
-    const snapshot = await rtdb.ref(`user_sessions/${usernameKey}`).once('value');
-    if (!currentUser) return;
-    const data = snapshot.val();
-    const activeMyToken = appStorage.getItem('MY_SESSION_TOKEN');
-
-    if (data && data.session_token && activeMyToken && data.session_token !== activeMyToken) {
-      console.warn('⚠️ [ADMIN OFFLINE LOGOUT DETECTED]: Admin account logged in on another device!');
-      forceLogoutThisDevice('AKUN ADMIN TERDETEKSI LOGIN DI PERANGKAT LAIN. SILAHKAN LOGIN KEMBALI.');
-      return;
+      } catch(e) {}
     }
-  } catch(errOnce) {
-    console.warn('[ADMIN SESSION ONCE READ NOTICE]:', errOnce);
+  } catch(e) {
+    console.warn('[SESSION TOKEN DB WRITE NOTICE]:', e);
   }
 
-  // Listener Realtime memantau pergantian perangkat Admin saat aktif
+  // Listener Realtime memantau pergantian token di DB (Kick jika token dihapus/ditimpa)
   _sessionTokenRealtimeRef = rtdb.ref(`user_sessions/${usernameKey}`).on('value', snap => {
     if (!currentUser) return;
     const dbVal = snap.val();
-    if (dbVal && dbVal.session_token) {
-      const curActiveToken = appStorage.getItem('MY_SESSION_TOKEN');
-      if (curActiveToken && dbVal.session_token !== curActiveToken) {
-        console.warn('⚠️ [ADMIN LOGOUT NOTICE]: Admin account logged in on another device!');
-        forceLogoutThisDevice('AKUN ADMIN TERDETEKSI LOGIN DI PERANGKAT LAIN. SESI DI PERANGKAT INI TELAH DI-LOGOUT.');
+    if (!dbVal) return;
+
+    const curActiveToken = appStorage.getItem('MY_SESSION_TOKEN');
+    if (!curActiveToken) return;
+
+    let activeTokens = [];
+    if (Array.isArray(dbVal.active_tokens)) {
+      activeTokens = dbVal.active_tokens.filter(t => t && typeof t === 'string');
+    } else if (dbVal.session_token) {
+      activeTokens = [dbVal.session_token];
+    }
+
+    const isTokenValid = activeTokens.includes(curActiveToken);
+
+    if (!isTokenValid) {
+      let logoutReason = 'AKUN DI LOGOUT OLEH ADMIN, SILAHKAN LOGIN KEMBALI';
+      const actionType = dbVal.action_type || '';
+      const isKickByAdmin = (actionType === 'ADMIN_FORCE_LOGOUT' || dbVal.logout_by !== undefined || dbVal.by_admin === true);
+
+      if (!isKickByAdmin && activeTokens.length > 0) {
+        if (isAdmin) {
+          logoutReason = 'AKUN ADMIN TERDETEKSI LOGIN DI PERANGKAT LAIN. SESI DI PERANGKAT INI TELAH DI-LOGOUT.';
+        } else {
+          logoutReason = 'AKUN TERDETEKSI LOGIN DI PERANGKAT LAIN. SESI DI PERANGKAT INI TELAH DI-LOGOUT.';
+        }
       }
+      console.warn('⚠️ [LOGOUT NOTICE]:', logoutReason);
+      forceLogoutThisDevice(logoutReason);
     }
   });
 }
@@ -7000,6 +7142,7 @@ function forceLogoutThisDevice(customMsg = 'AKUN ANDA TELAH DI-LOGOUT. SILAHKAN 
     _sessionTokenRealtimeRef = null;
   }
 
+  if (typeof stopPendingSoundAlert === 'function') stopPendingSoundAlert();
   currentUser = null;
   appStorage.removeItem(SESSION_KEY);
   appStorage.removeItem('MY_SESSION_TOKEN');
@@ -7495,10 +7638,12 @@ function initMobileBackButtonEngine() {
       { id: 'popupNotif', closeFn: () => { if (typeof closePopup === 'function') closePopup(); } },
 
       // PREVIEW & SUB-MODALS
+      { id: 'uploadBuktiPermintaanOverlay', closeFn: () => { if (typeof tutupModalUploadBuktiPermintaan === 'function') tutupModalUploadBuktiPermintaan(); } },
       { id: 'imageViewer', closeFn: () => { if (typeof tutupImageViewer === 'function') tutupImageViewer(); } },
       { id: 'popupSecurityPinHapusLokal', closeFn: () => { if (typeof tutupModalPinHapusLokal === 'function') tutupModalPinHapusLokal(); } },
       { id: 'popupTTD', closeFn: () => { if (typeof tutupTTD === 'function') tutupTTD(); } },
       { id: 'modalGeminiApiKey', closeFn: () => { if (typeof tutupModalGeminiApiKey === 'function') tutupModalGeminiApiKey(); } },
+      { id: 'popupForwardService', closeFn: () => { if (typeof tutupModalForwardService === 'function') tutupModalForwardService(); } },
       { id: 'popupUbahStatusAdminModal', closeFn: () => { if (typeof tutupModalUbahStatusAdmin === 'function') tutupModalUbahStatusAdmin(); } },
       { id: 'modalViewMasterSqlSupabase', closeFn: () => { if (typeof tutupModalViewMasterSqlSupabase === 'function') tutupModalViewMasterSqlSupabase(); } },
       { id: 'modalSetupSupabaseKeys', closeFn: () => { if (typeof tutupModalSetupSupabaseKeys === 'function') tutupModalSetupSupabaseKeys(); } },
@@ -7597,7 +7742,7 @@ function triggerConfirmBoxFlash() {
   if (card) {
     card.classList.remove('modal-shake-flash');
     void card.offsetWidth; // Trigger reflow
-    card.classList.add('modal-shake-flash');
+    // animation disabled
     setTimeout(() => {
       card.classList.remove('modal-shake-flash');
     }, 450);
@@ -7852,6 +7997,9 @@ function loadDashboard() {
     titleEl.style.display = 'none';
   }
 
+  // CHECK AND PLAY PENDING SOUND ALERT
+  checkAndPlayPendingSoundAlert(data);
+
   const lastDataContainer = document.getElementById('lastData');
   if (!lastDataContainer) return;
   lastDataContainer.innerHTML = '';
@@ -7882,9 +8030,7 @@ function loadDashboard() {
     }
 
     const tr = document.createElement('tr');
-    if (shouldRowBlinkRed(r)) {
-      tr.className = 'blink-row-red';
-    }
+    // Blinking row animation disabled per user request
     tr.style.cursor = 'pointer';
     tr.title = `KLIK BARIS INI UNTUK MEMBUKA PERMINTAAN #${r.noSurat}`;
     tr.onclick = () => bukaDetailDariDashboard(r.noSurat);
@@ -7918,19 +8064,208 @@ function bukaDetailDariDashboard(noSurat) {
 }
 
 function shouldRowBlinkRed(r) {
-  if (!r || !currentUser) return false;
+  return false;
+}
+
+// =============================================================================
+// GLOBAL WEB AUDIO API SOUND NOTIFICATION SYSTEM (MENUKAR ANIMASI KEDIP DENGAN SUARA NOTIFIKASI)
+// =============================================================================
+let _audioCtx = null;
+let _lastSoundPlayedTime = 0;
+
+function getAudioContext() {
+  if (!_audioCtx) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (AudioCtx) {
+      _audioCtx = new AudioCtx();
+    }
+  }
+  if (_audioCtx && _audioCtx.state === 'suspended') {
+    _audioCtx.resume().catch(() => {});
+  }
+  return _audioCtx;
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('click', function unlockAudioOnFirstClick() {
+    getAudioContext();
+  }, { once: false });
+  window.addEventListener('touchstart', function unlockAudioOnFirstTouch() {
+    getAudioContext();
+  }, { once: false });
+}
+
+function isSoundEnabled() {
+  const pref = localStorage.getItem('app_sound_enabled');
+  return pref === null || pref === 'true';
+}
+
+function toggleAppSound() {
+  const current = isSoundEnabled();
+  const nextState = !current;
+  localStorage.setItem('app_sound_enabled', String(nextState));
+  if (nextState) {
+    playNotificationSound('pending_alert');
+    if (typeof showPopupNotif === 'function') showPopupNotif('🔊 SUARA NOTIFIKASI DIAKTIFKAN');
+  } else {
+    if (typeof showPopupNotif === 'function') showPopupNotif('🔇 SUARA NOTIFIKASI DIMATIKAN');
+  }
+}
+window.toggleAppSound = toggleAppSound;
+
+function playNotificationSound(type = 'pending_alert') {
+  if (!isSoundEnabled()) return;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+
+    const now = ctx.currentTime;
+
+    if (type === 'pending_alert' || type === 'alert' || type === 'notif') {
+      // Pleasant 2-tone chime: D5 (587.33Hz) -> A5 (880.00Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(587.33, now);
+      gain1.gain.setValueAtTime(0, now);
+      gain1.gain.linearRampToValueAtTime(0.18, now + 0.03);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.35);
+
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(880.00, now + 0.15);
+      gain2.gain.setValueAtTime(0, now + 0.15);
+      gain2.gain.linearRampToValueAtTime(0.22, now + 0.18);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.15);
+      osc2.stop(now + 0.65);
+
+    } else if (type === 'success' || type === 'done') {
+      // Ascending 3-note melody: C5 (523.25) -> E5 (659.25) -> G5 (783.99)
+      const notes = [523.25, 659.25, 783.99];
+      notes.forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const startTime = now + idx * 0.1;
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.18, startTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.3);
+      });
+    }
+  } catch (e) {
+    console.warn('[SOUND WARN]: Audio context error:', e);
+  }
+}
+window.playNotificationSound = playNotificationSound;
+
+let pendingAlarmInterval = null;
+let pendingAlertAudio = null;
+
+function playPendingSoundAlert() {
+  if (typeof isAudioMuted === 'function' && isAudioMuted()) {
+    stopPendingSoundAlert();
+    return;
+  }
+
+  if (window._isPendingAlarmActive) return;
+  window._isPendingAlarmActive = true;
+
+  if (!pendingAlarmInterval) {
+    const playBeep = () => {
+      if (!window._isPendingAlarmActive) return;
+      try {
+        const ctx = getAudioContext();
+        if (ctx) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.25);
+          gain.gain.setValueAtTime(0.35, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime);
+          osc.stop(ctx.currentTime + 0.25);
+        }
+      } catch (e) {
+        console.warn('[PENDING ALARM SOUND WARN]:', e);
+      }
+    };
+
+    playBeep();
+    pendingAlarmInterval = setInterval(playBeep, 1200);
+  }
+}
+
+function stopPendingSoundAlert() {
+  window._isPendingAlarmActive = false;
+  if (pendingAlarmInterval) {
+    clearInterval(pendingAlarmInterval);
+    pendingAlarmInterval = null;
+  }
+  if (pendingAlertAudio) {
+    try {
+      pendingAlertAudio.pause();
+      pendingAlertAudio.currentTime = 0;
+    } catch(e) {}
+  }
+}
+
+function checkAndPlayPendingSoundAlert(dataList) {
+  if (!currentUser) {
+    stopPendingSoundAlert();
+    return;
+  }
+
   const cat = String(currentUser.category || currentUser.kategori || currentUser.role || '').trim().toUpperCase();
   const username = String(currentUser.username || '').trim().toUpperCase();
   const isAdm = cat === 'ADMIN' || username === 'ADMIN';
 
-  const isWaitingService = (r.status === 'PENDING' && !r.serviceApprove);
-  const isWaitingDM = (r.status === 'PENDING' && r.serviceApprove);
+  // Suara notifikasi pada login ADMIN dihilangkan sepenuhnya sesuai permintaan user
+  if (isAdm) {
+    stopPendingSoundAlert();
+    return;
+  }
 
-  if ((cat === 'SERVICE' || isAdm) && isWaitingService) return true;
-  if ((cat === 'DM' || isAdm) && isWaitingDM) return true;
+  if (!Array.isArray(dataList)) {
+    dataList = typeof getAccessibleRequests === 'function' ? getAccessibleRequests() : [];
+  }
 
-  return false;
+  let hasPending = false;
+  if (cat === 'SERVICE' || cat === 'IT' || cat === 'HODS' || cat === 'GBJ') {
+    hasPending = dataList.some(r => r && r.status === 'PENDING' && !r.serviceApprove);
+  } else if (cat === 'DM' || cat === 'MANAGER') {
+    hasPending = dataList.some(r => r && (r.status === 'APPROVE' || (r.status === 'PENDING' && r.serviceApprove)));
+  } else {
+    hasPending = false;
+  }
+
+  if (hasPending) {
+    playPendingSoundAlert();
+  } else {
+    stopPendingSoundAlert();
+  }
 }
+window.checkAndPlayPendingSoundAlert = checkAndPlayPendingSoundAlert;
+window.playPendingSoundAlert = playPendingSoundAlert;
+window.stopPendingSoundAlert = stopPendingSoundAlert;
 
 function getBadgeStatusHTML(r) {
   if (!r) return '-';
@@ -8521,6 +8856,11 @@ window.cleanTtdMapBase64InSupabase = cleanTtdMapBase64InSupabase;
 async function uploadPhotoToSupabaseStorage(fileOrBlob) {
   if (!fileOrBlob) return '';
 
+  // Return immediately if already a full HTTP/HTTPS URL
+  if (typeof fileOrBlob === 'string' && (fileOrBlob.startsWith('http://') || fileOrBlob.startsWith('https://'))) {
+    return fileOrBlob;
+  }
+
   // 1. KOMPRESI GAMBAR TERLEBIH DAHULU (Max 720px, Quality 0.65 JPEG -> ~40-60 KB)
   let compressedDataUrl = '';
   if (typeof fileOrBlob === 'string' && fileOrBlob.startsWith('data:image/')) {
@@ -8533,7 +8873,7 @@ async function uploadPhotoToSupabaseStorage(fileOrBlob) {
     }
   }
 
-  // 2. UNGGAH HASIL KOMPRESI TERSEBUT KE SUPABASE STORAGE BUCKET 'photos'
+  // 2. UNGGAH HASIL KOMPRESI TERSEBUT KE SUPABASE STORAGE BUCKET
   const sb = (typeof supabase !== 'undefined' && supabase) ? supabase : ((typeof window.supabaseClient !== 'undefined' && window.supabaseClient) ? window.supabaseClient : null);
 
   if (sb && sb.storage && compressedDataUrl && compressedDataUrl.startsWith('data:image/')) {
@@ -8543,15 +8883,18 @@ async function uploadPhotoToSupabaseStorage(fileOrBlob) {
       const fileName = `FOTO_${Date.now()}_${Math.floor(Math.random()*10000)}.jpg`;
       const fileToUpload = new File([blob], fileName, { type: 'image/jpeg' });
 
-      const { data, error } = await sb.storage.from('photos').upload(fileName, fileToUpload, { cacheControl: '3600', upsert: true });
-      if (!error && data) {
-        const { data: pubData } = sb.storage.from('photos').getPublicUrl(fileName);
-        if (pubData && pubData.publicUrl) {
-          console.log('⚡ [STORAGE PHOTO UPLOAD SUCCESS]:', pubData.publicUrl);
-          return pubData.publicUrl;
+      const candidateBuckets = ['photos', 'foto-permintaan', 'permintaan_photos', 'request-photos'];
+      for (const bucketName of candidateBuckets) {
+        const { data, error } = await sb.storage.from(bucketName).upload(fileName, fileToUpload, { cacheControl: '3600', upsert: true });
+        if (!error && data) {
+          const { data: pubData } = sb.storage.from(bucketName).getPublicUrl(fileName);
+          if (pubData && pubData.publicUrl) {
+            console.log(`⚡ [STORAGE PHOTO UPLOAD SUCCESS BUCKET ${bucketName}]:`, pubData.publicUrl);
+            return pubData.publicUrl;
+          }
+        } else if (error) {
+          console.warn(`[SUPABASE STORAGE BUCKET ${bucketName} UPLOAD NOTICE]:`, error.message);
         }
-      } else if (error) {
-        console.warn('[SUPABASE STORAGE UPLOAD WARNING]:', error.message);
       }
     } catch (e) {
       console.warn('[SUPABASE STORAGE UPLOAD EXCEPTION]:', e);
@@ -8818,6 +9161,13 @@ function simpanData() {
 }
 
 async function prosesSimpanKeDB(toko, jenis, catatan, items) {
+  if (typeof tampilkanLoadingProses === 'function') {
+    tampilkanLoadingProses('MENYIMPAN DATA PERMINTAAN... MOHON TUNGGU');
+  } else if (typeof showLoading === 'function') {
+    showLoading('MENYIMPAN DATA PERMINTAAN... MOHON TUNGGU');
+  }
+  const _simpanStartTime = Date.now();
+
   const requests = getRequestsFromDB();
 
   if (modeEdit && editNoSurat) {
@@ -8832,55 +9182,63 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
       // 1. SIMPAN LOKAL SECARA INSTAN (0 ms)
       saveRequestsToDB(requests);
 
-      // 2. MUNCULKAN NOTIFIKASI LANGSUNG DI AWAL & PINDAH HALAMAN
       const targetNoSurat = editNoSurat || (requests[idx] ? requests[idx].noSurat : '');
+
+      // 2. PROSES PENGIRIMAN KE SUPABASE DI LATAR BELAKANG
+      const docId = String(targetNoSurat).replace(/[\/\.]/g, '_');
+      if (docId) {
+        const supaEditRow = {
+          id: docId,
+          no_surat: requests[idx].noSurat,
+          tanggal: requests[idx].tanggal,
+          toko: requests[idx].toko,
+          area: requests[idx].area,
+          jenis: requests[idx].jenis,
+          catatan: requests[idx].catatan || '',
+          items: requests[idx].items || [],
+          photos: requests[idx].photos || [],
+          artemis_photos: requests[idx].artemisPhotos || [],
+          status: requests[idx].status,
+          service_approve: !!requests[idx].serviceApprove,
+          service_user_name: requests[idx].serviceUserName || '',
+          service_ttd: requests[idx].serviceTTD || '',
+          dm_user_name: requests[idx].dmUserName || '',
+          dm_ttd: requests[idx].dmTTD || '',
+          created_by: requests[idx].createdBy || '',
+          created_at: requests[idx].createdAt || '',
+          user_id: requests[idx].userId || '',
+          log: requests[idx].log || [],
+          updated_at: new Date().toISOString()
+        };
+
+        if (typeof supabase !== 'undefined' && supabase) {
+          safeSupabaseUpsertPermintaan(supaEditRow).then(({ error }) => {
+            if (error) console.warn('[SUPABASE UPDATE NOTICE]:', error.message);
+          }).catch(e => console.warn(e));
+        }
+        if (docId && typeof dbFirestore !== 'undefined' && dbFirestore) {
+          dbFirestore.collection('requests').doc(docId).set(requests[idx], { merge: true }).catch(e => console.warn(e));
+        }
+        if (docId && typeof dbRealtime !== 'undefined' && dbRealtime) {
+          dbRealtime.ref(`requests/${docId}`).set(requests[idx]).catch(e => console.warn(e));
+        }
+      }
+
+      // TUNGGU SAMPAI TOTAL GENAP 8 DETIK UNTUK ANIMASI LOADING
+      const _elapsed = Date.now() - _simpanStartTime;
+      const _remaining = Math.max(0, 8000 - _elapsed);
+      if (_remaining > 0) {
+        await new Promise(resolve => setTimeout(resolve, _remaining));
+      }
+
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      if (typeof hideLoading === 'function') hideLoading();
+
       showNotif(`PERMINTAAN #${targetNoSurat} DATA BERHASIL DIPERBARUHI!`, 'success');
       bersihkanForm();
       pindahHalaman('riwayatPage');
       if (typeof loadRiwayat === 'function') loadRiwayat();
       if (typeof loadDashboard === 'function') loadDashboard();
-
-      // 3. PROSES PENGIRIMAN KE SUPABASE DI LATAR BELAKANG
-      const docId = String(targetNoSurat).replace(/[\/\.]/g, '_');
-      if (!docId) {
-        console.warn('[DOC ID EMPTY NOTICE]: Skipped Firestore/Supabase sync because docId was empty.');
-        return;
-      }
-      const supaEditRow = {
-        id: docId,
-        no_surat: requests[idx].noSurat,
-        tanggal: requests[idx].tanggal,
-        toko: requests[idx].toko,
-        area: requests[idx].area,
-        jenis: requests[idx].jenis,
-        catatan: requests[idx].catatan || '',
-        items: requests[idx].items || [],
-        photos: requests[idx].photos || [],
-        artemis_photos: requests[idx].artemisPhotos || [],
-        status: requests[idx].status,
-        service_approve: !!requests[idx].serviceApprove,
-        service_user_name: requests[idx].serviceUserName || '',
-        service_ttd: requests[idx].serviceTTD || '',
-        dm_user_name: requests[idx].dmUserName || '',
-        dm_ttd: requests[idx].dmTTD || '',
-        created_by: requests[idx].createdBy || '',
-        created_at: requests[idx].createdAt || '',
-        user_id: requests[idx].userId || '',
-        log: requests[idx].log || [],
-        updated_at: new Date().toISOString()
-      };
-
-      if (typeof supabase !== 'undefined' && supabase) {
-        safeSupabaseUpsertPermintaan(supaEditRow).then(({ error }) => {
-          if (error) console.warn('[SUPABASE UPDATE NOTICE]:', error.message);
-        }).catch(e => console.warn(e));
-      }
-      if (docId && typeof dbFirestore !== 'undefined' && dbFirestore) {
-        dbFirestore.collection('requests').doc(docId).set(requests[idx], { merge: true }).catch(e => console.warn(e));
-      }
-      if (docId && typeof dbRealtime !== 'undefined' && dbRealtime) {
-        dbRealtime.ref(`requests/${docId}`).set(requests[idx]).catch(e => console.warn(e));
-      }
     }
   } else {
     const now = new Date();
@@ -8986,6 +9344,7 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
       items,
       photos: [...currentPhotos],
       artemisPhotos: [],
+      buktiPermintaan: [],
       status: 'PENDING',
       serviceApprove: autoServiceApprove,
       serviceUserName: serviceUserNameVal,
@@ -9004,14 +9363,7 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
     requests.unshift(newRecord);
     saveRequestsToDB(requests, newRecord);
 
-    // 2. MUNCULKAN NOTIFIKASI LANGSUNG DI AWAL & PINDAH HALAMAN
-    showNotif(`PERMINTAAN #${noSurat} DATA BERHASIL DISIMPAN!`, 'success');
-    bersihkanForm();
-    pindahHalaman('riwayatPage');
-    if (typeof loadRiwayat === 'function') loadRiwayat();
-    if (typeof loadDashboard === 'function') loadDashboard();
-
-    // 3. PROSES PENGIRIMAN KE SUPABASE DI LATAR BELAKANG
+    // 2. PROSES PENGIRIMAN KE SUPABASE DI LATAR BELAKANG
     const docId = String(noSurat).replace(/[\/\.]/g, '_');
     const supaNewRow = {
       id: docId,
@@ -9037,7 +9389,7 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
       updated_at: new Date().toISOString()
     };
     
-    // 1. SIMPAN KE FIRESTORE & REALTIME DB
+    // SIMPAN KE FIRESTORE & REALTIME DB
     if (docId && typeof dbFirestore !== 'undefined' && dbFirestore) {
       dbFirestore.collection('requests').doc(docId).set(newRecord).catch(e => console.warn('[FIRESTORE SAVE NOTICE]:', e));
     }
@@ -9052,7 +9404,7 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
       tambahNotifikasiSistem(['SERVICE'], currentUser.area, `PERMINTAAN BARU #${noSurat} DARI TOKO ${toko}. MOHON APPROVAL SERVICE.`, noSurat);
     }
 
-    // Fungsi Pengiriman WhatsApp (HANYA DIEKSEKUSI SETELAH DATA DIPASTIKAN TERKIRIM KE SUPABASE & REALTIME KE SEMUA PERANGKAT)
+    // Fungsi Pengiriman WhatsApp
     const dispatchWhatsAppNotification = () => {
       const allUsers = getUsersFromDB();
       const serviceUsers = allUsers.filter(u => u.category === 'SERVICE' && (u.area === currentUser.area || u.area === 'ALL'));
@@ -9060,29 +9412,19 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
         if (srv.phone && srv.phone !== '-') {
           const srvName = srv.fullName || srv.username || 'Bapak/Ibu Tim Service';
           kirimNotifikasiWA(srv.phone,
-            `Yth. Bapak/Ibu ${srvName},
-
-` +
-            `Pemberitahuan Sistem Permintaan Barang:
-` +
-            `Telah dibuat pengajuan permintaan barang baru dengan rincian berikut:
-` +
-            `• Nomor Dokumen : #${noSurat}
-` +
-            `• Toko / Pemohon : ${toko} (${currentUser.area})
-` +
-            `• Waktu Pengajuan : ${newRecord.createdAt}
-` +
-            `• Link Detail : ${getAppDirectLink(noSurat)}
-
-` +
+            `Yth. Bapak/Ibu ${srvName},\n\n` +
+            `Pemberitahuan Sistem Permintaan Barang:\n` +
+            `Telah dibuat pengajuan permintaan barang baru dengan rincian berikut:\n` +
+            `• Nomor Dokumen : #${noSurat}\n` +
+            `• Toko / Pemohon : ${toko} (${currentUser.area})\n` +
+            `• Waktu Pengajuan : ${newRecord.createdAt}\n` +
+            `• Link Detail : ${getAppDirectLink(noSurat)}\n\n` +
             `Mohon dapat segera diperiksa pada aplikasi. Terima kasih.`
           );
         }
       });
     };
 
-    // 2. SIMPAN KE SUPABASE DULU -> SETELAH SUKSES & REALTIME TERKIRIM -> BARU KIRIM WA
     if (typeof safeSupabaseUpsertPermintaan === 'function') {
       safeSupabaseUpsertPermintaan(supaNewRow).then(() => {
         setTimeout(dispatchWhatsAppNotification, 300);
@@ -9093,6 +9435,22 @@ async function prosesSimpanKeDB(toko, jenis, catatan, items) {
     } else {
       setTimeout(dispatchWhatsAppNotification, 500);
     }
+
+    // TUNGGU SAMPAI TOTAL GENAP 8 DETIK UNTUK ANIMASI LOADING
+    const _elapsed = Date.now() - _simpanStartTime;
+    const _remaining = Math.max(0, 8000 - _elapsed);
+    if (_remaining > 0) {
+      await new Promise(resolve => setTimeout(resolve, _remaining));
+    }
+
+    if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    if (typeof hideLoading === 'function') hideLoading();
+
+    showNotif(`PERMINTAAN #${noSurat} DATA BERHASIL DISIMPAN!`, 'success');
+    bersihkanForm();
+    pindahHalaman('riwayatPage');
+    if (typeof loadRiwayat === 'function') loadRiwayat();
+    if (typeof loadDashboard === 'function') loadDashboard();
   }
 }
 
@@ -9115,9 +9473,11 @@ function isPdfButtonAllowed(req) {
   const role = String(currentUser.category || '').toUpperCase();
   const isAdmin = typeof checkIsAdminUser === 'function' ? checkIsAdminUser() : (role === 'ADMIN' || (currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
   
-  // TOMBOL PDF TIDAK DIBERIKAN UNTUK ROLE TOKO DAN SALES
+  // TOMBOL PDF UNTUK ROLE TOKO DAN SALES: HANYA BOLEH JIKA HAK AKSES canPrintPdf DICENTANG OLEH ADMIN
   if (role === 'TOKO' || role === 'SALES') {
-    return false;
+    if (!currentUser.canPrintPdf) {
+      return false;
+    }
   }
 
   // UNTUK LOGIN SELAIN ADMIN, APABILA STATUS SUDAH DONE MAKA TOMBOL PDF DIHILANGKAN (HANYA TOMBOL MATA & FOTO ARTEMIS YANG TAMPIL)
@@ -9231,6 +9591,7 @@ function filterRiwayat() {
         } else if (r.status === 'APPROVE') {
           aksi += `
             <button class="btnIcon btnDone" onclick="doneService('${r.noSurat}')" title="DONE"><span class="material-symbols-rounded">task_alt</span></button>
+            <button class="btnIcon" onclick="bukaModalForwardService('${r.noSurat}')" title="FORWARD SERVICE AREA" style="background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; color: #ffffff !important;"><span class="material-symbols-rounded">forward</span></button>
           `;
         }
       } else if (role === 'SERVICE') {
@@ -9242,6 +9603,7 @@ function filterRiwayat() {
         } else if (r.status === 'APPROVE') {
           aksi += `
             <button class="btnIcon btnDone" onclick="doneService('${r.noSurat}')" title="DONE"><span class="material-symbols-rounded">task_alt</span></button>
+            <button class="btnIcon" onclick="bukaModalForwardService('${r.noSurat}')" title="FORWARD SERVICE AREA" style="background: linear-gradient(135deg, #7c3aed, #6d28d9) !important; color: #ffffff !important;"><span class="material-symbols-rounded">forward</span></button>
           `;
         }
       } else if (role === 'DM') {
@@ -9255,7 +9617,9 @@ function filterRiwayat() {
 
       const isOwner = currentUser && (r.userId === currentUser.id || r.createdBy === currentUser.fullName || r.createdBy === currentUser.username);
       const canEdit = (r.status === 'PENDING' && !r.serviceApprove && isOwner) || (isAdminUser && r.status === 'PENDING');
-      const canDelete = (r.status === 'PENDING' && !r.serviceApprove && isOwner) || isAdminUser;
+      const isReqDoneState = (r.status === 'DONE' || r.status === 'SELESAI');
+      const canServiceDelete = (role === 'SERVICE' && !isReqDoneState);
+      const canDelete = (r.status === 'PENDING' && !r.serviceApprove && isOwner) || isAdminUser || canServiceDelete;
 
       if (canEdit) {
         aksi += `
@@ -9287,19 +9651,23 @@ function filterRiwayat() {
         <button class="btnIcon btnInfo" onclick="lihatDetail('${r.noSurat}')" title="LIHAT DETAIL"><span class="material-symbols-rounded">visibility</span></button>
       `;
 
-      const hasPhotos = (r.photos && Array.isArray(r.photos) && r.photos.length > 0) || (r.artemisPhotos && Array.isArray(r.artemisPhotos) && r.artemisPhotos.length > 0);
+      const regP = parsePhotosArray(r.photos);
+      const artP = parsePhotosArray(r.artemisPhotos);
+      const bukP = parsePhotosArray(r.bukti_permintaan || r.buktiPermintaan);
+      const totalPhotosCount = regP.length + artP.length + bukP.length;
+      const hasPhotos = totalPhotosCount > 0;
 
       if (r.status === 'DONE') {
         if (hasPhotos) {
           aksi += `
-            <button class="btnIcon btnView" onclick="lihatFotoByNoSurat('${r.noSurat}')" title="BUKTI PROSES ARTEMIS (${(r.artemisPhotos || r.photos).length})" style="background: var(--primary) !important; color: #ffffff !important; box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;"><span class="material-symbols-rounded" style="font-size: 16px !important;">photo_library</span></button>
+            <button class="btnIcon btnView" onclick="lihatFotoByNoSurat('${r.noSurat}')" title="LIHAT FOTO PERMINTAAN / ARTEMIS (${totalPhotosCount})" style="background: var(--primary) !important; color: #ffffff !important; box-shadow: 0 4px 10px rgba(0,0,0,0.15) !important;"><span class="material-symbols-rounded" style="font-size: 16px !important;">photo_library</span></button>
           `;
         }
       } else {
-        const isPhotoHidden = (r.status === 'APPROVE' || r.status === 'REJECT') || !getFeaturePhotosEnabled();
+        const isPhotoHidden = !getFeaturePhotosEnabled();
         if (hasPhotos && !isPhotoHidden) {
           aksi += `
-            <button class="btnIcon btnView" onclick="lihatFotoByNoSurat('${r.noSurat}')" title="LIHAT FOTO PERMINTAAN"><span class="material-symbols-rounded">image</span></button>
+            <button class="btnIcon btnView" onclick="lihatFotoByNoSurat('${r.noSurat}')" title="LIHAT FOTO PERMINTAAN (${totalPhotosCount})"><span class="material-symbols-rounded">image</span></button>
           `;
         }
       }
@@ -9327,9 +9695,7 @@ function filterRiwayat() {
     }
 
     const tr = document.createElement('tr');
-    if (shouldRowBlinkRed(r)) {
-      tr.className = 'blink-row-red';
-    }
+    // Blinking row animation disabled per user request
     tr.innerHTML = `
       <td style="width: 6cm !important; min-width: 6cm !important; max-width: 6cm !important; box-sizing: border-box !important;"><div style="display:flex; gap:4px; align-items:center; flex-wrap:wrap; justify-content:flex-start;">${aksi}</div></td>
       <td>${getBadgeStatus(r)}</td>
@@ -9382,7 +9748,8 @@ function lihatFotoByNoSurat(noSurat) {
   if (req) {
     const regP = parsePhotosArray(req.photos);
     const artP = parsePhotosArray(req.artemisPhotos);
-    photos = [...regP, ...artP];
+    const bukP = parsePhotosArray(req.bukti_permintaan || req.buktiPermintaan);
+    photos = [...regP, ...artP, ...bukP];
     photos = Array.from(new Set(photos.filter(Boolean)));
   }
 
@@ -9589,6 +9956,8 @@ function approveService(noSurat) {
       loadDashboard();
       if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM') loadMasterDbTable();
       if (typeof refreshDetailModalIfOpen === 'function') refreshDetailModalIfOpen(noSurat);
+      const btnRefSrv = document.getElementById('btnRefreshDetailV2');
+      if (btnRefSrv) btnRefSrv.style.setProperty('display', 'none', 'important');
 
       // 2. PROSES SYNC SUPABASE & BROADCAST REALTIME TERLEBIH DAHULU
       const docId = String(noSurat).replace(/[\/\.]/g, '_');
@@ -9686,6 +10055,8 @@ function approveDM(noSurat) {
       loadDashboard();
       if (currentUser && currentUser.category === 'SERVICE' && currentUser.area === 'TSM') loadMasterDbTable();
       if (typeof refreshDetailModalIfOpen === 'function') refreshDetailModalIfOpen(noSurat);
+      const btnRefDM = document.getElementById('btnRefreshDetailV2');
+      if (btnRefDM) btnRefDM.style.setProperty('display', 'none', 'important');
       if (typeof updateNotifBellCounter === 'function') updateNotifBellCounter();
     if (typeof updateGlobalDeviceAppBadge === 'function') updateGlobalDeviceAppBadge();
       if (typeof cekUnreadNotif === 'function') cekUnreadNotif();
@@ -9699,7 +10070,10 @@ function approveDM(noSurat) {
         dbRealtime.ref(`requests/${docId}`).set(requests[idx]).catch(e => console.warn(e));
       }
 
-      tambahNotifikasiSistem(['SERVICE', 'TOKO', 'SALES'], requests[idx].area, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} TELAH DISETUJUI DM. SILAKAN DIPROSES.`, noSurat);
+      // Notifikasi untuk Tim Service (tetap)
+      tambahNotifikasiSistem(['SERVICE'], requests[idx].area, `PERMINTAAN #${noSurat} DARI ${requests[idx].toko} TELAH DISETUJUI DM. SILAKAN DIPROSES.`, noSurat);
+      // Notifikasi untuk Pembuat Surat / Toko / Sales (tanpa kata 'SILAKAN DIPROSES')
+      tambahNotifikasiSistem(['TOKO', 'SALES'], requests[idx].area, `PERMINTAAN SURAT #${noSurat} TELAH DISETUJUI DM, MOHON MENUNGGU PROSES SELANJUTNYA.`, noSurat);
 
       // Fungsi Pengiriman WhatsApp (HANYA DIEKSEKUSI SETELAH DATA DIPASTIKAN TERKIRIM KE SUPABASE & SEMUA PERANGKAT)
       const dispatchDMApprovalWADestination = () => {
@@ -9812,7 +10186,7 @@ function doneService(noSurat) {
   const overlay = document.getElementById('artemisOverlay');
   if (overlay) {
     overlay.classList.add('show');
-    overlay.style.setProperty('z-index', '99999999', 'important');
+    overlay.style.setProperty('z-index', '500000000', 'important');
     overlay.style.setProperty('display', 'flex', 'important');
     overlay.style.setProperty('visibility', 'visible', 'important');
     overlay.style.setProperty('opacity', '1', 'important');
@@ -10228,12 +10602,27 @@ function tolakServiceModal(noSurat, roleType) {
   const elNo = document.getElementById('rejectNoSurat');
   const elRole = document.getElementById('rejectRoleType');
   const elTitle = document.getElementById('rejectTitle');
+  const elSubTitle = document.getElementById('rejectSubTitle');
   const elReason = document.getElementById('rejectReason') || document.getElementById('rejectAlasan');
 
   if (elNo) elNo.value = noSurat;
   if (elRole) elRole.value = roleType || 'DM';
-  if (elTitle) elTitle.innerText = `TOLAK PERMINTAAN (${roleType || 'DM'})`;
-  if (elReason) elReason.value = '';
+
+  if (roleType === 'DELETE' || roleType === 'HAPUS') {
+    if (elTitle) elTitle.innerText = 'HAPUS PERMINTAAN';
+    if (elSubTitle) elSubTitle.innerText = 'MASUKKAN ALASAN PENGHAPUSAN:';
+    if (elReason) {
+      elReason.placeholder = 'Tuliskan alasan penghapusan...';
+      elReason.value = '';
+    }
+  } else {
+    if (elTitle) elTitle.innerText = `TOLAK PERMINTAAN (${roleType || 'DM'})`;
+    if (elSubTitle) elSubTitle.innerText = 'MASUKKAN ALASAN PENOLAKAN:';
+    if (elReason) {
+      elReason.placeholder = 'Tuliskan alasan penolakan...';
+      elReason.value = '';
+    }
+  }
 
   if (overlay) {
     overlay.style.setProperty('z-index', '2147483640', 'important');
@@ -10271,7 +10660,12 @@ function prosesReject(roleType) {
   const alasan = elAlasan ? elAlasan.value.trim() : '';
 
   if (!alasan) {
-    showNotif('ALASAN PENOLAKAN WAJIB DIISI!', 'warning');
+    showNotif(roleType === 'DELETE' || roleType === 'HAPUS' ? 'ALASAN PENGHAPUSAN WAJIB DIISI!' : 'ALASAN PENOLAKAN WAJIB DIISI!', 'warning');
+    return;
+  }
+
+  if (roleType === 'DELETE' || roleType === 'HAPUS') {
+    hapusDataProses(noSurat, alasan);
     return;
   }
 
@@ -10502,46 +10896,47 @@ function editData(noSurat) {
 window.editData = editData;
 window.editPermintaan = editPermintaan;
 
-function hapusData(noSurat) {
-  if (!noSurat) return;
-  showConfirm(`APAKAH ANDA YAKIN INGIN MENGHAPUS PERMINTAAN #${noSurat} INI?`, () => {
-    try {
-      const currentReqs = getRequestsFromDB();
-      const idx = currentReqs.findIndex(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
-      if (idx !== -1) {
-        currentReqs[idx].status = 'BATAL';
-        currentReqs[idx].unfulfilled = true;
-        if (Array.isArray(currentReqs[idx].items)) {
-          currentReqs[idx].items.forEach(i => i.unfulfilled = true);
-        }
-        if (!currentReqs[idx].log) currentReqs[idx].log = [];
-        currentReqs[idx].log.push({
-          action: 'TIDAK_DIPENUHI',
-          user: currentUser ? (currentUser.fullName || currentUser.username) : 'USER',
-          notes: 'HAPUS PERMINTAAN',
-          time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
-        });
+function hapusDataProses(noSurat, alasan) {
+  try {
+    const currentReqs = getRequestsFromDB();
+    const idx = currentReqs.findIndex(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
+    if (idx !== -1) {
+      const uName = currentUser ? (currentUser.fullName || currentUser.username) : 'USER';
+      currentReqs[idx].status = 'BATAL';
+      currentReqs[idx].unfulfilled = true;
+      currentReqs[idx].catatan = `DIHAPUS (${uName}): ${alasan}`;
+      if (Array.isArray(currentReqs[idx].items)) {
+        currentReqs[idx].items.forEach(i => i.unfulfilled = true);
+      }
+      if (!currentReqs[idx].log) currentReqs[idx].log = [];
+      currentReqs[idx].log.push({
+        action: 'TIDAK_DIPENUHI',
+        user: uName,
+        notes: `HAPUS PERMINTAAN: ${alasan}`,
+        time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
+      });
 
-        // 1. SIMPAN LOKAL SECARA INSTAN (0 ms)
-        saveRequestsToDB(currentReqs);
-        deleteRequestFromSupabase(noSurat);
-        showNotif(`PERMINTAAN #${noSurat} BERHASIL DIHAPUS!`, 'warning');
-        
-        // Close detail popup modal if open
-        const popDetailV2 = document.getElementById('popupDetailBarangV2');
-        if (popDetailV2 && (popDetailV2.dataset.noSurat === noSurat || window._currentDetailNoSurat === noSurat)) {
-          if (typeof tutupDetailBarangV2 === 'function') tutupDetailBarangV2(false);
-          if (typeof closeDetail === 'function') closeDetail(false);
-        }
+      // 1. SIMPAN LOKAL SECARA INSTAN (0 ms)
+      saveRequestsToDB(currentReqs);
+      deleteRequestFromSupabase(noSurat);
+      tutupRejectModal();
+      showNotif(`PERMINTAAN #${noSurat} BERHASIL DIHAPUS!`, 'warning');
+      
+      // Close detail popup modal if open
+      const popDetailV2 = document.getElementById('popupDetailBarangV2');
+      if (popDetailV2 && (popDetailV2.dataset.noSurat === noSurat || window._currentDetailNoSurat === noSurat)) {
+        if (typeof tutupDetailBarangV2 === 'function') tutupDetailBarangV2(false);
+        if (typeof closeDetail === 'function') closeDetail(false);
+      }
 
-        if (typeof loadRiwayat === 'function') loadRiwayat();
-        if (typeof loadDashboard === 'function') loadDashboard();
-        if (typeof loadMasterDbTable === 'function') loadMasterDbTable();
-        if (typeof refreshOpenPopupsUI === 'function') refreshOpenPopupsUI();
+      if (typeof loadRiwayat === 'function') loadRiwayat();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (typeof loadMasterDbTable === 'function') loadMasterDbTable();
+      if (typeof refreshOpenPopupsUI === 'function') refreshOpenPopupsUI();
 
-        // 2. PROSES SYNC SUPABASE DI LATAR BELAKANG
-        const docId = String(noSurat).replace(/[\/\.]/g, '_');
-        if (typeof safeSupabaseUpsertPermintaan === 'function') {
+      // 2. PROSES SYNC SUPABASE DI LATAR BELAKANG
+      const docId = String(noSurat).replace(/[\/\.]/g, '_');
+      if (typeof safeSupabaseUpsertPermintaan === 'function') {
         safeSupabaseUpsertPermintaan(currentReqs[idx]);
       } else if (typeof supabase !== 'undefined' && supabase) {
         const cleanRow = sanitizePermintaanTokoRow(currentReqs[idx]);
@@ -10549,18 +10944,27 @@ function hapusData(noSurat) {
           supabase.from('permintaan_toko').upsert(cleanRow, { onConflict: 'id' }).then(() => {}, (e) => console.warn(e));
         }
       }
-        if (typeof dbFirestore !== 'undefined' && dbFirestore) {
-          dbFirestore.collection('requests').doc(docId).set(currentReqs[idx], { merge: true }).catch(e => console.warn(e));
-        }
-        if (typeof dbRealtime !== 'undefined' && dbRealtime) {
-          dbRealtime.ref(`requests/${docId}`).set(currentReqs[idx]).catch(e => console.warn(e));
-        }
+      if (typeof dbFirestore !== 'undefined' && dbFirestore) {
+        dbFirestore.collection('requests').doc(docId).set(currentReqs[idx], { merge: true }).catch(e => console.warn(e));
       }
-    } catch (err) {
-      console.error('[HAPUS DATA ERROR]:', err);
-      showNotif('GAGAL MENGHAPUS PERMINTAAN: ' + (err.message || err), 'error');
+      if (typeof dbRealtime !== 'undefined' && dbRealtime) {
+        dbRealtime.ref(`requests/${docId}`).set(currentReqs[idx]).catch(e => console.warn(e));
+      }
     }
-  });
+  } catch (err) {
+    console.error('[HAPUS DATA ERROR]:', err);
+    showNotif('GAGAL MENGHAPUS PERMINTAAN: ' + (err.message || err), 'error');
+  }
+}
+window.hapusDataProses = hapusDataProses;
+
+function hapusData(noSurat, inputAlasan = null) {
+  if (!noSurat) return;
+  if (inputAlasan && typeof inputAlasan === 'string' && inputAlasan.trim()) {
+    hapusDataProses(noSurat, inputAlasan.trim());
+    return;
+  }
+  tolakServiceModal(noSurat, 'DELETE');
 }
 window.hapusData = hapusData;
 
@@ -10719,6 +11123,178 @@ function undoBarisItemDetailAdmin(noSurat, itemIndex) {
   }
 }
 window.undoBarisItemDetailAdmin = undoBarisItemDetailAdmin;
+
+function toggleAllDetailItems(masterChk, noSurat) {
+  const isChecked = masterChk ? masterChk.checked : false;
+  const checkboxes = document.querySelectorAll('.chkDetailItem:not(:disabled)');
+  checkboxes.forEach(cb => {
+    cb.checked = isChecked;
+  });
+  updateBatchButtonsUI();
+}
+window.toggleAllDetailItems = toggleAllDetailItems;
+
+function updateSelectAllDetailState() {
+  const masterChk = document.getElementById('chkAllDetailItems');
+  const checkboxes = Array.from(document.querySelectorAll('.chkDetailItem:not(:disabled)'));
+  if (masterChk && checkboxes.length > 0) {
+    const allChecked = checkboxes.every(cb => cb.checked);
+    const someChecked = checkboxes.some(cb => cb.checked);
+    masterChk.checked = allChecked;
+    masterChk.indeterminate = someChecked && !allChecked;
+  }
+  updateBatchButtonsUI();
+}
+window.updateSelectAllDetailState = updateSelectAllDetailState;
+
+function updateBatchButtonsUI() {
+  const checkedBoxes = Array.from(document.querySelectorAll('.chkDetailItem:checked'));
+  const count = checkedBoxes.length;
+
+  const topArea = document.getElementById('topBreakdownHeaderArea');
+  if (topArea) {
+    const noSurat = topArea.getAttribute('data-nosurat') || '';
+    if (noSurat) {
+      if (count > 0) {
+        const existingInput = document.getElementById('inputBatchKetPart');
+        const currentText = existingInput ? existingInput.value : '';
+
+        topArea.innerHTML = `
+          <div id="containerBatchKetPart" style="display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <input type="text" id="inputBatchKetPart" value="${currentText.replace(/"/g, '&quot;')}" placeholder="Isi Keterangan Part..." style="padding: 5px 10px; font-size: 12px; font-weight: 700; border: 1.5px solid #0284c7; border-radius: 6px; outline: none; background: var(--bg-box, #ffffff); color: var(--text-main, #0f172a); width: 170px; box-shadow: 0 1px 4px rgba(0,0,0,0.15);" onkeyup="if(event.key==='Enter') simpanBatchKetPart('${noSurat}')">
+            <button type="button" id="btnBatchSimpanKetPart" onclick="simpanBatchKetPart('${noSurat}')" style="padding: 6px 14px; font-size: 11.5px; font-weight: 800; background: linear-gradient(135deg, #0284c7, #0369a1) !important; color: #ffffff !important; border-radius: 6px; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3); border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;">
+              <span class="material-symbols-rounded" style="font-size: 16px;">save</span> SIMPAN (${count})
+            </button>
+          </div>
+        `;
+        const newInput = document.getElementById('inputBatchKetPart');
+        if (newInput && !currentText) {
+          try { newInput.focus(); } catch(e) {}
+        }
+      } else {
+        if (window._defaultTopBreakdownHtmlMap && window._defaultTopBreakdownHtmlMap[noSurat] !== undefined) {
+          topArea.innerHTML = window._defaultTopBreakdownHtmlMap[noSurat];
+        }
+      }
+    }
+  }
+
+  const btnSetujuiBatch = document.getElementById('btnBatchSetujuiDetail');
+  const btnTolakBatch = document.getElementById('btnBatchTolakDetail');
+  if (btnSetujuiBatch) btnSetujuiBatch.style.display = 'none';
+  if (btnTolakBatch) btnTolakBatch.style.display = 'none';
+}
+window.updateBatchButtonsUI = updateBatchButtonsUI;
+
+async function simpanBatchKetPart(noSurat) {
+  if (!noSurat) return;
+  const checkedBoxes = Array.from(document.querySelectorAll('.chkDetailItem:checked'));
+  if (checkedBoxes.length === 0) {
+    showNotif('PILIH MINIMAL 1 ITEM DENGAN CENTANG KOTAK DI KOLOM AKSI!', 'warning');
+    return;
+  }
+
+  const inputEl = document.getElementById('inputBatchKetPart');
+  const inputVal = inputEl ? inputEl.value.trim().toUpperCase() : '';
+
+  if (!inputVal) {
+    showNotif('HARAP ISI KETERANGAN PART PADA KOTAK TEXT!', 'warning');
+    if (inputEl) inputEl.focus();
+    return;
+  }
+
+  const indices = checkedBoxes.map(cb => parseInt(cb.getAttribute('data-item-index'), 10)).filter(n => !isNaN(n));
+  
+  if (typeof tampilkanLoadingProses === 'function') {
+    tampilkanLoadingProses('MENYIMPAN KETERANGAN PART... MOHON TUNGGU');
+  } else {
+    showLoading('MENYIMPAN KETERANGAN PART... MOHON TUNGGU');
+  }
+  const _startTime = Date.now();
+
+  try {
+    const requests = getRequestsFromDB();
+    const targetNo = String(noSurat).trim().toUpperCase();
+    const idx = requests.findIndex(r => r && (
+      String(r.noSurat || '').trim().toUpperCase() === targetNo ||
+      String(r.id || '').trim().toUpperCase() === targetNo
+    ));
+
+    if (idx === -1) {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      hideLoading();
+      showNotif('DATA PERMINTAAN TIDAK DITEMUKAN!', 'warning');
+      return;
+    }
+
+    let itemsList = Array.isArray(requests[idx].items) ? [...requests[idx].items] : [];
+
+    indices.forEach(itemIndex => {
+      if (itemIndex >= 0 && itemIndex < itemsList.length) {
+        itemsList[itemIndex].statusPart = inputVal;
+        itemsList[itemIndex].keteranganPart = inputVal;
+        itemsList[itemIndex].isHandedOver = false;
+      }
+    });
+
+    requests[idx].items = itemsList;
+
+    if (!requests[idx].log) requests[idx].log = [];
+    requests[idx].log.push({
+      action: 'BATCH_UPDATE_KETERANGAN_PART',
+      user: currentUser ? (currentUser.fullName || currentUser.username) : 'SERVICE',
+      notes: `Update keterangan part (${indices.length} item) => '${inputVal}'`,
+      time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
+    });
+
+    saveRequestsToDB(requests);
+
+    // Ensure total 8 seconds loading animation
+    const _elapsed = Date.now() - _startTime;
+    const _remaining = Math.max(0, 8000 - _elapsed);
+    if (_remaining > 0) {
+      await new Promise(resolve => setTimeout(resolve, _remaining));
+    }
+
+    if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    hideLoading();
+
+    showNotif(`KETERANGAN PART ${indices.length} ITEM BERHASIL DIPERBARUI BERISI "${inputVal}"!`, 'success');
+
+    if (typeof lihatDetail === 'function') {
+      lihatDetail(noSurat);
+    }
+    if (typeof renderRequestsTable === 'function') {
+      renderRequestsTable();
+    }
+
+    // Sinkronisasi Supabase & Cloud DB di latar belakang (non-blocking)
+    const docId = String(noSurat).replace(/[\/\.]/g, '_');
+    if (typeof supabase !== 'undefined' && supabase) {
+      supabase.from('permintaan_toko').update({
+        items: requests[idx].items,
+        log: requests[idx].log,
+        updated_at: new Date().toISOString()
+      }).eq('no_surat', noSurat).then(() => {}, e => console.warn('[SUPABASE BATCH KET PART NOTICE]:', e));
+    }
+    if (docId && typeof dbFirestore !== 'undefined' && dbFirestore) {
+      dbFirestore.collection('requests').doc(docId).set(requests[idx], { merge: true }).catch(e => console.warn(e));
+    }
+    if (docId && typeof dbRealtime !== 'undefined' && dbRealtime) {
+      dbRealtime.ref(`requests/${docId}`).set(requests[idx]).catch(e => console.warn(e));
+    }
+
+    if (typeof syncRealtimeToCentral === 'function') {
+      syncRealtimeToCentral(requests[idx]);
+    }
+  } catch (e) {
+    if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    hideLoading();
+    console.error('Batch save keterangan part error:', e);
+    showNotif('GAGAL MENYIMPAN KETERANGAN PART BATCH!', 'error');
+  }
+}
+window.simpanBatchKetPart = simpanBatchKetPart;
 
 async function simpanPerubahanDetailAdmin(noSurat) {
   if (!noSurat) return;
@@ -10888,13 +11464,28 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
     `;
   }
 
+  window._defaultTopBreakdownHtmlMap = window._defaultTopBreakdownHtmlMap || {};
+  window._defaultTopBreakdownHtmlMap[req.noSurat] = topBreakdownButtonsHtml;
+
   let headerInfoHtml = `
-    <div class="detailHeaderInfoV2" style="display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; padding: 8px 14px !important; box-sizing: border-box !important; background: transparent !important; border-bottom: 1px solid var(--border-color) !important; margin-bottom: 8px !important;">
-      <div class="noSuratWrapV2" style="display: inline-flex !important; align-items: center !important; text-align: left !important; white-space: nowrap !important; flex: 0 0 auto !important; background: transparent !important;">
-        <span style="opacity: 0.85; font-weight: 500; color: var(--text-main);">NO SURAT : </span>
-        <span class="noSuratValV2" style="color: var(--primary) !important; font-weight: 700 !important; margin-left: 4px; background: transparent !important;">${req.noSurat || '-'}</span>
+    <div class="detailHeaderInfoV2" style="display: flex !important; flex-direction: row !important; flex-wrap: wrap !important; justify-content: space-between !important; align-items: center !important; width: 100% !important; padding: 8px 14px !important; box-sizing: border-box !important; background: transparent !important; border-bottom: 1px solid var(--border-color) !important; margin-bottom: 8px !important; gap: 6px !important;">
+      <div class="noSuratWrapV2" style="display: flex !important; flex-direction: column !important; gap: 3px !important; align-items: flex-start !important; text-align: left !important; flex: 0 0 auto !important; background: transparent !important; font-size: 12px !important; font-weight: 400 !important; color: var(--text-main) !important;">
+        <div style="display: flex; align-items: center; white-space: nowrap;">
+          <span style="display: inline-block; width: 75px; opacity: 0.85; font-weight: 400; color: var(--text-main);">NO SURAT</span>
+          <span style="margin-right: 6px; font-weight: 400; opacity: 0.85;">:</span>
+          <span class="noSuratValV2" style="color: var(--primary) !important; font-weight: 500 !important; background: transparent !important;">${req.noSurat || '-'}</span>
+        </div>
+        <div style="display: flex; align-items: center; white-space: nowrap;">
+          <span style="display: inline-block; width: 75px; opacity: 0.85; font-weight: 400; color: var(--text-main);">TOKO</span>
+          <span style="margin-right: 6px; font-weight: 400; opacity: 0.85;">:</span>
+          <span class="tokoValSubV2" style="color: var(--text-main) !important; font-weight: 400 !important; background: transparent !important;">
+            ${req.toko || '-'}${req.area ? `<span style="font-size: 11px; opacity: 0.75; margin-left: 4px; font-weight: 400;">(${req.area})</span>` : ''}
+          </span>
+        </div>
       </div>
-      ${topBreakdownButtonsHtml}
+      <div id="topBreakdownHeaderArea" data-nosurat="${req.noSurat}" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        ${topBreakdownButtonsHtml}
+      </div>
     </div>
   `;
 
@@ -10977,19 +11568,25 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
       let unfulfilledBtn = '';
       let editPartBtn = '';
       let unlockBtnAdmin = '';
+      let chkItemHtml = `
+        <label class="chkBoxBox" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; border: 1.5px solid var(--border-color, #cbd5e1) !important; border-radius: 6px !important; background: var(--bg-box, #ffffff) !important; cursor: ${isUnfulfilled || isHandedOver ? 'not-allowed' : 'pointer'} !important; box-sizing: border-box !important; vertical-align: middle !important; transition: all 0.15s ease !important; margin: 0 !important; ${isUnfulfilled || isHandedOver ? 'opacity: 0.5 !important; background: rgba(0,0,0,0.05) !important;' : ''}" title="${isUnfulfilled || isHandedOver ? 'Item tidak dapat dipilih' : 'Pilih item ini'}">
+          <input type="checkbox" class="chkDetailItem chk-item-detail" data-item-index="${idx}" data-idx="${idx}" ${isUnfulfilled || isHandedOver ? 'disabled' : ''} onchange="updateSelectAllDetailState()" style="cursor: ${isUnfulfilled || isHandedOver ? 'not-allowed' : 'pointer'} !important; width: 16px !important; height: 16px !important; accent-color: #0284c7 !important; margin: 0 !important; padding: 0 !important; vertical-align: middle !important;">
+        </label>
+      `;
 
       if (isHandedOver) {
         if (isAdmUserRole) {
           // Khusus Admin: Tombol X untuk membuka kunci status serah
           unlockBtnAdmin = `
-            <button type="button" class="btnIcon btnUnlockHandedOver" onclick="bukaKunciSerahPartAdmin('${req.noSurat}', ${idx})" title="BUKA KUNCI STATUS SERAH (KHUSUS ADMIN)" style="padding: 3px 6px !important; border-radius: 6px !important; line-height: 1 !important; height: auto !important; background: #dc2626 !important; color: #ffffff !important; border: none !important; cursor: pointer !important;">
-              <span class="material-symbols-rounded" style="font-size: 15px !important;">close</span>
+            <button type="button" class="btnIcon btnUnlockHandedOver" onclick="bukaKunciSerahPartAdmin('${req.noSurat}', ${idx})" title="BUKA KUNCI STATUS SERAH (KHUSUS ADMIN)" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 6px !important; line-height: 1 !important; background: #dc2626 !important; color: #ffffff !important; border: none !important; cursor: pointer !important; box-sizing: border-box !important; margin: 0 !important; vertical-align: middle !important;">
+              <span class="material-symbols-rounded" style="font-size: 16px !important;">close</span>
             </button>
           `;
           actionTdHtml = `
             <td style="${tdStyleAutofit}">
-              <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px;">
+              <div style="display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; gap: 4px !important; vertical-align: middle !important;">
                 ${unlockBtnAdmin}
+                ${chkItemHtml}
               </div>
             </td>
           `;
@@ -10997,36 +11594,40 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
           // User Biasa (Non-Admin): Tombol disembunyikan / dikunci
           actionTdHtml = `
             <td style="${tdStyleAutofit}">
-              <span style="font-size: 11px; font-weight: 700; color: #10b981;">🔒 SERAH</span>
+              <div style="display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; gap: 4px !important; vertical-align: middle !important;">
+                <span style="font-size: 11px; font-weight: 700; color: #10b981;">🔒 SERAH</span>
+                ${chkItemHtml}
+              </div>
             </td>
           `;
         }
       } else {
         if (isUnfulfilled) {
           unfulfilledBtn = `
-            <button type="button" class="btnIcon btnUndo" onclick="undoBarisItemDetailAdmin('${req.noSurat}', ${idx})" title="BATALKAN (UNDO)" style="padding: 3px 6px !important; border-radius: 6px !important; line-height: 1 !important; height: auto !important; background: #f59e0b !important; color: #ffffff !important; border: none !important; cursor: pointer !important;">
-              <span class="material-symbols-rounded" style="font-size: 15px !important;">undo</span>
+            <button type="button" class="btnIcon btnUndo" onclick="undoBarisItemDetailAdmin('${req.noSurat}', ${idx})" title="BATALKAN (UNDO)" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 6px !important; line-height: 1 !important; background: #f59e0b !important; color: #ffffff !important; border: none !important; cursor: pointer !important; box-sizing: border-box !important; margin: 0 !important; vertical-align: middle !important;">
+              <span class="material-symbols-rounded" style="font-size: 16px !important;">undo</span>
             </button>
           `;
         } else {
           unfulfilledBtn = `
-            <button type="button" class="btnIcon btnDelete" onclick="hapusBarisItemDetailAdmin('${req.noSurat}', ${idx})" title="TANDAI TIDAK DIPENUHI" style="padding: 3px 6px !important; border-radius: 6px !important; line-height: 1 !important; height: auto !important; background: #ef4444 !important; color: #ffffff !important; border: none !important; cursor: pointer !important;">
-              <span class="material-symbols-rounded" style="font-size: 15px !important;">cancel</span>
+            <button type="button" class="btnIcon btnDelete" onclick="hapusBarisItemDetailAdmin('${req.noSurat}', ${idx})" title="TANDAI TIDAK DIPENUHI" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 6px !important; line-height: 1 !important; background: #ef4444 !important; color: #ffffff !important; border: none !important; cursor: pointer !important; box-sizing: border-box !important; margin: 0 !important; vertical-align: middle !important;">
+              <span class="material-symbols-rounded" style="font-size: 16px !important;">cancel</span>
             </button>
           `;
         }
 
         editPartBtn = `
-          <button type="button" class="btnIcon btnEditPartRow" onclick="bukaModalEditKetPartSingle('${req.noSurat}', ${idx})" title="EDIT KETERANGAN / NO PART (FREE TEXT)" style="padding: 3px 6px !important; border-radius: 6px !important; line-height: 1 !important; height: auto !important; background: ${isUnfulfilled ? '#9ca3af' : '#0284c7'} !important; color: #ffffff !important; border: none !important; cursor: ${isUnfulfilled ? 'not-allowed' : 'pointer'} !important; margin-left: 4px !important; ${isUnfulfilled ? 'opacity: 0.6;' : ''}">
-            <span class="material-symbols-rounded" style="font-size: 15px !important;">edit_note</span>
+          <button type="button" class="btnIcon btnEditPartRow" onclick="bukaModalEditKetPartSingle('${req.noSurat}', ${idx})" title="EDIT KETERANGAN / NO PART (FREE TEXT)" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; padding: 0 !important; border-radius: 6px !important; line-height: 1 !important; background: ${isUnfulfilled ? '#9ca3af' : '#0284c7'} !important; color: #ffffff !important; border: none !important; cursor: ${isUnfulfilled ? 'not-allowed' : 'pointer'} !important; ${isUnfulfilled ? 'opacity: 0.6;' : ''} box-sizing: border-box !important; margin: 0 !important; vertical-align: middle !important;">
+            <span class="material-symbols-rounded" style="font-size: 16px !important;">edit_note</span>
           </button>
         `;
 
         actionTdHtml = `
           <td style="${tdStyleAutofit}">
-            <div style="display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px;">
+            <div style="display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; gap: 4px !important; vertical-align: middle !important;">
               ${unfulfilledBtn}
               ${editPartBtn}
+              ${chkItemHtml}
             </div>
           </td>
         `;
@@ -11063,7 +11664,7 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
     }
   }).join('');
 
-  const totalDetailCols = (isDus ? 7 : 6) + (showKetPartCol ? 1 : 0) + (canServiceRowActions ? 1 : 0);
+  const totalDetailCols = (isDus ? 7 : 5) + (showKetPartCol ? 1 : 0) + (canServiceRowActions ? 1 : 0);
   const minDetailRows = 10;
   const actualCount = itemsList ? itemsList.length : 0;
   const emptyRowsCount = Math.max(2, minDetailRows - actualCount);
@@ -11083,31 +11684,69 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
   itemsHtml += emptyGridRowsHtml;
 
   let bottomActionsHtml = '';
-  let actionButtons = [];
+  let group1Buttons = []; // Group 1: Media & Export (Upload Bukti, View Foto, Download Excel)
+  let group2Buttons = []; // Group 2: Approval & Operations (Approve, Tolak, PDF, Set Done, Edit, Batal Approve, Ubah Status)
+  let rightButtons = [];  // Right Group: Hapus, Forward FW
 
   const isDeletedReq = (req.status === 'BATAL' || req.unfulfilled === true);
 
+  // --- GROUP 1: MEDIA & EXPORT (Upload Bukti, View Foto, Download Excel) ---
+  const buktiPhotos = Array.isArray(req.bukti_permintaan || req.buktiPermintaan) ? (req.bukti_permintaan || req.buktiPermintaan) : [];
+  const countBukti = buktiPhotos.length;
+
+  if (req.status === 'APPROVE' && !isStrictDMUser && !isDeletedReq) {
+    group1Buttons.push(`
+      <button type="button" class="btnIcon btnIconOnly" title="UPLOAD / KELOLA BUKTI PERMINTAAN ${countBukti > 0 ? '(' + countBukti + ' FOTO)' : ''}" onclick="bukaModalUploadBuktiPermintaan('${req.noSurat}');" style="background: linear-gradient(135deg, #0284c7, #0369a1) !important; color: #ffffff !important; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3) !important;">
+        <span class="material-symbols-rounded">cloud_upload</span>
+      </button>
+    `);
+  }
+
+  const allReqPhotos = [
+    ...(Array.isArray(req.photos) ? req.photos : []),
+    ...(Array.isArray(req.artemisPhotos) ? req.artemisPhotos : []),
+    ...buktiPhotos
+  ].filter(Boolean);
+
+  if (allReqPhotos.length > 0) {
+    const isDoneState = req.status === 'DONE';
+    group1Buttons.push(`
+      <button type="button" class="btnIcon btnPhotoView btnIconOnly" title="${isDoneState ? 'LIHAT BUKTI PROSES ARTEMIS / DONE' : 'LIHAT FOTO BUKTI BARANG'} (${allReqPhotos.length})" onclick="lihatFotoByNoSurat('${req.noSurat || req.id}');" style="${isDoneState ? 'background: linear-gradient(135deg, #059669, #10b981) !important; color: #ffffff !important;' : ''}">
+        <span class="material-symbols-rounded">image</span>
+      </button>
+    `);
+  }
+
+  if (!isDeletedReq) {
+    group1Buttons.push(`
+      <button type="button" class="btnIcon btnIconOnly" title="DOWNLOAD EXCEL DETAIL (.XLSX)" onclick="downloadSingleDetailExcel('${req.noSurat}');" style="background: #107c41 !important; color: #ffffff !important;">
+        <span class="material-symbols-rounded">file_download</span>
+      </button>
+    `);
+  }
+
+  // --- GROUP 2 & RIGHT GROUP: APPROVAL, OPERATIONS, EDIT, DELETE, FW ---
   if (!isDeletedReq) {
     if (req.status === 'PENDING') {
       if (role === 'SERVICE' || isAdminUser) {
         if (!req.serviceApprove) {
-          actionButtons.push(`
+          group2Buttons.push(`
             <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="approveService('${req.noSurat}');">
               <span class="material-symbols-rounded">check_circle</span>
             </button>
           `);
-          actionButtons.push(`
+          group2Buttons.push(`
             <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="tolakServiceModal('${req.noSurat}', 'SERVICE');">
               <span class="material-symbols-rounded">cancel</span>
             </button>
           `);
         } else if (isAdminUser) {
-          actionButtons.push(`
+          group2Buttons.push(`
             <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="approveDM('${req.noSurat}');">
               <span class="material-symbols-rounded">check_circle</span>
             </button>
           `);
-          actionButtons.push(`
+          group2Buttons.push(`
             <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="tolakServiceModal('${req.noSurat}', 'DM');">
               <span class="material-symbols-rounded">cancel</span>
             </button>
@@ -11116,12 +11755,12 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
       }
       
       if (role === 'DM' && req.serviceApprove) {
-        actionButtons.push(`
+        group2Buttons.push(`
           <button type="button" class="btnIcon btnApprove btnIconOnly" title="APPROVE" onclick="approveDM('${req.noSurat}');">
             <span class="material-symbols-rounded">check_circle</span>
           </button>
         `);
-        actionButtons.push(`
+        group2Buttons.push(`
           <button type="button" class="btnIcon btnReject btnIconOnly" title="TOLAK" onclick="tolakServiceModal('${req.noSurat}', 'DM');">
             <span class="material-symbols-rounded">cancel</span>
           </button>
@@ -11131,7 +11770,7 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
 
     const isPdfVisible = isPdfButtonAllowed(req);
     if (isPdfVisible) {
-      actionButtons.push(`
+      group2Buttons.push(`
         <button type="button" class="btnIcon btnPdf btnIconOnly" title="CETAK PDF" onclick="tampilkanPilihanCetakPdf('${req.noSurat}');">
           <span class="material-symbols-rounded">picture_as_pdf</span>
         </button>
@@ -11139,26 +11778,24 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
     }
 
     if (req.status === 'APPROVE' && (role === 'SERVICE' || isAdminUser)) {
-      actionButtons.push(`
+      group2Buttons.push(`
         <button type="button" class="btnIcon btnDone btnIconOnly" title="SET DONE" onclick="doneService('${req.noSurat}');">
           <span class="material-symbols-rounded">task_alt</span>
         </button>
       `);
     }
 
-    // Button SIMPAN PERUBAHAN removed as per user request
-
-    // BATAL APPROVE SERVICE / DM BUTTONS EXCLUSIVELY VISIBLE FOR ADMIN LOGIN ACCOUNT ONLY (HILANGKAN DARI SERVICE, DM, TOKO, SALES)
+    // BATAL APPROVE SERVICE / DM BUTTONS EXCLUSIVELY VISIBLE FOR ADMIN LOGIN ACCOUNT ONLY
     if (isAdminUser) {
       if (req.serviceApprove) {
-        actionButtons.push(`
+        group2Buttons.push(`
           <button type="button" class="btnIcon btnIconOnly" title="BATAL APPROVE SERVICE" onclick="batalApproveService('${req.noSurat}');" style="background: #eab308 !important; color: #ffffff !important;">
             <span class="material-symbols-rounded">undo</span>
           </button>
         `);
       }
       if (req.status === 'APPROVE' || req.dmUserName || req.dmTTD) {
-        actionButtons.push(`
+        group2Buttons.push(`
           <button type="button" class="btnIcon btnIconOnly" title="BATAL APPROVE DM" onclick="batalApproveDM('${req.noSurat}');" style="background: #f97316 !important; color: #ffffff !important;">
             <span class="material-symbols-rounded">undo</span>
           </button>
@@ -11168,61 +11805,90 @@ async function lihatDetail(noSuratOrObj, fromDashboard = false) {
 
     const isCreator = currentUser && (req.userId === currentUser.id || req.createdBy === currentUser.fullName || (currentUser.category === 'TOKO' && req.toko.toUpperCase() === currentUser.fullName.toUpperCase()));
     const canCreatorEditDelete = isCreator && !req.serviceApprove && req.status === 'PENDING';
-    const canServiceEditDelete = (role === 'SERVICE' && !req.serviceApprove && req.status === 'PENDING');
+    const isReqDoneState = (req.status === 'DONE' || req.status === 'SELESAI');
+    const canServiceDelete = (role === 'SERVICE' && !isReqDoneState);
     const canAdminEditDelete = isAdminUser;
 
-    if (canCreatorEditDelete || canServiceEditDelete || canAdminEditDelete) {
-      actionButtons.push(`
+    const canEditReq = canCreatorEditDelete || (role === 'SERVICE' && !req.serviceApprove && req.status === 'PENDING') || canAdminEditDelete;
+    const canDeleteReq = canCreatorEditDelete || canServiceDelete || canAdminEditDelete;
+
+    if (canEditReq) {
+      group2Buttons.push(`
         <button type="button" class="btnIcon btnEdit btnIconOnly" title="EDIT" onclick="editPermintaan('${req.noSurat}');">
           <span class="material-symbols-rounded">edit</span>
         </button>
       `);
-      actionButtons.push(`
-        <button type="button" class="btnIcon btnDelete btnIconOnly" title="HAPUS PERMINTAAN" onclick="hapusData('${req.noSurat}');">
-          <span class="material-symbols-rounded">delete</span>
-        </button>
-      `);
     }
-  }
-
-        actionButtons.push(`
-        <button type="button" class="btnIcon btnIconOnly" title="DOWNLOAD EXCEL DETAIL (.XLSX)" onclick="downloadSingleDetailExcel('${req.noSurat}');" style="background: #107c41 !important; color: #ffffff !important;">
-          <span class="material-symbols-rounded">file_download</span>
-        </button>
-      `);
 
     if (isAdminUser) {
-      actionButtons.push(`
+      group2Buttons.push(`
         <button type="button" class="btnIcon btnIconOnly" title="UBAH STATUS SUPABASE (ADMIN ONLY)" onclick="bukaModalUbahStatusAdmin('${req.noSurat}');" style="background: #8b5cf6 !important; color: #ffffff !important;">
           <span class="material-symbols-rounded">published_with_changes</span>
         </button>
       `);
     }
 
-  const allReqPhotos = [
-    ...(Array.isArray(req.photos) ? req.photos : []),
-    ...(Array.isArray(req.artemisPhotos) ? req.artemisPhotos : [])
-  ].filter(Boolean);
+    // --- RIGHT GROUP BUTTONS: HAPUS & FORWARD (FW) ---
+    if (canDeleteReq) {
+      rightButtons.push(`
+        <button type="button" class="btnIcon btnDelete btnIconOnly" title="HAPUS PERMINTAAN" onclick="hapusData('${req.noSurat}');">
+          <span class="material-symbols-rounded">delete</span>
+        </button>
+      `);
+    }
 
-  if (allReqPhotos.length > 0) {
-    const isDoneState = req.status === 'DONE';
-    actionButtons.push(`
-      <button type="button" class="btnIcon btnPhotoView btnIconOnly" title="${isDoneState ? 'LIHAT BUKTI PROSES ARTEMIS / DONE' : 'LIHAT FOTO BUKTI BARANG'} (${allReqPhotos.length})" onclick="lihatFotoByNoSurat('${req.noSurat || req.id}');" style="${isDoneState ? 'background: linear-gradient(135deg, #059669, #10b981) !important; color: #ffffff !important;' : ''}">
-        <span class="material-symbols-rounded">image</span>
-      </button>
-    `);
+    const isDoneOrBatalState = (
+      req.status === 'DONE' ||
+      req.status === 'SELESAI' ||
+      req.status === 'BATAL' ||
+      req.status === 'REJECT' ||
+      req.status === 'KOSONG / BATAL' ||
+      req.unfulfilled === true
+    );
+
+    if ((role === 'SERVICE' || isAdminUser) && !isDoneOrBatalState) {
+      rightButtons.push(`
+        <button type="button" class="btnIcon btnIconOnly" title="FORWARD SERVICE AREA" onclick="bukaModalForwardService('${req.noSurat}');" style="background: var(--primary) !important; color: #ffffff !important; box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;">
+          <span class="material-symbols-rounded">forward</span>
+        </button>
+      `);
+    }
   }
 
-  if (actionButtons.length > 0) {
+  const hasAnyActions = group1Buttons.length > 0 || group2Buttons.length > 0 || rightButtons.length > 0;
+  if (hasAnyActions) {
     bottomActionsHtml = `
       <div class="popupDetailActionsV2" style="margin: 0 !important; margin-top: 0 !important; margin-bottom: 2mm !important; padding: 0px 14px !important; padding-bottom: 0px !important; flex-shrink: 0 !important; width: 100% !important; box-sizing: border-box !important; display: flex !important; align-items: center !important; flex-wrap: wrap !important; gap: 6px !important;">
-        ${actionButtons.join('')}
+        ${group2Buttons.length > 0 ? `
+          <div class="btn-group-approval-ops" style="display: flex !important; align-items: center !important; gap: 4px !important; ${group1Buttons.length > 0 ? 'margin-right: 10px !important; padding-right: 10px !important; border-right: 1px solid rgba(255, 255, 255, 0.2) !important;' : ''}">
+            ${group2Buttons.join('')}
+          </div>
+        ` : ''}
+        ${group1Buttons.length > 0 ? `
+          <div class="btn-group-media-export" style="display: flex !important; align-items: center !important; gap: 4px !important;">
+            ${group1Buttons.join('')}
+          </div>
+        ` : ''}
+        ${rightButtons.length > 0 ? `
+          <div class="btn-group-right-actions" style="display: flex !important; align-items: center !important; gap: 4px !important; margin-left: auto !important;">
+            ${rightButtons.join('')}
+          </div>
+        ` : ''}
       </div>
     `;
   }
 
   const thKetPartHtml = showKetPartCol ? `<th style="${canServiceRowActions ? thStyleLeft : thStyleLeftLast}">KETERANGAN PART</th>` : '';
-  const thActionHtml = canServiceRowActions ? `<th class="th-aksi-col">AKSI</th>` : '';
+  const thActionHtml = canServiceRowActions ? `
+    <th class="th-aksi-col" style="${thStyleLeftLast} white-space: nowrap !important; text-align: right !important; vertical-align: middle !important; padding: 6px 12px !important;">
+      <div style="display: inline-flex !important; align-items: center !important; justify-content: flex-end !important; gap: 6px !important; width: 100% !important; vertical-align: middle !important;">
+        <span style="font-size: 11px !important; font-weight: 800 !important; letter-spacing: 0.5px !important; color: #ffffff !important;">AKSI</span>
+        <label class="chkBoxBoxHeader" style="display: inline-flex !important; align-items: center !important; justify-content: center !important; width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; border: 1.5px solid rgba(255, 255, 255, 0.7) !important; border-radius: 6px !important; background: rgba(255, 255, 255, 0.2) !important; cursor: pointer !important; box-sizing: border-box !important; vertical-align: middle !important; transition: all 0.15s ease !important; margin: 0 !important;" title="PILIH SEMUA ITEM">
+          <input type="checkbox" id="chkAllDetailItems" onchange="toggleAllDetailItems(this, '${req.noSurat}')" style="cursor: pointer !important; width: 16px !important; height: 16px !important; accent-color: #0284c7 !important; margin: 0 !important; padding: 0 !important; vertical-align: middle !important;">
+        </label>
+      </div>
+    </th>
+  ` : '';
 
   const tableHeaderHtml = isDus ? `
     <thead>
@@ -11395,6 +12061,171 @@ function tutupModalEditStatusPart() {
   }
 }
 window.tutupModalEditStatusPart = tutupModalEditStatusPart;
+
+// ----------------------------------------------------
+// FITUR FORWARD SERVICE AREA (TERUSKAN NOMOR SURAT KE SERVICE/CABANG LAIN)
+// ----------------------------------------------------
+function bukaModalForwardService(noSurat) {
+  if (!noSurat) return;
+  const targetNo = String(noSurat).trim().toUpperCase();
+  const inputNo = document.getElementById('forwardServiceNoSurat');
+  const displayNo = document.getElementById('forwardDisplayNoSurat');
+  const titleText = document.getElementById('forwardPopupTitleText');
+  if (inputNo) inputNo.value = targetNo;
+  if (displayNo) displayNo.value = targetNo;
+  if (titleText) titleText.textContent = 'TERUSKAN PERMINTAAN';
+
+  const areaSelect = document.getElementById('forwardServiceAreaSelect');
+  const catatanInput = document.getElementById('forwardServiceCatatan');
+  if (catatanInput) catatanInput.value = '';
+
+  if (areaSelect) {
+    areaSelect.innerHTML = '<option value="">-- Pilih Service Area --</option>';
+    
+    const defaultAreas = [
+      'TSM - TASIKMALAYA',
+      'BDG - BANDUNG',
+      'BDU - BANDUNG UTARA',
+      'SKB - SUKABUMI',
+      'SBN - SUBANG',
+      'CRB - CIREBON'
+    ];
+
+    defaultAreas.forEach(da => {
+      areaSelect.innerHTML += `<option value="${da}">${da}</option>`;
+    });
+  }
+
+  const modal = document.getElementById('popupForwardService');
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('z-index', '2000000000', 'important');
+    modal.classList.add('show');
+    try { history.pushState({ modal: 'forwardService' }, '', location.href); } catch(e) {}
+  }
+}
+window.bukaModalForwardService = bukaModalForwardService;
+
+function tutupModalForwardService() {
+  const modal = document.getElementById('popupForwardService');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('show');
+  }
+  if (typeof pastikanDetailPermintaanTetapTerbuka === 'function') {
+    pastikanDetailPermintaanTetapTerbuka();
+  }
+}
+window.tutupModalForwardService = tutupModalForwardService;
+
+function prosesForwardService() {
+  const inputNo = document.getElementById('forwardServiceNoSurat');
+  const noSurat = inputNo ? inputNo.value.trim() : '';
+  const areaSelect = document.getElementById('forwardServiceAreaSelect');
+  const newServiceArea = areaSelect ? areaSelect.value.trim() : '';
+  const catatanInput = document.getElementById('forwardServiceCatatan');
+  const catatan = catatanInput ? catatanInput.value.trim() : '';
+
+  if (!noSurat) {
+    showNotif('NOMOR SURAT TIDAK VALID!', 'warning');
+    return;
+  }
+  if (!newServiceArea) {
+    showNotif('HARAP PILIH SERVICE AREA!', 'warning');
+    return;
+  }
+
+  showConfirm(`KONFIRMASI FORWARD SERVICE AREA\n\nYakin ingin meneruskan Surat #${noSurat} ke Service Area '${newServiceArea.toUpperCase()}'?`, async () => {
+    try {
+      showLoading('Meneruskan ke Service Area...');
+      const requests = getRequestsFromDB();
+      const targetNo = String(noSurat).trim().toUpperCase();
+      const idx = requests.findIndex(r => r && (
+        String(r.noSurat || '').trim().toUpperCase() === targetNo ||
+        String(r.id || '').trim().toUpperCase() === targetNo
+      ));
+
+      if (idx === -1) {
+        hideLoading();
+        showNotif('DATA PERMINTAAN TIDAK DITEMUKAN!', 'warning');
+        return;
+      }
+
+      const req = requests[idx];
+      const prevArea = req.serviceArea || req.serviceUserName || 'SERVICE';
+      
+      req.serviceArea = newServiceArea;
+      req.forwardedBy = currentUser ? (currentUser.fullName || currentUser.username) : 'SERVICE';
+      req.forwardedAt = new Date().toISOString();
+
+      if (!req.log) req.log = [];
+      req.log.push({
+        action: 'FORWARD_SERVICE_AREA',
+        user: currentUser ? (currentUser.fullName || currentUser.username) : 'SERVICE',
+        notes: `Diteruskan dari '${prevArea}' ke Service Area '${newServiceArea}'${catatan ? '. Catatan: ' + catatan : ''}`,
+        time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
+      });
+
+      saveRequestsToDB(requests);
+
+      if (typeof syncRealtimeToCentral === 'function') {
+        syncRealtimeToCentral(req);
+      }
+      if (typeof supabase !== 'undefined' && supabase) {
+        supabase.from('permintaan_toko').update({
+          service_area: newServiceArea,
+          forwarded_by: req.forwardedBy,
+          forwarded_at: req.forwardedAt,
+          log: req.log,
+          updated_at: new Date().toISOString()
+        }).eq('no_surat', noSurat).then(() => {}, (e) => console.warn('[SUPABASE FORWARD UPDATE NOTICE]:', e));
+      }
+
+      // 1. Tambah Notifikasi Sistem untuk Service Area Tujuan
+      if (typeof tambahNotifikasiSistem === 'function') {
+        tambahNotifikasiSistem(['SERVICE'], newServiceArea, `SURAT #${noSurat} DARI ${req.toko} DITERUSKAN KE SERVICE AREA ${newServiceArea.toUpperCase()}${catatan ? '. CATATAN: ' + catatan : ''}`, noSurat);
+      }
+
+      // 2. Kirim Notifikasi WA ke Tim Service di Service Area Tujuan
+      try {
+        const users = typeof getUsersFromDB === 'function' ? getUsersFromDB() : [];
+        const targetServiceUsers = users.filter(u => u && (u.category === 'SERVICE' || u.category === 'HODS' || u.role === 'SERVICE') && (String(u.area || u.serviceArea || '').toUpperCase() === String(newServiceArea).toUpperCase() || u.area === 'ALL') && u.phone && u.phone !== '-');
+        targetServiceUsers.forEach(srv => {
+          const srvName = srv.fullName || srv.username || 'Bapak/Ibu Tim Service';
+          if (typeof kirimNotifikasiWA === 'function') {
+            kirimNotifikasiWA(srv.phone,
+              `Yth. Bapak/Ibu *${srvName}*\n\n` +
+              `📩 *PEMBERITAHUAN FORWARD SURAT PERMINTAAN*\n` +
+              `Dokumen permintaan barang berikut telah *DITERUSKAN (FORWARD)* ke Service Area Anda (*${newServiceArea.toUpperCase()}*):\n` +
+              `• Nomor Dokumen : *#${noSurat}*\n` +
+              `• Toko / Pemohon : *${req.toko}* (${req.area || '-'})\n` +
+              `• Diteruskan Oleh : *${req.forwardedBy}*\n` +
+              `• Catatan Forward : *${catatan || '-'}*\n` +
+              `• Link Detail : ${typeof getAppDirectLink === 'function' ? getAppDirectLink(noSurat) : ''}\n\n` +
+              `Silakan buka sistem aplikasi untuk memproses dokumen permintaan tersebut. Terima kasih.`
+            );
+          }
+        });
+      } catch(e) {
+        console.warn('[FORWARD WA NOTIF WARNING]:', e);
+      }
+
+      hideLoading();
+      tutupModalForwardService();
+      showNotif(`SURAT #${noSurat} BERHASIL DITERUSKAN KE SERVICE AREA '${newServiceArea.toUpperCase()}'!`, 'success');
+
+      if (typeof loadRiwayat === 'function') loadRiwayat();
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (typeof lihatDetail === 'function') lihatDetail(noSurat, true);
+    } catch (err) {
+      hideLoading();
+      console.error('[FORWARD SERVICE ERROR]:', err);
+      showNotif('GAGAL MENERUSKAN SURAT: ' + (err.message || err), 'error');
+    }
+  });
+}
+window.prosesForwardService = prosesForwardService;
+
 
 function simpanStatusPart() {
   const noSuratInput = document.getElementById('editStatusPartNoSurat');
@@ -11998,12 +12829,17 @@ async function preloadAndConvertTtdToBase64(sigUrl) {
     return trimmed;
   }
 
-  // 2. JIKA LINK URL ONLINE (HTTP/HTTPS dari Supabase Storage atau Cloud)
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+  if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+    return '';
+  }
+
+  // 2. JIKA LINK URL ONLINE: Beri Batas Maksimal 1.5 Detik per gambar agar PDF TIDAK MACET/BLOCKED
+  const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(trimmed), 1500));
+
+  const convertPromise = (async () => {
     try {
-      // Panggil fetch dengan parameter pencabut cache (_t=timestamp) agar selalu mengambil file segar
       const cacheBustUrl = trimmed.includes('?') ? `${trimmed}&_t=${Date.now()}` : `${trimmed}?_t=${Date.now()}`;
-      const res = await fetch(cacheBustUrl, { cache: 'no-cache' });
+      const res = await fetch(cacheBustUrl, { cache: 'force-cache' });
       if (res.ok) {
         const blob = await res.blob();
         if (blob && blob.size > 0) {
@@ -12018,13 +12854,36 @@ async function preloadAndConvertTtdToBase64(sigUrl) {
           }
         }
       }
-    } catch (e) {
-      console.warn('⚠️ [PRELOAD TTD ONLINE FETCH ERROR]:', e);
-    }
-    return trimmed;
-  }
+    } catch (e) {}
 
-  return '';
+    // Fallback Canvas
+    try {
+      const imgBase64 = await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.naturalWidth || img.width || 300;
+            canvas.height = img.naturalHeight || img.height || 300;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            resolve(dataUrl.startsWith('data:image/') ? dataUrl : trimmed);
+          } catch(e) {
+            resolve(trimmed);
+          }
+        };
+        img.onerror = () => resolve(trimmed);
+        img.src = trimmed;
+      });
+      if (imgBase64) return imgBase64;
+    } catch (e) {}
+
+    return trimmed;
+  })();
+
+  return Promise.race([convertPromise, timeoutPromise]).catch(() => trimmed);
 }
 window.preloadAndConvertTtdToBase64 = preloadAndConvertTtdToBase64;
 
@@ -12332,7 +13191,7 @@ function renderFullPdfPreviewDocument(modelId) {
           </div>
           <div>
             <div style="font-weight: 500; color: #0f172a; font-size: 11px;">TOKO UTAMA</div>
-            <div style="font-size: 9.5px; color: #475569; margin-top: 1px; text-transform: uppercase;">PEMOHON (TOKO)</div>
+            <div style="font-size: 9.5px; color: #475569; margin-top: 1px; text-transform: uppercase;">TOKO</div>
           </div>
         </div>
 
@@ -12385,381 +13244,420 @@ function tutupPilihanCetakPdf() {
 window.tutupPilihanCetakPdf = tutupPilihanCetakPdf;
 
 async function bukaPdfModal(noSurat, includePhotos = null, autoPrint = true) {
-  const requests = getRequestsFromDB();
-  const targetNo = String(noSurat || '').trim().toUpperCase();
-  const req = requests.find(r => r && (
-    String(r.noSurat || '').trim().toUpperCase() === targetNo ||
-    String(r.id || '').trim().toUpperCase() === targetNo
-  ));
-  if (!req) {
-    showNotif('DOKUMEN TIDAK DITEMUKAN!', 'warning');
-    return;
+  if (typeof tampilkanLoadingProses === 'function') {
+    tampilkanLoadingProses('MOHON TUNGGU...');
   }
-  window._currentActivePdfNoSurat = req.noSurat;
-
-  const userCat = (currentUser && currentUser.category) ? String(currentUser.category).toUpperCase() : '';
-  const isAdmUser = (typeof checkIsAdminUser === 'function') ? checkIsAdminUser() : (userCat === 'ADMIN' || (currentUser && currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
-  if (!isAdmUser && typeof isPdfButtonAllowed === 'function' && !isPdfButtonAllowed(req)) {
-    if (userCat === 'TOKO' || userCat === 'SALES') {
-      showNotif('DOKUMEN BELUM SELESAI DISETUJUI / DIVERIFIKASI OLEH DM!', 'warning');
+  try {
+    const requests = getRequestsFromDB();
+    const targetNo = String(noSurat || '').trim().toUpperCase();
+    const req = requests.find(r => r && (
+      String(r.noSurat || '').trim().toUpperCase() === targetNo ||
+      String(r.id || '').trim().toUpperCase() === targetNo
+    ));
+    if (!req) {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      showNotif('DOKUMEN TIDAK DITEMUKAN!', 'warning');
       return;
     }
-  }
+    window._currentActivePdfNoSurat = req.noSurat;
 
-  const validPhotos = getReqPhotosList(req);
-  if (includePhotos === null) {
-    includePhotos = true;
-  }
+    const userCat = (currentUser && currentUser.category) ? String(currentUser.category).toUpperCase() : '';
+    const isAdmUser = (typeof checkIsAdminUser === 'function') ? checkIsAdminUser() : (userCat === 'ADMIN' || (currentUser && currentUser.username && currentUser.username.toUpperCase() === 'ADMIN'));
+    if (!isAdmUser && typeof isPdfButtonAllowed === 'function' && !isPdfButtonAllowed(req)) {
+      if (userCat === 'TOKO' || userCat === 'SALES') {
+        if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+        showNotif('DOKUMEN BELUM SELESAI DISETUJUI / DIVERIFIKASI OLEH DM!', 'warning');
+        return;
+      }
+    }
 
-  const pdfContainer = document.getElementById('pdfDocumentContent');
-  if (!pdfContainer) return;
+    const validPhotos = getReqPhotosList(req);
+    if (includePhotos === null) {
+      includePhotos = true;
+    }
 
-  const activeModel = (typeof getActivePdfModel === 'function') ? getActivePdfModel() : 'MODEL_1';
+    const pdfContainer = document.getElementById('pdfDocumentContent');
+    if (!pdfContainer) {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      return;
+    }
 
-  const hasUnfulfilledItem = (Array.isArray(req.items) && req.items.some(i => i && (
-    i.unfulfilled || 
-    i.batal || 
-    i.status === 'TIDAK BISA DIPENUHI' || 
-    i.status === 'TIDAK DIPENUHI' ||
-    i.statusPart === 'TIDAK DIPENUHI' ||
-    i.keteranganPart === 'TIDAK DIPENUHI'
-  ))) || (req.status === 'BATAL' || req.unfulfilled);
+    const activeModel = (typeof getActivePdfModel === 'function') ? getActivePdfModel() : 'MODEL_1';
 
-  let itemRowsHtml = (req.items || []).map((i, idx) => {
-    const isUnfulfilled = !!(
+    const hasUnfulfilledItem = (Array.isArray(req.items) && req.items.some(i => i && (
       i.unfulfilled || 
       i.batal || 
       i.status === 'TIDAK BISA DIPENUHI' || 
       i.status === 'TIDAK DIPENUHI' ||
       i.statusPart === 'TIDAK DIPENUHI' ||
-      i.keteranganPart === 'TIDAK DIPENUHI' ||
-      req.status === 'BATAL' || 
-      req.unfulfilled
-    );
-    const rowTdStyle = isUnfulfilled 
-      ? 'padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; text-decoration: line-through; text-decoration-thickness: 2px; font-weight: bold; color: #b91c1c; background-color: #fef2f2;' 
-      : 'padding:6px 6px; border:1px solid #cbd5e1; font-size:11px;';
-    const numTdStyle = isUnfulfilled 
-      ? 'text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; text-decoration: line-through; text-decoration-thickness: 2px; font-weight: bold; color: #b91c1c; background-color: #fef2f2; white-space: nowrap !important;' 
-      : 'text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important;';
+      i.keteranganPart === 'TIDAK DIPENUHI'
+    ))) || (req.status === 'BATAL' || req.unfulfilled);
 
-    return `
-      <tr style="border-bottom:1px solid #cbd5e1; ${isUnfulfilled ? 'background-color:#fef2f2;' : ''}">
-        <td style="${numTdStyle} width:1%;">${idx + 1}</td>
-        <td style="${rowTdStyle} white-space: nowrap !important; width:1%; text-align:left;">${i.type || i.tipe || '-'}</td>
-        <td style="${rowTdStyle} white-space: nowrap !important; width:1%; text-align:left;">${i.seri || i.sn || '-'}</td>
-        ${req.jenis === 'DUS' ? `<td style="${rowTdStyle} white-space: nowrap !important; width:1%; text-align:left; color:${isUnfulfilled ? '#b91c1c' : '#d97706'}; font-weight:600;">${i.dus || '-'}</td>` : ''}
-        <td style="${rowTdStyle} white-space: normal !important; word-break: break-word; text-align:left;">${i.barang || i.permintaan || '-'}</td>
-        <td style="${rowTdStyle} white-space: normal !important; word-break: break-word; text-align:left;">${i.alasan || '-'}</td>
-        <td style="${numTdStyle} width:1%;">${i.qty || 1}</td>
-      </tr>
-    `;
-  }).join('');
+    let itemRowsHtml = (req.items || []).map((i, idx) => {
+      const isUnfulfilled = !!(
+        i.unfulfilled || 
+        i.batal || 
+        i.status === 'TIDAK BISA DIPENUHI' || 
+        i.status === 'TIDAK DIPENUHI' ||
+        i.statusPart === 'TIDAK DIPENUHI' ||
+        i.keteranganPart === 'TIDAK DIPENUHI' ||
+        req.status === 'BATAL' || 
+        req.unfulfilled
+      );
+      const rowTdStyle = isUnfulfilled 
+        ? 'padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; text-decoration: line-through; text-decoration-thickness: 2px; font-weight: bold; color: #b91c1c; background-color: #fef2f2;' 
+        : 'padding:6px 6px; border:1px solid #cbd5e1; font-size:11px;';
+      const numTdStyle = isUnfulfilled 
+        ? 'text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; text-decoration: line-through; text-decoration-thickness: 2px; font-weight: bold; color: #b91c1c; background-color: #fef2f2; white-space: nowrap !important;' 
+        : 'text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important;';
 
-  // ---------------------------------------------------------------------
-  // SINKRONISASI TTD ONLINE LIVE DARI SUPABASE DATABASE (JIKA SUPABASE ONLINE)
-  // ---------------------------------------------------------------------
-  if (typeof supabase !== 'undefined' && supabase && typeof isSupabaseConnected === 'function' && isSupabaseConnected()) {
-    try {
-      const { data: supaUsers } = await supabase.from('users').select('id, username, full_name, category, area, ttd').not('ttd', 'is', null);
-      if (Array.isArray(supaUsers) && supaUsers.length > 0) {
-        const dbUsers = getUsersFromDB();
-        let changed = false;
-        supaUsers.forEach(su => {
-          if (su && su.ttd && isValidSig(su.ttd)) {
-            const matchUser = dbUsers.find(u => u && (
-              (u.username && String(u.username).toUpperCase() === String(su.username || '').toUpperCase()) ||
-              (u.fullName && String(u.fullName).toUpperCase() === String(su.full_name || su.fullName || '').toUpperCase())
-            ));
-            if (matchUser && matchUser.ttd !== su.ttd) {
-              matchUser.ttd = su.ttd;
-              changed = true;
+      return `
+        <tr style="border-bottom:1px solid #cbd5e1; ${isUnfulfilled ? 'background-color:#fef2f2;' : ''}">
+          <td style="${numTdStyle} width:1%;">${idx + 1}</td>
+          <td style="${rowTdStyle} white-space: nowrap !important; width:1%; text-align:left;">${i.type || i.tipe || '-'}</td>
+          <td style="${rowTdStyle} white-space: nowrap !important; width:1%; text-align:left;">${i.seri || i.sn || '-'}</td>
+          ${req.jenis === 'DUS' ? `<td style="${rowTdStyle} white-space: nowrap !important; width:1%; text-align:left; color:${isUnfulfilled ? '#b91c1c' : '#d97706'}; font-weight:600;">${i.dus || '-'}</td>` : ''}
+          <td style="${rowTdStyle} white-space: normal !important; word-break: break-word; text-align:left;">${i.barang || i.permintaan || '-'}</td>
+          <td style="${rowTdStyle} white-space: normal !important; word-break: break-word; text-align:left;">${i.alasan || '-'}</td>
+          <td style="${numTdStyle} width:1%;">${i.qty || 1}</td>
+        </tr>
+      `;
+    }).join('');
+
+    // ---------------------------------------------------------------------
+    // SINKRONISASI TTD ONLINE LIVE DARI SUPABASE DATABASE (JIKA SUPABASE ONLINE)
+    // ---------------------------------------------------------------------
+    if (typeof supabase !== 'undefined' && supabase && typeof isSupabaseConnected === 'function' && isSupabaseConnected()) {
+      try {
+        const { data: supaUsers } = await supabase.from('users').select('id, username, full_name, category, area, ttd').not('ttd', 'is', null);
+        if (Array.isArray(supaUsers) && supaUsers.length > 0) {
+          const dbUsers = getUsersFromDB();
+          let changed = false;
+          supaUsers.forEach(su => {
+            if (su && su.ttd && isValidSig(su.ttd)) {
+              const matchUser = dbUsers.find(u => u && (
+                (u.username && String(u.username).toUpperCase() === String(su.username || '').toUpperCase()) ||
+                (u.fullName && String(u.fullName).toUpperCase() === String(su.full_name || su.fullName || '').toUpperCase())
+              ));
+              if (matchUser && matchUser.ttd !== su.ttd) {
+                matchUser.ttd = su.ttd;
+                changed = true;
+              }
             }
+          });
+          if (changed && typeof saveUsersToDB === 'function') {
+            saveUsersToDB(dbUsers);
           }
-        });
-        if (changed && typeof saveUsersToDB === 'function') {
-          saveUsersToDB(dbUsers);
         }
+      } catch(errSb) {
+        console.warn('[ONLINE SUPABASE TTD SYNC NOTICE]:', errSb);
       }
-    } catch(errSb) {
-      console.warn('[ONLINE SUPABASE TTD SYNC NOTICE]:', errSb);
     }
-  }
 
-  const users = getUsersFromDB();
-  const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area) || users.find(u => u.category === 'SERVICE');
-  const dmUser = users.find(u => u.category === 'DM') || users.find(u => u.username === 'ADMIN');
-  const serviceName = req.serviceUserName || (serviceUser ? serviceUser.fullName : 'SERVICE SUPERVISOR');
-  const dmName = typeof getNamaDM === 'function' ? getNamaDM() : 'FERRY EDIYANTO';
+    const users = getUsersFromDB();
+    const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area) || users.find(u => u.category === 'SERVICE');
+    const dmUser = users.find(u => u.category === 'DM') || users.find(u => u.username === 'ADMIN');
+    const serviceName = req.serviceUserName || (serviceUser ? serviceUser.fullName : 'SERVICE SUPERVISOR');
+    const dmName = typeof getNamaDM === 'function' ? getNamaDM() : 'FERRY EDIYANTO';
 
-  let serviceTTD = req.serviceTTD || '';
-  const reqSrvName = req.serviceUserName || (serviceUser ? serviceUser.fullName : '');
+    let serviceTTD = req.serviceTTD || '';
+    const reqSrvName = req.serviceUserName || (serviceUser ? serviceUser.fullName : '');
 
-  // Verifikasi TTD Service langsung dari akun User Service terkait
-  if (reqSrvName) {
-    const exactSig = getUserRealSignature('SERVICE', req.area, '', reqSrvName);
-    serviceTTD = exactSig;
-  } else if (!isValidSig(serviceTTD) && serviceUser) {
-    serviceTTD = getUserRealSignature('SERVICE', req.area, serviceUser.username, serviceUser.fullName);
-  }
-
-  if (!isValidSig(serviceTTD)) {
-    serviceTTD = ''; // KOSONGKAN JIKA USER SERVICE BELUM MEMPUNYAI TTD
-  }
-
-  let dmTTD = req.dmTTD || '';
-  if (!isValidSig(dmTTD)) {
-    dmTTD = getUserRealSignature('DM', '', '', dmName) || (dmUser ? dmUser.ttd : '');
-  }
-  if (!isValidSig(dmTTD)) {
-    dmTTD = ''; // KOSONGKAN DI PDF JIKA USER DM BELUM MEMPUNYAI TTD
-  }
-
-  const creatorUser = users.find(u => u && (
-    (req.userId && (String(u.id).toUpperCase() === String(req.userId).toUpperCase() || String(u.username).toUpperCase() === String(req.userId).toUpperCase())) ||
-    (req.createdBy && (String(u.username).toUpperCase() === String(req.createdBy).toUpperCase() || String(u.fullName).toUpperCase() === String(req.createdBy).toUpperCase())) ||
-    (req.toko && (String(u.username).toUpperCase() === String(req.toko).toUpperCase() || String(u.fullName).toUpperCase() === String(req.toko).toUpperCase()))
-  ));
-
-  const isReqFromGBJ = (
-    req.isGBJ === true ||
-    (creatorUser && (
-      creatorUser.category === 'GBJ' ||
-      String(creatorUser.username || '').toUpperCase().includes('GBJ') ||
-      String(creatorUser.fullName || '').toUpperCase().includes('GBJ') ||
-      String(creatorUser.storeCode || '').toUpperCase().includes('GBJ')
-    )) ||
-    (req.createdBy && String(req.createdBy).toUpperCase().includes('GBJ')) ||
-    (req.toko && String(req.toko).toUpperCase().includes('GBJ'))
-  );
-
-  let pemohonTTD = req.pemohonTTD || req.tokoTTD || '';
-  let pemohonName = req.toko || req.createdBy || (creatorUser ? (creatorUser.fullName || creatorUser.username) : 'PEMOHON');
-  let pemohonRoleTitle = 'PEMOHON (TOKO)';
-
-  if (isReqFromGBJ) {
-    pemohonRoleTitle = 'GUDANG BARANG JADI (GBJ)';
-    if (!isValidSig(pemohonTTD)) {
-      pemohonTTD = (creatorUser && isValidSig(creatorUser.ttd)) ? creatorUser.ttd : getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy);
+    // Verifikasi TTD Service langsung dari akun User Service terkait
+    if (reqSrvName) {
+      const exactSig = getUserRealSignature('SERVICE', req.area, '', reqSrvName);
+      serviceTTD = exactSig;
+    } else if (!isValidSig(serviceTTD) && serviceUser) {
+      serviceTTD = getUserRealSignature('SERVICE', req.area, serviceUser.username, serviceUser.fullName);
     }
-  } else {
-    pemohonTTD = '';
-  }
 
-  if (!isValidSig(pemohonTTD)) {
-    pemohonTTD = '';
-  }
+    if (!isValidSig(serviceTTD)) {
+      serviceTTD = ''; // KOSONGKAN JIKA USER SERVICE BELUM MEMPUNYAI TTD
+    }
 
-  // PRE-LOAD DAN KONVERSI LINK GAMBAR ONLINE HTTP/HTTPS KE BASE64 DATA URI SEBELUM MEMBENTUK HTML PDF
-  if (typeof preloadAndConvertTtdToBase64 === 'function') {
-    const [pConverted, sConverted, dConverted] = await Promise.all([
-      preloadAndConvertTtdToBase64(pemohonTTD),
-      preloadAndConvertTtdToBase64(serviceTTD),
-      preloadAndConvertTtdToBase64(dmTTD)
-    ]);
-    if (pConverted) pemohonTTD = pConverted;
-    if (sConverted) serviceTTD = sConverted;
-    if (dConverted) dmTTD = dConverted;
-  }
+    let dmTTD = req.dmTTD || '';
+    if (!isValidSig(dmTTD)) {
+      dmTTD = getUserRealSignature('DM', '', '', dmName) || (dmUser ? dmUser.ttd : '');
+    }
+    if (!isValidSig(dmTTD)) {
+      dmTTD = ''; // KOSONGKAN DI PDF JIKA USER DM BELUM MEMPUNYAI TTD
+    }
 
-  const nowPrint = new Date();
-  const pDay = String(nowPrint.getDate()).padStart(2, '0');
-  const pMonth = String(nowPrint.getMonth() + 1).padStart(2, '0');
-  const pYear = nowPrint.getFullYear();
-  const pHour = String(nowPrint.getHours()).padStart(2, '0');
-  const pMin = String(nowPrint.getMinutes()).padStart(2, '0');
-  const pSec = String(nowPrint.getSeconds()).padStart(2, '0');
-  const timestampStr = `DICETAK PADA ${pDay}/${pMonth}/${pYear} Pukul ${pHour}:${pMin}:${pSec}`;
+    const creatorUser = users.find(u => u && (
+      (req.userId && (String(u.id).toUpperCase() === String(req.userId).toUpperCase() || String(u.username).toUpperCase() === String(req.userId).toUpperCase())) ||
+      (req.createdBy && (String(u.username).toUpperCase() === String(req.createdBy).toUpperCase() || String(u.fullName).toUpperCase() === String(req.createdBy).toUpperCase())) ||
+      (req.toko && (String(u.username).toUpperCase() === String(req.toko).toUpperCase() || String(u.fullName).toUpperCase() === String(req.toko).toUpperCase()))
+    ));
 
-  let photoSection = '';
-  if (includePhotos === true && validPhotos.length > 0) {
-    photoSection = `
-      <div style="margin-top: 10px; margin-bottom: 8px; page-break-inside: avoid;">
-        <div style="font-size: 8px; font-weight: 700; color: #475569; letter-spacing: 0.3px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; text-transform: uppercase;">
-          LAMPIRAN FOTO BARANG (${validPhotos.length} FOTO):
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%;">
-          ${validPhotos.map((p, pIdx) => `
-            <div style="aspect-ratio: 1/1; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; padding: 2px; box-sizing: border-box;">
-              <img src="${p}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;">
-              <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(15,23,42,0.75); color: #ffffff; font-size: 7.5px; font-weight: 800; padding: 1px 3px; border-radius: 2px;">#${pIdx+1}</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }
+    const isReqFromGBJ = (
+      req.isGBJ === true ||
+      (creatorUser && (
+        creatorUser.category === 'GBJ' ||
+        String(creatorUser.username || '').toUpperCase().includes('GBJ') ||
+        String(creatorUser.fullName || '').toUpperCase().includes('GBJ') ||
+        String(creatorUser.storeCode || '').toUpperCase().includes('GBJ')
+      )) ||
+      (req.createdBy && String(req.createdBy).toUpperCase().includes('GBJ')) ||
+      (req.toko && String(req.toko).toUpperCase().includes('GBJ'))
+    );
 
-  const areaNameMap = {
-    TSM: 'TASIKMALAYA',
-    BDG: 'BANDUNG',
-    BDU: 'BANDUNG UTARA',
-    CRB: 'CIREBON',
-    SKB: 'SUKABUMI',
-    SBN: 'SUBANG'
-  };
-  const hodsAreaTitle = `HODS ${areaNameMap[req.area] || req.area || ''}`;
+    let pemohonTTD = req.pemohonTTD || req.tokoTTD || '';
+    let pemohonName = '';
+    let pemohonRoleTitle = 'PEMOHON';
 
-  let tableHeaderBg = '#0284c7';
-  let headerTitleHtml = `
-    <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 24px; margin-bottom: 20px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
-      PERMINTAAN TOKO
-    </div>
-  `;
-
-  if (activeModel === 'MODEL_2') {
-    tableHeaderBg = '#334155';
-    headerTitleHtml = `
-      <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; padding: 12px 18px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(2,132,199,0.25);">
-        PERMINTAAN TOKO
-      </div>
-    `;
-  } else if (activeModel === 'MODEL_3') {
-    tableHeaderBg = '#0f172a';
-    headerTitleHtml = `
-      <div style="background: #0f172a; color: #fbbf24; padding: 14px 18px; border-radius: 8px; border-bottom: 4px solid #fbbf24; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; text-transform: uppercase;">
-        PERMINTAAN TOKO
-      </div>
-    `;
-  } else if (activeModel === 'MODEL_4') {
-    tableHeaderBg = '#059669';
-    headerTitleHtml = `
-      <div style="background: #059669; color: #ffffff; padding: 12px 18px; border-radius: 6px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; border-left: 6px solid #047857;">
-        PERMINTAAN TOKO
-      </div>
-    `;
-  } else if (activeModel === 'MODEL_5') {
-    tableHeaderBg = '#7c3aed';
-    headerTitleHtml = `
-      <div style="background: linear-gradient(135deg, #7c3aed, #4c1d95); color: #ffffff; padding: 14px 18px; border-radius: 12px; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; box-shadow: 0 6px 18px rgba(124,58,237,0.3);">
-        PERMINTAAN TOKO
-      </div>
-    `;
-  }
-
-  pdfContainer.innerHTML = `
-    <div class="pdf-paper" style="min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; padding: 1mm 20px; color: #0f172a; background: #ffffff; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
-      <div>
-        ${headerTitleHtml}
-
-                                <table class="pdf-info-table" style="width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; font-size: 12px; background: transparent; border: none;">
-          <tr>
-            <td style="padding: 4px 0; width: 85px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">NO SURAT</td>
-            <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 20px 4px 0; width: 100%; font-weight: 800; color: #0284c7; border: none; letter-spacing: 0.2px;">${req.noSurat}</td>
-            
-            <td style="padding: 4px 0; width: 75px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">TANGGAL</td>
-            <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 0; width: 105px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">${(typeof formatDateDDMMYYYYString === 'function') ? formatDateDDMMYYYYString(req.tanggal) : (req.tanggal || '-')}</td>
-          </tr>
-          <tr>
-            <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">TOKO</td>
-            <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 20px 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase;">${req.toko}</td>
-            
-            <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">JENIS</td>
-            <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase; white-space: nowrap; text-align: left;">${req.jenis || 'DEFAULT'}</td>
-          </tr>
-        </table>
-
-        <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px; color: #0f172a;">DETAIL PERMINTAAN:</div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #cbd5e1;">
-          <thead>
-            <tr style="background: ${tableHeaderBg}; color: #ffffff;">
-              <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">NO</th>
-              <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">TIPE BARANG</th>
-              <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI</th>
-              ${req.jenis === 'DUS' ? `<th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI DUS</th>` : ''}
-              <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">PERMINTAAN BARANG</th>
-              <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">ALASAN PERMINTAAN</th>
-              <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">QTY</th>
-            </tr>
-          </thead>
-          <tbody>${itemRowsHtml}</tbody>
-        </table>
-
-        ${photoSection}
-
-        ${(() => {
-          const cTxt = (req.catatan || '').trim();
-          if (cTxt && cTxt !== '-') {
-            return `
-              <div style="margin-top: 12px; margin-bottom: 16px; font-size: 11.5px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0284c7; border-left: 6px solid ${tableHeaderBg}; padding: 12px 16px; border-radius: 8px; box-shadow: 0 3px 10px rgba(2,132,199,0.12); color: #0f172a; opacity: 1 !important;">
-                <div style="font-weight: 800; font-size: 11.5px; color: ${tableHeaderBg === '#0f172a' ? '#0369a1' : tableHeaderBg}; margin-bottom: 4px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
-                  <span style="font-size: 14px;">📌</span> CATATAN / KETERANGAN PERMINTAAN:
-                </div>
-                <div style="font-weight: 600; color: #0f172a; line-height: 1.5; font-size: 11.5px; word-break: break-word;">${cTxt}</div>
-              </div>
-            `;
-          }
-          return '';
-        })()}
-      </div>
-
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 28px; text-align: center; font-size: 11px; page-break-inside: avoid;">
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
-            <div style="font-weight: 500; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">PEMOHON</div>
-            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
-              ${renderSafeTtdImageTag(pemohonTTD, "max-height: 52px; max-width: 100%; object-fit: contain;")}
-            </div>
-            <div>
-              <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${pemohonName}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${pemohonRoleTitle}</div>
-            </div>
-          </div>
-
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
-            <div style="font-weight: 500; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DIPERIKSA</div>
-            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
-              ${renderSafeTtdImageTag(serviceTTD, "max-height: 52px; max-width: 100%; object-fit: contain;")}
-            </div>
-            <div>
-              <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${serviceName}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${hodsAreaTitle}</div>
-            </div>
-          </div>
-
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
-            <div style="font-weight: 500; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DISETUJUI</div>
-            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
-              ${renderSafeTtdImageTag(dmTTD, "max-height: 52px; max-width: 100%; object-fit: contain;")}
-            </div>
-            <div>
-              <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${dmName}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">DISTRICT MANAGER</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top: 28px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #64748b; letter-spacing: 0.2px;">
-          ${hasUnfulfilledItem ? `
-            <div style="font-weight: 800; color: #b91c1c; font-style: normal; display: flex; align-items: center; gap: 4px; font-size: 8px;">
-              <span style="text-decoration: line-through; text-decoration-thickness: 2.5px; font-weight: 900; color: #b91c1c; font-size: 10px;">---</span> = Tidak di penuhi
-            </div>
-          ` : '<div></div>'}
-          <div style="font-style: italic; opacity: 0.85; font-size: 8px;">
-            ${timestampStr}
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  if (autoPrint) {
-    if (typeof cetakDokumenPdf === 'function') {
-      cetakDokumenPdf();
+    if (isReqFromGBJ) {
+      pemohonRoleTitle = 'GUDANG BARANG JADI (GBJ)';
+      pemohonName = (creatorUser ? (creatorUser.fullName || creatorUser.username) : '') || req.createdByName || req.createdBy || 'GUDANG BARANG JADI';
+      if (!isValidSig(pemohonTTD)) {
+        pemohonTTD = (creatorUser && isValidSig(creatorUser.ttd)) ? creatorUser.ttd : getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy);
+      }
     } else {
-      window.print();
+      pemohonRoleTitle = 'TOKO';
+      pemohonName = req.toko || (creatorUser ? (creatorUser.fullName || creatorUser.username) : '') || req.createdByName || req.createdBy || 'PEMOHON';
+      pemohonTTD = '';
     }
-  } else {
-    const pdfModal = document.getElementById('pdfModal');
-    if (pdfModal) {
-      pdfModal.style.setProperty('display', 'flex', 'important');
-      pdfModal.classList.add('show');
-      if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+
+    if (!isValidSig(pemohonTTD)) {
+      pemohonTTD = '';
     }
+
+    // PRE-LOAD DAN KONVERSI SEMUA LINK GAMBAR TTD & FOTO BARANG KE BASE64 DATA URI SEBELUM MEMBENTUK HTML PDF
+    let loadedValidPhotos = validPhotos;
+    if (typeof preloadAndConvertTtdToBase64 === 'function') {
+      try {
+        const [pConverted, sConverted, dConverted, ...photoConvertedList] = await Promise.all([
+          preloadAndConvertTtdToBase64(pemohonTTD),
+          preloadAndConvertTtdToBase64(serviceTTD),
+          preloadAndConvertTtdToBase64(dmTTD),
+          ...validPhotos.map(p => preloadAndConvertTtdToBase64(p))
+        ]);
+        if (pConverted) pemohonTTD = pConverted;
+        if (sConverted) serviceTTD = sConverted;
+        if (dConverted) dmTTD = dConverted;
+        if (Array.isArray(photoConvertedList) && photoConvertedList.length > 0) {
+          loadedValidPhotos = photoConvertedList.map((cp, idx) => cp || validPhotos[idx]);
+        }
+      } catch(e) {
+        console.warn('[PRELOAD PDF NOTICE]:', e);
+      }
+    }
+
+    const nowPrint = new Date();
+    const pDay = String(nowPrint.getDate()).padStart(2, '0');
+    const pMonth = String(nowPrint.getMonth() + 1).padStart(2, '0');
+    const pYear = nowPrint.getFullYear();
+    const pHour = String(nowPrint.getHours()).padStart(2, '0');
+    const pMin = String(nowPrint.getMinutes()).padStart(2, '0');
+    const pSec = String(nowPrint.getSeconds()).padStart(2, '0');
+    const timestampStr = `DICETAK PADA ${pDay}/${pMonth}/${pYear} Pukul ${pHour}:${pMin}:${pSec}`;
+
+    let photoSection = '';
+    if (includePhotos === true && loadedValidPhotos.length > 0) {
+      photoSection = `
+        <div style="margin-top: 10px; margin-bottom: 8px; page-break-inside: avoid;">
+          <div style="font-size: 8px; font-weight: 700; color: #475569; letter-spacing: 0.3px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; text-transform: uppercase;">
+            LAMPIRAN FOTO BARANG (${loadedValidPhotos.length} FOTO):
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%;">
+            ${loadedValidPhotos.map((p, pIdx) => `
+              <div style="aspect-ratio: 1/1; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; padding: 2px; box-sizing: border-box;">
+                <img src="${p}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;">
+                <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(15,23,42,0.75); color: #ffffff; font-size: 7.5px; font-weight: 800; padding: 1px 3px; border-radius: 2px;">#${pIdx+1}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    const areaNameMap = {
+      TSM: 'TASIKMALAYA',
+      BDG: 'BANDUNG',
+      BDU: 'BANDUNG UTARA',
+      CRB: 'CIREBON',
+      SKB: 'SUKABUMI',
+      SBN: 'SUBANG'
+    };
+    const hodsAreaTitle = `HODS ${areaNameMap[req.area] || req.area || ''}`;
+
+    let tableHeaderBg = '#0284c7';
+    let headerTitleHtml = `
+      <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 24px; margin-bottom: 20px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
+        PERMINTAAN TOKO
+      </div>
+    `;
+
+    if (activeModel === 'MODEL_2') {
+      tableHeaderBg = '#334155';
+      headerTitleHtml = `
+        <div style="background: linear-gradient(135deg, #0284c7, #0369a1); color: #ffffff; padding: 12px 18px; border-radius: 10px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; box-shadow: 0 4px 12px rgba(2,132,199,0.25);">
+          PERMINTAAN TOKO
+        </div>
+      `;
+    } else if (activeModel === 'MODEL_3') {
+      tableHeaderBg = '#0f172a';
+      headerTitleHtml = `
+        <div style="background: #0f172a; color: #fbbf24; padding: 14px 18px; border-radius: 8px; border-bottom: 4px solid #fbbf24; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; text-transform: uppercase;">
+          PERMINTAAN TOKO
+        </div>
+      `;
+    } else if (activeModel === 'MODEL_4') {
+      tableHeaderBg = '#059669';
+      headerTitleHtml = `
+        <div style="background: #059669; color: #ffffff; padding: 12px 18px; border-radius: 6px; text-align: center; font-size: 20px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1px; border-left: 6px solid #047857;">
+          PERMINTAAN TOKO
+        </div>
+      `;
+    } else if (activeModel === 'MODEL_5') {
+      tableHeaderBg = '#7c3aed';
+      headerTitleHtml = `
+        <div style="background: linear-gradient(135deg, #7c3aed, #4c1d95); color: #ffffff; padding: 14px 18px; border-radius: 12px; text-align: center; font-size: 21px; font-weight: 900; margin-bottom: 14px; letter-spacing: 1.5px; box-shadow: 0 6px 18px rgba(124,58,237,0.3);">
+          PERMINTAAN TOKO
+        </div>
+      `;
+    }
+
+    pdfContainer.innerHTML = `
+      <div class="pdf-paper" style="min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; padding: 1mm 20px; color: #0f172a; background: #ffffff; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
+        <div>
+          ${headerTitleHtml}
+
+                                  <table class="pdf-info-table" style="width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; font-size: 12px; background: transparent; border: none;">
+            <tr>
+              <td style="padding: 4px 0; width: 85px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">NO SURAT</td>
+              <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 20px 4px 0; width: 100%; font-weight: 800; color: #0284c7; border: none; letter-spacing: 0.2px;">${req.noSurat}</td>
+              
+              <td style="padding: 4px 0; width: 75px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">TANGGAL</td>
+              <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 0; width: 105px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">${(typeof formatDateDDMMYYYYString === 'function') ? formatDateDDMMYYYYString(req.tanggal) : (req.tanggal || '-')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">TOKO</td>
+              <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 20px 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase;">${req.toko}</td>
+              
+              <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">JENIS</td>
+              <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase; white-space: nowrap; text-align: left;">${req.jenis || 'DEFAULT'}</td>
+            </tr>
+          </table>
+
+          <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px; color: #0f172a;">DETAIL PERMINTAAN:</div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #cbd5e1;">
+            <thead>
+              <tr style="background: ${tableHeaderBg}; color: #ffffff;">
+                <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">NO</th>
+                <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">TIPE BARANG</th>
+                <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI</th>
+                ${req.jenis === 'DUS' ? `<th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI DUS</th>` : ''}
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">PERMINTAAN BARANG</th>
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">ALASAN PERMINTAAN</th>
+                <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">QTY</th>
+              </tr>
+            </thead>
+            <tbody>${itemRowsHtml}</tbody>
+          </table>
+
+          ${photoSection}
+
+          ${(() => {
+            const cTxt = (req.catatan || '').trim();
+            if (cTxt && cTxt !== '-') {
+              return `
+                <div style="margin-top: 12px; margin-bottom: 16px; font-size: 11.5px; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 1.5px solid #0284c7; border-left: 6px solid ${tableHeaderBg}; padding: 12px 16px; border-radius: 8px; box-shadow: 0 3px 10px rgba(2,132,199,0.12); color: #0f172a; opacity: 1 !important;">
+                  <div style="font-weight: 800; font-size: 11.5px; color: ${tableHeaderBg === '#0f172a' ? '#0369a1' : tableHeaderBg}; margin-bottom: 4px; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+                    <span style="font-size: 14px;">📌</span> CATATAN / KETERANGAN PERMINTAAN:
+                  </div>
+                  <div style="font-weight: 600; color: #0f172a; line-height: 1.5; font-size: 11.5px; word-break: break-word;">${cTxt}</div>
+                </div>
+              `;
+            }
+            return '';
+          })()}
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 28px; text-align: center; font-size: 11px; page-break-inside: avoid;">
+            <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+              <div style="font-weight: 500; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">PEMOHON</div>
+              <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+                ${renderSafeTtdImageTag(pemohonTTD, "max-height: 52px; max-width: 100%; object-fit: contain;")}
+              </div>
+              <div>
+                <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${pemohonName}</div>
+                <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${pemohonRoleTitle}</div>
+              </div>
+            </div>
+
+            <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+              <div style="font-weight: 500; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DIPERIKSA</div>
+              <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+                ${renderSafeTtdImageTag(serviceTTD, "max-height: 52px; max-width: 100%; object-fit: contain;")}
+              </div>
+              <div>
+                <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${serviceName}</div>
+                <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${hodsAreaTitle}</div>
+              </div>
+            </div>
+
+            <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+              <div style="font-weight: 500; color: #0f172a; text-transform: uppercase; letter-spacing: 0.5px;">DISETUJUI</div>
+              <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+                ${renderSafeTtdImageTag(dmTTD, "max-height: 52px; max-width: 100%; object-fit: contain;")}
+              </div>
+              <div>
+                <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${dmName}</div>
+                <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">DISTRICT MANAGER</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 28px; display: flex; justify-content: space-between; align-items: center; font-size: 8.5px; color: #64748b; letter-spacing: 0.2px;">
+            <div>
+              ${hasUnfulfilledItem ? `
+                <div style="font-weight: 800; color: #b91c1c; font-style: normal; display: flex; align-items: center; gap: 4px; font-size: 8px;">
+                  <span style="text-decoration: line-through; text-decoration-thickness: 2.5px; font-weight: 900; color: #b91c1c; font-size: 10px;">---</span> = Tidak di penuhi
+                </div>
+              ` : ''}
+            </div>
+            <div style="font-style: italic; opacity: 0.85; font-size: 8px;">
+              ${timestampStr}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (autoPrint) {
+      if (typeof cetakDokumenPdf === 'function') {
+        await cetakDokumenPdf();
+      } else {
+        if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+        window.print();
+      }
+    } else {
+      // Decode preview images in pdfContainer before showing preview modal
+      const previewImgs = Array.from(pdfContainer.querySelectorAll('img'));
+      if (previewImgs.length > 0) {
+        await Promise.all(previewImgs.map(img => {
+          if (img.complete && img.naturalWidth !== 0) return Promise.resolve();
+          return new Promise(r => { img.onload = r; img.onerror = r; setTimeout(r, 2000); });
+        }));
+      }
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+
+      const pdfModal = document.getElementById('pdfModal');
+      if (pdfModal) {
+        pdfModal.style.setProperty('display', 'flex', 'important');
+        pdfModal.classList.add('show');
+        if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+      }
+    }
+  } catch(e) {
+    if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    console.error('PDF error:', e);
+    if (typeof showNotif === 'function') showNotif('GAGAL MENYIAPKAN PDF!', 'error');
   }
 }
 window.bukaPdfModal = bukaPdfModal;
@@ -12789,13 +13687,6 @@ function tutupPdfModal() {
 window.tutupPdfModal = tutupPdfModal;
 
 async function cetakDokumenPdf() {
-  if (typeof tampilkanLoadingProses === 'function') {
-    tampilkanLoadingProses('MOHON TUNGGU...');
-  }
-  
-  // Jeda persis 4 detik (4000ms) sebelum memunculkan dialog cetak PDF
-  await new Promise(resolve => setTimeout(resolve, 4000));
-
   const content = document.getElementById('pdfDocumentContent');
   if (!content) {
     if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
@@ -12803,9 +13694,19 @@ async function cetakDokumenPdf() {
     return;
   }
 
-  // Ambil No Surat aktif dan bersihkan karakter / serta - untuk nama file PDF
+  // Ambil No Surat aktif dan buat nama file PDF = noSurat (hanya ganti karakter ilegal file OS)
   const rawNoSurat = window._currentActivePdfNoSurat || '';
-  const docTitle = String(rawNoSurat).replace(/[\/\-]/g, '').trim() || 'PERMINTAAN_TOKO';
+  let cleanNoSurat = String(rawNoSurat).trim().replace(/[\/\\:\*\?"<>\|]/g, '-');
+  if (!cleanNoSurat) cleanNoSurat = 'PERMINTAAN_TOKO';
+
+  const prevMainTitle = document.title;
+  document.title = cleanNoSurat;
+
+  const restoreMainTitle = () => {
+    try { document.title = prevMainTitle; } catch(e) {}
+    window.removeEventListener('afterprint', restoreMainTitle);
+  };
+  window.addEventListener('afterprint', restoreMainTitle);
 
   try {
     let printIframe = document.getElementById('hiddenPdfPrintIframe');
@@ -12836,7 +13737,7 @@ async function cetakDokumenPdf() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>${docTitle}</title>
+          <title>${cleanNoSurat}</title>
           <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
           <style>
             * {
@@ -12884,22 +13785,40 @@ async function cetakDokumenPdf() {
     `);
     priDoc.close();
 
-    setTimeout(() => {
-      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    // TUNGGU SEMUA GAMBAR DI DALAM IFRAME MENCAPAI STATUS SELESAI DIMUAT & DECODE (100% VISIBLE SEBELUM CETAK)
+    const iframeImgs = Array.from(priDoc.querySelectorAll('img'));
+    if (iframeImgs.length > 0) {
+      await Promise.all(iframeImgs.map(img => {
+        if (img.complete && img.naturalWidth !== 0) return Promise.resolve();
+        return new Promise(resolve => {
+          img.onload = resolve;
+          img.onerror = resolve;
+          setTimeout(resolve, 3000);
+        });
+      }));
+
       try {
-        priWindow.focus();
-        priWindow.print();
-      } catch (err) {
-        console.warn('Iframe print fallback error:', err);
-        window.print();
-      } finally {
-        setTimeout(() => {
-          if (printIframe && printIframe.parentNode) {
-            printIframe.remove();
-          }
-        }, 1500);
-      }
-    }, 200);
+        await Promise.all(iframeImgs.map(img => img.decode().catch(() => {})));
+      } catch(e) {}
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    try {
+      priWindow.focus();
+      priWindow.print();
+    } catch (err) {
+      console.warn('Iframe print fallback error:', err);
+      window.print();
+    } finally {
+      setTimeout(() => {
+        if (printIframe && printIframe.parentNode) {
+          printIframe.remove();
+        }
+        restoreMainTitle();
+      }, 1500);
+    }
     return;
   } catch (e) {
     console.warn('[PRINT IFRAME NOTICE]: Fallback ke window.print()', e);
@@ -12907,6 +13826,7 @@ async function cetakDokumenPdf() {
 
   if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
   window.print();
+  setTimeout(restoreMainTitle, 2000);
 }
 
 function bukaTTD() {
@@ -14696,95 +15616,87 @@ function startGlobalRealtimeLoop() {
 }
 window.startGlobalRealtimeLoop = startGlobalRealtimeLoop;
 
-// GLOBAL EVENT LISTENER: CLICK OUTSIDE BACKDROP TO CLOSE POPUPS (PC / LAPTOP / MOBILE)
+// GLOBAL UTILITY: TRIGGER RED FLASH / BLINK ANIMATION ON MODAL CARD WHEN BACKDROP IS CLICKED
+function triggerModalBlink(modalEl) {
+  if (!modalEl) return;
+  if (typeof modalEl === 'string') {
+    modalEl = document.getElementById(modalEl);
+  }
+  if (!modalEl) return;
+
+  // Find inner content container/card
+  const innerCard = modalEl.querySelector('.rejectBoxPopup, .confirmBoxCard, .popupNotifCard, .modal-content, .popupCard, .popupBodyV2, .popupContent, div[class*="Box"], div[class*="Card"], div[class*="Content"]') || modalEl.firstElementChild || modalEl;
+
+  if (innerCard) {
+    innerCard.classList.remove('modal-blink-anim');
+    void innerCard.offsetWidth; // Force DOM reflow for animation reset
+    // animation disabled
+    setTimeout(() => {
+      innerCard.classList.remove('modal-blink-anim');
+    }, 450);
+  }
+}
+window.triggerModalBlink = triggerModalBlink;
+
+// GLOBAL EVENT LISTENER: CLICK OUTSIDE BACKDROP FOR POPUPS
 window.addEventListener('click', function (e) {
-  // Backdrop click for popupUbahStatusAdminModal -> trigger tutupModalUbahStatusAdmin()
-  const popupUbahStatusAdminModal = document.getElementById('popupUbahStatusAdminModal');
-  if (popupUbahStatusAdminModal && e.target === popupUbahStatusAdminModal) {
-    if (typeof tutupModalUbahStatusAdmin === 'function') {
-      tutupModalUbahStatusAdmin();
-    }
-  }
-  // Backdrop click for confirmOverlay -> trigger confirmNo() (select TIDAK / BATAL)
-  const confirmOverlay = document.getElementById('confirmOverlay');
-  if (confirmOverlay && e.target === confirmOverlay) {
-    if (typeof confirmNo === 'function') {
-      confirmNo();
-    } else if (typeof closeConfirm === 'function') {
-      closeConfirm();
+  // POPUPS WITH BATAL / TIDAK BUTTONS -> DO NOT CLOSE & BLINK
+  const protectedModals = [
+    'uploadBuktiPermintaanOverlay',
+    'popupForwardService',
+    'popupUbahStatusAdminModal',
+    'confirmOverlay',
+    'popupSecurityPinHapusLokal',
+    'popupAkun',
+    'popupPdfModelsModal',
+    'popupUserForm',
+    'popupTambahToko',
+    'rejectOverlay',
+    'popupTTD',
+    'artemisOverlay',
+    'popupEditStatusPart',
+    'popupEditKeteranganPartSingle',
+    'modalSetupSupabaseKeys',
+    'excelTemplateOverlay',
+    'modalGeminiApiKey',
+    'modalRejectBreakdown',
+    'modalBuatParsial'
+  ];
+
+  for (let id of protectedModals) {
+    const modalEl = document.getElementById(id);
+    if (modalEl && e.target === modalEl) {
+      triggerModalBlink(modalEl);
+      return;
     }
   }
 
-  // Backdrop click for popupNotif -> trigger closePopup()
+  // OTHER POPUPS WITHOUT BATAL BUTTON (INFO / VIEWERS)
+  // 1. Notifikasi Single Alert (#popupNotif)
   const popupNotif = document.getElementById('popupNotif');
-  if (popupNotif && e.target === popupNotif) {
-    if (typeof closePopup === 'function') {
-      closePopup();
-    }
+  if (popupNotif && e.target === popupNotif && typeof closePopup === 'function') {
+    closePopup();
   }
 
-  // Backdrop click for popupSecurityPinHapusLokal -> trigger tutupModalPinHapusLokal()
-  const pinModal = document.getElementById('popupSecurityPinHapusLokal');
-  if (pinModal && e.target === pinModal) {
-    if (typeof tutupModalPinHapusLokal === 'function') {
-      tutupModalPinHapusLokal();
-    }
-  }
-  // 1. Detail Barang Popup (#popupDetail)
+  // 2. Detail Barang Popup (#popupDetail)
   const popupDetail = document.getElementById('popupDetail');
   if (popupDetail && e.target === popupDetail && typeof closeDetail === 'function') {
     closeDetail();
   }
 
-  // 2. Akun Profile Popup (#popupAkun)
-  const popupAkun = document.getElementById('popupAkun');
-  if (popupAkun && e.target === popupAkun && typeof tutupAkun === 'function') {
-    tutupAkun();
-  }
-
-  // 3. PDF Models Selector Modal (#popupPdfModelsModal)
-  const popupPdfModelsModal = document.getElementById('popupPdfModelsModal');
-  if (popupPdfModelsModal && e.target === popupPdfModelsModal && typeof tutupModalPdfModels === 'function') {
-    tutupModalPdfModels();
-  }
-
-  // 4. PDF Document Modal (#pdfModal)
+  // 3. PDF Document Modal (#pdfModal)
   const pdfModal = document.getElementById('pdfModal');
   if (pdfModal && e.target === pdfModal && typeof tutupPdfModal === 'function') {
     tutupPdfModal();
   }
 
-  // 5. User Form Modal (#popupUserForm)
-  const popupUserForm = document.getElementById('popupUserForm');
-  if (popupUserForm && e.target === popupUserForm && typeof tutupUserModal === 'function') {
-    tutupUserModal();
-  }
-
-  // 6. Tambah Toko Modal (#popupTambahToko)
-  const popupTambahToko = document.getElementById('popupTambahToko');
-  if (popupTambahToko && e.target === popupTambahToko && typeof tutupModalTambahToko === 'function') {
-    tutupModalTambahToko();
-  }
-
-  // 7. Reject Reason Modal (#rejectOverlay)
-  const rejectOverlay = document.getElementById('rejectOverlay');
-  if (rejectOverlay && e.target === rejectOverlay && typeof closeReject === 'function') {
-    closeReject();
-  }
-
-  // 8. TTD Modal (#popupTTD)
-  const popupTTD = document.getElementById('popupTTD');
-  if (popupTTD && e.target === popupTTD && typeof tutupTTD === 'function') {
-    tutupTTD();
-  }
-
-  // 9. Image Viewer Modal (#imageViewer)
+  // 4. Image Viewer Modal (#imageViewer)
   const imageViewer = document.getElementById('imageViewer');
   if (imageViewer && e.target === imageViewer && typeof tutupImageViewer === 'function') {
     tutupImageViewer();
   }
 
-  // 10. Chat Bantuan Popup (#popupBantuan) - Click outside to close
+  // 5. Chat Bantuan Popup (#popupBantuan)
   const popupBantuan = document.getElementById('popupBantuan');
   const helpBtn = document.getElementById('helpButton');
   if (popupBantuan && (popupBantuan.classList.contains('show') || popupBantuan.style.display === 'block')) {
@@ -14795,16 +15707,10 @@ window.addEventListener('click', function (e) {
     }
   }
 
-  // 11. Notifikasi Sistem Popup List (#popupNotifList) - Click outside to close
+  // 6. Notifikasi Sistem Popup List (#popupNotifList)
   const popupNotifList = document.getElementById('popupNotifList');
   if (popupNotifList && e.target === popupNotifList && typeof tutupNotificationModal === 'function') {
     tutupNotificationModal();
-  }
-
-  // 12. Artemis Upload Popup (#artemisOverlay) - Click outside to close
-  const artemisOverlay = document.getElementById('artemisOverlay');
-  if (artemisOverlay && e.target === artemisOverlay && typeof closeArtemisModal === 'function') {
-    closeArtemisModal();
   }
 });
 
@@ -14919,6 +15825,8 @@ async function paksaLogoutUserByAdmin(targetUsername) {
           if (rtdb) {
             await rtdb.ref(`user_sessions/${uKey}`).set({
               session_token: newSessionToken,
+              active_tokens: [],
+              action_type: 'ADMIN_FORCE_LOGOUT',
               logout_by: currentUser ? currentUser.username : 'ADMIN',
               logout_at: new Date().toISOString()
             });
@@ -14937,12 +15845,31 @@ async function paksaLogoutUserByAdmin(targetUsername) {
           }
         } catch(e2) {}
 
-        // 3. Supabase
+        // 3. Supabase Table Update (Trigger Postgres Changes Realtime)
         try {
           if (typeof supabase !== 'undefined' && supabase) {
-            supabase.from('users').update({ session_token: newSessionToken }).eq('username', targetUsername).then(() => {}, () => {});
+            const cols = typeof getSupabaseUserColumns === 'function' ? await getSupabaseUserColumns(supabase) : [];
+            if (cols && cols.includes('session_token')) {
+              await supabase.from('users').update({ session_token: newSessionToken }).eq('username', targetUsername);
+            }
           }
         } catch(e3) {}
+
+        // 4. Supabase Realtime Broadcast (INSTANT WEBSOCKET PUSH TO TARGET DEVICE)
+        if (typeof supabaseRealtimeChannel !== 'undefined' && supabaseRealtimeChannel) {
+          try {
+            supabaseRealtimeChannel.send({
+              type: 'broadcast',
+              event: 'force_logout',
+              payload: {
+                username: targetUsername,
+                session_token: newSessionToken,
+                reason: 'AKUN DI LOGOUT OLEH ADMIN, SILAHKAN LOGIN KEMBALI',
+                timestamp: Date.now()
+              }
+            });
+          } catch(e4) {}
+        }
 
         hideLoading();
         showNotif(`USER '${targetUsername}' BERHASIL DI-LOGOUT DARI SEMUA PERANGKAT!`, 'success');
@@ -14982,10 +15909,35 @@ async function logoutSemuaPerangkatUserByAdmin() {
           if (rtdb) {
             rtdb.ref(`user_sessions/${uKey}`).set({
               session_token: token,
+              active_tokens: [],
+              action_type: 'ADMIN_FORCE_LOGOUT',
               logout_by: 'ADMIN_ALL',
               logout_at: new Date().toISOString()
             }).catch(() => {});
           }
+
+          if (typeof supabase !== 'undefined' && supabase) {
+            getSupabaseUserColumns(supabase).then(cols => {
+              if (cols && cols.includes('session_token')) {
+                supabase.from('users').update({ session_token: token }).eq('username', u.username).then(() => {}, () => {});
+              }
+            }).catch(() => {});
+          }
+        }
+
+        // 4. Supabase Realtime Broadcast ALL
+        if (typeof supabaseRealtimeChannel !== 'undefined' && supabaseRealtimeChannel) {
+          try {
+            supabaseRealtimeChannel.send({
+              type: 'broadcast',
+              event: 'force_logout_all',
+              payload: {
+                exceptAdmin: myUnameUpper,
+                reason: 'AKUN DI LOGOUT OLEH ADMIN, SILAHKAN LOGIN KEMBALI',
+                timestamp: Date.now()
+              }
+            });
+          } catch(e) {}
         }
 
         hideLoading();
@@ -15269,6 +16221,7 @@ function bukaUserModal(userId = null, btnElement = null) {
           if (document.getElementById('uFormStoreCode')) document.getElementById('uFormStoreCode').value = u.storeCode || '';
           if (document.getElementById('uFormPhone')) document.getElementById('uFormPhone').value = u.phone || '';
           if (document.getElementById('uFormCategory')) document.getElementById('uFormCategory').value = u.category || 'TOKO';
+          if (document.getElementById('uFormCanPrintPdf')) document.getElementById('uFormCanPrintPdf').checked = !!u.canPrintPdf;
           targetAreas = typeof getUserAreaList === 'function' ? getUserAreaList(u.area) : [u.area || 'BDG'];
           if (title) title.textContent = `EDIT USER: ${u.username}`;
         }
@@ -15279,6 +16232,7 @@ function bukaUserModal(userId = null, btnElement = null) {
         if (document.getElementById('uFormStoreCode')) document.getElementById('uFormStoreCode').value = '';
         if (document.getElementById('uFormPhone')) document.getElementById('uFormPhone').value = '';
         if (document.getElementById('uFormCategory')) document.getElementById('uFormCategory').value = 'TOKO';
+        if (document.getElementById('uFormCanPrintPdf')) document.getElementById('uFormCanPrintPdf').checked = false;
         targetAreas = ['BDG'];
         if (title) title.textContent = 'TAMBAH USER BARU';
       }
@@ -15331,6 +16285,7 @@ async function simpanUserData(btnElement = null) {
   const storeCode = document.getElementById('uFormStoreCode').value.trim().toUpperCase();
   const phone = document.getElementById('uFormPhone').value.trim();
   const category = document.getElementById('uFormCategory').value;
+  const canPrintPdf = !!(document.getElementById('uFormCanPrintPdf') && document.getElementById('uFormCanPrintPdf').checked);
   const docId = String(username).toUpperCase();
 
   const checkedAreas = Array.from(document.querySelectorAll('input[name="uFormAreaCheck"]:checked')).map(cb => cb.value);
@@ -15391,6 +16346,7 @@ async function simpanUserData(btnElement = null) {
           users[idx].phone = phone;
           users[idx].category = category;
           users[idx].area = area;
+          users[idx].canPrintPdf = canPrintPdf;
           saveUsersToDB(users, users[idx]);
           if (supabaseRealtimeChannel) {
             try {
@@ -15615,6 +16571,7 @@ async function simpanUserData(btnElement = null) {
         phone,
         category,
         area,
+        canPrintPdf,
         createdAt: getFormattedDateDDMMYYYY()
       };
 
@@ -15932,9 +16889,7 @@ function loadMasterDbTable() {
     }).join('');
 
     const tr = document.createElement('tr');
-    if (shouldRowBlinkRed(r)) {
-      tr.className = 'blink-row-red';
-    }
+    // Blinking row animation disabled per user request
     const isChecked = checkedSet.has(r.noSurat) ? 'checked' : '';
     tr.innerHTML = `
       <td style="text-align:center;"><input type="checkbox" class="masterDbCheckbox" value="${r.noSurat}" ${isChecked} onchange="updateMultiMasterDbBtnState()" style="cursor:pointer; width:16px; height:16px;"></td>
@@ -16594,103 +17549,101 @@ async function eksekusiSimpanAkun(autoClose = false) {
     return;
   }
 
-  showLoading('MENYIMPAN PERUBAHAN AKUN...');
+  if (typeof tampilkanLoadingProses === 'function') {
+    tampilkanLoadingProses('MENYIMPAN PERUBAHAN AKUN... MOHON TUNGGU');
+  } else {
+    showLoading('MENYIMPAN PERUBAHAN AKUN... MOHON TUNGGU');
+  }
+  const _simpanStartTime = Date.now();
 
-  setTimeout(async () => {
-    try {
-      const users = getUsersFromDB();
-      let idx = users.findIndex(u => u && (
-        (currentUser && currentUser.id && u.id && String(u.id) === String(currentUser.id)) ||
-        (currentUser && currentUser.username && u.username && String(u.username).toUpperCase() === String(currentUser.username).toUpperCase())
-      ));
+  try {
+    const users = getUsersFromDB();
+    let idx = users.findIndex(u => u && (
+      (currentUser && currentUser.id && u.id && String(u.id) === String(currentUser.id)) ||
+      (currentUser && currentUser.username && u.username && String(u.username).toUpperCase() === String(currentUser.username).toUpperCase())
+    ));
 
-      if (idx === -1 && currentUser) {
-        idx = users.length;
-        users.push({ ...currentUser });
-      }
-
-      if (idx !== -1) {
-        users[idx].fullName = nama;
-        users[idx].phone = hp;
-        if (pass) users[idx].password = pass;
-        if (!users[idx].id) {
-          users[idx].id = users[idx].username || `USR-${Date.now()}`;
-        }
-
-        currentUser = { ...users[idx] };
-        appStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
-        try { localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser)); } catch(e) {}
-
-        saveUsersToDB(users, currentUser);
-
-        if (typeof simpanUserKeSupabase === 'function') {
-          await simpanUserKeSupabase(currentUser);
-        }
-
-        // BROADCAST REALTIME EVENT TO ALL LOGGED-IN ADMINS/DEVICES
-        if (supabaseRealtimeChannel) {
-          try {
-            supabaseRealtimeChannel.send({
-              type: 'broadcast',
-              event: 'user_data_changed',
-              payload: { username: currentUser.username, time: Date.now() }
-            });
-          } catch(e) {}
-        }
-
-        if (supabaseRealtimeChannel) {
-          try {
-            supabaseRealtimeChannel.send({
-              type: 'broadcast',
-              event: 'data_changed',
-              payload: { action: 'BATCH_DELETE', noSuratList: noSuratList, timestamp: Date.now() }
-            });
-          } catch(e) {}
-        }
-        if (typeof pushCentralCloudDB === 'function') {
-          try { pushCentralCloudDB(); } catch(e) {}
-        }
-
-        if (typeof syncSupabaseUsersToLocalCache === 'function') {
-          await syncSupabaseUsersToLocalCache();
-        }
-
-        hideLoading();
-        showNotif('PROFIL AKUN BERHASIL DIPERBARUI!', 'success');
-
-        const akunArea = document.getElementById('akunArea');
-        if (akunArea) akunArea.value = `${currentUser.area} - ${formatUserAreaDisplay(currentUser.area)}`;
-
-        const akunKategori = document.getElementById('akunKategori');
-        if (akunKategori) akunKategori.value = currentUser.category;
-
-        const akunNama = document.getElementById('akunNama');
-        if (akunNama) akunNama.value = currentUser.fullName;
-
-        const akunHP = document.getElementById('akunHP');
-        if (akunHP) akunHP.value = currentUser.phone || '-';
-
-        const akunPassword = document.getElementById('akunPassword');
-        if (akunPassword) akunPassword.value = '';
-
-        if (typeof loadDashboard === 'function') loadDashboard();
-        if (document.getElementById('userTableBody') && typeof loadUsersManagement === 'function') {
-          loadUsersManagement();
-        }
-
-        if (autoClose) {
-          tutupAkun(true);
-        }
-      } else {
-        hideLoading();
-        showNotif('DATA AKUN TIDAK DITEMUKAN!', 'warning');
-      }
-    } catch (err) {
-      hideLoading();
-      console.error(err);
-      showNotif('GAGAL MENYIMPAN PERUBAHAN AKUN', 'danger');
+    if (idx === -1 && currentUser) {
+      idx = users.length;
+      users.push({ ...currentUser });
     }
-  }, 200);
+
+    if (idx !== -1) {
+      users[idx].fullName = nama;
+      users[idx].phone = hp;
+      if (pass) users[idx].password = pass;
+      if (!users[idx].id) {
+        users[idx].id = users[idx].username || `USR-${Date.now()}`;
+      }
+
+      currentUser = { ...users[idx] };
+      appStorage.setItem(SESSION_KEY, JSON.stringify(currentUser));
+      try { localStorage.setItem(SESSION_KEY, JSON.stringify(currentUser)); } catch(e) {}
+
+      saveUsersToDB(users, currentUser);
+
+      if (typeof simpanUserKeSupabase === 'function') {
+        await simpanUserKeSupabase(currentUser);
+      }
+
+      // BROADCAST REALTIME EVENT TO ALL LOGGED-IN ADMINS/DEVICES
+      if (supabaseRealtimeChannel) {
+        try {
+          supabaseRealtimeChannel.send({
+            type: 'broadcast',
+            event: 'user_data_changed',
+            payload: { username: currentUser.username, time: Date.now() }
+          });
+        } catch(e) {}
+      }
+
+      if (typeof pushCentralCloudDB === 'function') {
+        try { pushCentralCloudDB(); } catch(e) {}
+      }
+
+      if (typeof syncSupabaseUsersToLocalCache === 'function') {
+        await syncSupabaseUsersToLocalCache();
+      }
+
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      hideLoading();
+
+      showNotif('PROFIL AKUN BERHASIL DIPERBARUI!', 'success');
+
+      const akunArea = document.getElementById('akunArea');
+      if (akunArea) akunArea.value = `${currentUser.area} - ${formatUserAreaDisplay(currentUser.area)}`;
+
+      const akunKategori = document.getElementById('akunKategori');
+      if (akunKategori) akunKategori.value = currentUser.category;
+
+      const akunNama = document.getElementById('akunNama');
+      if (akunNama) akunNama.value = currentUser.fullName;
+
+      const akunHP = document.getElementById('akunHP');
+      if (akunHP) akunHP.value = currentUser.phone || '-';
+
+      const akunPassword = document.getElementById('akunPassword');
+      if (akunPassword) akunPassword.value = '';
+
+      if (typeof loadDashboard === 'function') loadDashboard();
+      if (document.getElementById('userTableBody') && typeof loadUsersManagement === 'function') {
+        loadUsersManagement();
+      }
+
+      if (autoClose) {
+        tutupAkun(true);
+      }
+    } else {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      hideLoading();
+      showNotif('DATA AKUN TIDAK DITEMUKAN!', 'warning');
+    }
+  } catch (err) {
+    if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    hideLoading();
+    console.error(err);
+    showNotif('GAGAL MENYIMPAN PERUBAHAN AKUN', 'danger');
+  }
 }
 window.eksekusiSimpanAkun = eksekusiSimpanAkun;
 
@@ -17735,6 +18688,7 @@ function showNotif(msg, type = 'info') {
   if (notifOverlay) {
     notifOverlay.style.setProperty('z-index', '2147483647', 'important');
     notifOverlay.style.setProperty('display', 'flex', 'important');
+    if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
   }
   if (notifCard) {
     notifCard.style.setProperty('z-index', '2147483647', 'important');
@@ -20819,7 +21773,7 @@ function bukaModalDoneParsial(noSurat, partialId) {
   const overlay = document.getElementById('artemisOverlay');
   if (overlay) {
     overlay.classList.add('show');
-    overlay.style.setProperty('z-index', '99999999', 'important');
+    overlay.style.setProperty('z-index', '500000000', 'important');
     overlay.style.setProperty('display', 'flex', 'important');
     overlay.style.setProperty('visibility', 'visible', 'important');
     overlay.style.setProperty('opacity', '1', 'important');
@@ -21936,226 +22890,266 @@ function bukaModalArtemisParsial(noSurat, partialId) {
 }
 window.bukaModalArtemisParsial = bukaModalArtemisParsial;
 
-function cetakPdfSuratParsial(noSurat, partialId) {
-  if (!noSurat || !partialId) return;
-  const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
-  const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
-  if (!req) {
-    if (typeof showNotif === 'function') showNotif('DATA SURAT INDUK TIDAK DITEMUKAN!', 'warning');
-    return;
+async function cetakPdfSuratParsial(noSurat, partialId) {
+  if (typeof tampilkanLoadingProses === 'function') {
+    tampilkanLoadingProses('MOHON TUNGGU...');
   }
-
-  const partials = getPartialBreakdownsFromDB(noSurat);
-  const targetPartial = partials.find(p => p && (p.partial_id === partialId || p.partialId === partialId || p.id.endsWith(`_${partialId}`)));
-
-  if (!targetPartial) {
-    if (typeof showNotif === 'function') showNotif('DATA BREAKDOWN PARSIAL TIDAK DITEMUKAN!', 'warning');
-    return;
-  }
-
-  window._currentActivePdfNoSurat = `${noSurat}_${partialId}`;
-
-  const pdfContainer = document.getElementById('pdfDocumentContent');
-  if (!pdfContainer) {
-    window.print();
-    return;
-  }
-
-  const partialItems = Array.isArray(targetPartial.items) ? targetPartial.items : [];
-  const validPhotos = parsePhotosArray(targetPartial.photos);
-
-  let itemRowsHtml = partialItems.map((i, idx) => `
-    <tr style="border-bottom:1px solid #cbd5e1;">
-      <td style="text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%;">${idx + 1}</td>
-      <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%; text-align:left;">${i.type || i.tipe || '-'}</td>
-      <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%; text-align:left;">${i.seri || i.sn || '-'}</td>
-      ${req.jenis === 'DUS' ? `<td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%; text-align:left; color:#b45309; font-weight:700;">${i.seriDus || i.snDus || '-'}</td>` : ''}
-      <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: normal !important; word-break: break-word; text-align:left;">${i.barang || i.permintaan || '-'}</td>
-      <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: normal !important; word-break: break-word; text-align:left;">${i.alasan || '-'}</td>
-      <td style="text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; font-weight: 800; color: #0284c7; width:1%;">${i.qtyDiserahkan || i.qty || 1}</td>
-    </tr>
-  `).join('');
-
-  const users = typeof getUsersFromDB === 'function' ? getUsersFromDB() : [];
-  const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area) || users.find(u => u.category === 'SERVICE');
-  const dmUser = users.find(u => u.category === 'DM') || users.find(u => u.username === 'ADMIN');
-  const serviceName = req.serviceUserName || (serviceUser ? serviceUser.fullName : 'SERVICE SUPERVISOR');
-  const dmName = typeof getNamaDM === 'function' ? getNamaDM() : 'FERRY EDIYANTO';
-
-  let serviceTTD = req.serviceTTD || '';
-  const reqSrvName = req.serviceUserName || (serviceUser ? serviceUser.fullName : '');
-  if (reqSrvName && typeof getUserRealSignature === 'function') {
-    const exactSig = getUserRealSignature('SERVICE', req.area, '', reqSrvName);
-    serviceTTD = exactSig || serviceTTD;
-  } else if ((!serviceTTD || (typeof isValidSig === 'function' && !isValidSig(serviceTTD))) && serviceUser && typeof getUserRealSignature === 'function') {
-    serviceTTD = getUserRealSignature('SERVICE', req.area, serviceUser.username, serviceUser.fullName);
-  }
-
-  let dmTTD = req.dmTTD || '';
-  if ((!dmTTD || (typeof isValidSig === 'function' && !isValidSig(dmTTD))) && typeof getUserRealSignature === 'function') {
-    dmTTD = getUserRealSignature('DM', '', '', dmName) || (dmUser ? dmUser.ttd : '');
-  }
-  if (typeof isValidSig === 'function' && !isValidSig(dmTTD)) {
-    dmTTD = '';
-  }
-
-  const creatorUser2 = users.find(u => u && (
-    (req.userId && (String(u.id).toUpperCase() === String(req.userId).toUpperCase() || String(u.username).toUpperCase() === String(req.userId).toUpperCase())) ||
-    (req.createdBy && (String(u.username).toUpperCase() === String(req.createdBy).toUpperCase() || String(u.fullName).toUpperCase() === String(req.createdBy).toUpperCase())) ||
-    (req.toko && (String(u.username).toUpperCase() === String(req.toko).toUpperCase() || String(u.fullName).toUpperCase() === String(req.toko).toUpperCase()))
-  ));
-
-  const isReqFromGBJ = (
-    req.isGBJ === true ||
-    (creatorUser2 && (
-      creatorUser2.category === 'GBJ' ||
-      String(creatorUser2.username || '').toUpperCase().includes('GBJ') ||
-      String(creatorUser2.fullName || '').toUpperCase().includes('GBJ') ||
-      String(creatorUser2.storeCode || '').toUpperCase().includes('GBJ')
-    )) ||
-    (req.createdBy && String(req.createdBy).toUpperCase().includes('GBJ')) ||
-    (req.toko && String(req.toko).toUpperCase().includes('GBJ'))
-  );
-
-  let pemohonName = req.toko || req.createdBy || (creatorUser2 ? (creatorUser2.fullName || creatorUser2.username) : 'PEMOHON');
-  let pemohonRoleTitle = 'PEMOHON (TOKO)';
-  let pemohonTTD = req.pemohonTTD || req.tokoTTD || '';
-
-  if (isReqFromGBJ) {
-    pemohonRoleTitle = 'GUDANG BARANG JADI (GBJ)';
-    if (!isValidSig(pemohonTTD) && typeof getUserRealSignature === 'function') {
-      pemohonTTD = (creatorUser2 && isValidSig(creatorUser2.ttd)) ? creatorUser2.ttd : getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy);
+  try {
+    if (!noSurat || !partialId) {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      return;
     }
-  } else {
-    pemohonTTD = '';
-  }
+    const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+    const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
+    if (!req) {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      if (typeof showNotif === 'function') showNotif('DATA SURAT INDUK TIDAK DITEMUKAN!', 'warning');
+      return;
+    }
 
-  const nowPrint = new Date();
-  const pDay = String(nowPrint.getDate()).padStart(2, '0');
-  const pMonth = String(nowPrint.getMonth() + 1).padStart(2, '0');
-  const pYear = nowPrint.getFullYear();
-  const pHour = String(nowPrint.getHours()).padStart(2, '0');
-  const pMin = String(nowPrint.getMinutes()).padStart(2, '0');
-  const pSec = String(nowPrint.getSeconds()).padStart(2, '0');
-  const timestampStr = `DICETAK PADA ${pDay}/${pMonth}/${pYear} Pukul ${pHour}:${pMin}:${pSec}`;
+    const partials = getPartialBreakdownsFromDB(noSurat);
+    const targetPartial = partials.find(p => p && (p.partial_id === partialId || p.partialId === partialId || p.id.endsWith(`_${partialId}`)));
 
-  let photoSection = '';
-  if (validPhotos.length > 0) {
-    photoSection = `
-      <div style="margin-top: 10px; margin-bottom: 8px; page-break-inside: avoid;">
-        <div style="font-size: 8px; font-weight: 700; color: #475569; letter-spacing: 0.3px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; text-transform: uppercase;">
-          LAMPIRAN FOTO PENYERAHAN PARSIAL (${validPhotos.length} FOTO):
+    if (!targetPartial) {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      if (typeof showNotif === 'function') showNotif('DATA BREAKDOWN PARSIAL TIDAK DITEMUKAN!', 'warning');
+      return;
+    }
+
+    window._currentActivePdfNoSurat = `${noSurat}_${partialId}`;
+
+    const pdfContainer = document.getElementById('pdfDocumentContent');
+    if (!pdfContainer) {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      window.print();
+      return;
+    }
+
+    const partialItems = Array.isArray(targetPartial.items) ? targetPartial.items : [];
+    const validPhotos = parsePhotosArray(targetPartial.photos);
+
+    let itemRowsHtml = partialItems.map((i, idx) => `
+      <tr style="border-bottom:1px solid #cbd5e1;">
+        <td style="text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%;">${idx + 1}</td>
+        <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%; text-align:left;">${i.type || i.tipe || '-'}</td>
+        <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%; text-align:left;">${i.seri || i.sn || '-'}</td>
+        ${req.jenis === 'DUS' ? `<td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: nowrap !important; width:1%; text-align:left; color:#b45309; font-weight:700;">${i.seriDus || i.snDus || '-'}</td>` : ''}
+        <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: normal !important; word-break: break-word; text-align:left;">${i.barang || i.permintaan || '-'}</td>
+        <td style="padding:6px 6px; border:1px solid #cbd5e1; font-size:11px; white-space: normal !important; word-break: break-word; text-align:left;">${i.alasan || '-'}</td>
+        <td style="text-align:center; padding:6px 4px; border:1px solid #cbd5e1; font-size:11px; font-weight: 800; color: #0284c7; width:1%;">${i.qtyDiserahkan || i.qty || 1}</td>
+      </tr>
+    `).join('');
+
+    const users = typeof getUsersFromDB === 'function' ? getUsersFromDB() : [];
+    const serviceUser = users.find(u => u.category === 'SERVICE' && u.area === req.area) || users.find(u => u.category === 'SERVICE');
+    const dmUser = users.find(u => u.category === 'DM') || users.find(u => u.username === 'ADMIN');
+    const serviceName = req.serviceUserName || (serviceUser ? serviceUser.fullName : 'SERVICE SUPERVISOR');
+    const dmName = typeof getNamaDM === 'function' ? getNamaDM() : 'FERRY EDIYANTO';
+
+    let serviceTTD = req.serviceTTD || '';
+    const reqSrvName = req.serviceUserName || (serviceUser ? serviceUser.fullName : '');
+    if (reqSrvName && typeof getUserRealSignature === 'function') {
+      const exactSig = getUserRealSignature('SERVICE', req.area, '', reqSrvName);
+      serviceTTD = exactSig || serviceTTD;
+    } else if ((!serviceTTD || (typeof isValidSig === 'function' && !isValidSig(serviceTTD))) && serviceUser && typeof getUserRealSignature === 'function') {
+      serviceTTD = getUserRealSignature('SERVICE', req.area, serviceUser.username, serviceUser.fullName);
+    }
+
+    let dmTTD = req.dmTTD || '';
+    if ((!dmTTD || (typeof isValidSig === 'function' && !isValidSig(dmTTD))) && typeof getUserRealSignature === 'function') {
+      dmTTD = getUserRealSignature('DM', '', '', dmName) || (dmUser ? dmUser.ttd : '');
+    }
+    if (typeof isValidSig === 'function' && !isValidSig(dmTTD)) {
+      dmTTD = '';
+    }
+
+    const creatorUser2 = users.find(u => u && (
+      (req.userId && (String(u.id).toUpperCase() === String(req.userId).toUpperCase() || String(u.username).toUpperCase() === String(req.userId).toUpperCase())) ||
+      (req.createdBy && (String(u.username).toUpperCase() === String(req.createdBy).toUpperCase() || String(u.fullName).toUpperCase() === String(req.createdBy).toUpperCase())) ||
+      (req.toko && (String(u.username).toUpperCase() === String(req.toko).toUpperCase() || String(u.fullName).toUpperCase() === String(req.toko).toUpperCase()))
+    ));
+
+    const isReqFromGBJ = (
+      req.isGBJ === true ||
+      (creatorUser2 && (
+        creatorUser2.category === 'GBJ' ||
+        String(creatorUser2.username || '').toUpperCase().includes('GBJ') ||
+        String(creatorUser2.fullName || '').toUpperCase().includes('GBJ') ||
+        String(creatorUser2.storeCode || '').toUpperCase().includes('GBJ')
+      )) ||
+      (req.createdBy && String(req.createdBy).toUpperCase().includes('GBJ')) ||
+      (req.toko && String(req.toko).toUpperCase().includes('GBJ'))
+    );
+
+    let pemohonTTD = req.pemohonTTD || req.tokoTTD || '';
+    let pemohonName = '';
+    let pemohonRoleTitle = 'PEMOHON';
+
+    if (isReqFromGBJ) {
+      pemohonRoleTitle = 'GUDANG BARANG JADI (GBJ)';
+      pemohonName = (creatorUser2 ? (creatorUser2.fullName || creatorUser2.username) : '') || req.createdByName || req.createdBy || 'GUDANG BARANG JADI';
+      if (!isValidSig(pemohonTTD) && typeof getUserRealSignature === 'function') {
+        pemohonTTD = (creatorUser2 && isValidSig(creatorUser2.ttd)) ? creatorUser2.ttd : getUserRealSignature('GBJ', req.area, req.createdBy, req.createdBy);
+      }
+    } else {
+      pemohonRoleTitle = 'TOKO';
+      pemohonName = req.toko || (creatorUser2 ? (creatorUser2.fullName || creatorUser2.username) : '') || req.createdByName || req.createdBy || 'PEMOHON';
+      pemohonTTD = '';
+    }
+
+    // PRE-LOAD DAN KONVERSI SEMUA LINK GAMBAR TTD & FOTO PARSIAL KE BASE64 DATA URI SEBELUM MEMBENTUK HTML PDF
+    let loadedValidPhotos = validPhotos;
+    if (typeof preloadAndConvertTtdToBase64 === 'function') {
+      try {
+        const [pConverted, sConverted, dConverted, ...photoConvertedList] = await Promise.all([
+          preloadAndConvertTtdToBase64(pemohonTTD),
+          preloadAndConvertTtdToBase64(serviceTTD),
+          preloadAndConvertTtdToBase64(dmTTD),
+          ...validPhotos.map(p => preloadAndConvertTtdToBase64(p))
+        ]);
+        if (pConverted) pemohonTTD = pConverted;
+        if (sConverted) serviceTTD = sConverted;
+        if (dConverted) dmTTD = dConverted;
+        if (Array.isArray(photoConvertedList) && photoConvertedList.length > 0) {
+          loadedValidPhotos = photoConvertedList.map((cp, idx) => cp || validPhotos[idx]);
+        }
+      } catch(e) {
+        console.warn('[PARSIAL PDF PRELOAD NOTICE]:', e);
+      }
+    }
+
+    const nowPrint = new Date();
+    const pDay = String(nowPrint.getDate()).padStart(2, '0');
+    const pMonth = String(nowPrint.getMonth() + 1).padStart(2, '0');
+    const pYear = nowPrint.getFullYear();
+    const pHour = String(nowPrint.getHours()).padStart(2, '0');
+    const pMin = String(nowPrint.getMinutes()).padStart(2, '0');
+    const pSec = String(nowPrint.getSeconds()).padStart(2, '0');
+    const timestampStr = `DICETAK PADA ${pDay}/${pMonth}/${pYear} Pukul ${pHour}:${pMin}:${pSec}`;
+
+    let photoSection = '';
+    if (loadedValidPhotos.length > 0) {
+      photoSection = `
+        <div style="margin-top: 10px; margin-bottom: 8px; page-break-inside: avoid;">
+          <div style="font-size: 8px; font-weight: 700; color: #475569; letter-spacing: 0.3px; margin-bottom: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 2px; text-transform: uppercase;">
+            LAMPIRAN FOTO PENYERAHAN PARSIAL (${loadedValidPhotos.length} FOTO):
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%;">
+            ${loadedValidPhotos.map((p, pIdx) => `
+              <div style="aspect-ratio: 1/1; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; padding: 2px; box-sizing: border-box;">
+                <img src="${p}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;">
+                <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(15,23,42,0.75); color: #ffffff; font-size: 7.5px; font-weight: 800; padding: 1px 3px; border-radius: 2px;">#${pIdx+1}</span>
+              </div>
+            `).join('')}
+          </div>
         </div>
-        <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; width: 100%;">
-          ${validPhotos.map((p, pIdx) => `
-            <div style="aspect-ratio: 1/1; border: 1px solid #cbd5e1; border-radius: 4px; overflow: hidden; background: #ffffff; position: relative; display: flex; align-items: center; justify-content: center; padding: 2px; box-sizing: border-box;">
-              <img src="${p}" style="max-width: 100%; max-height: 100%; width: auto; height: auto; object-fit: contain;">
-              <span style="position: absolute; bottom: 2px; right: 2px; background: rgba(15,23,42,0.75); color: #ffffff; font-size: 7.5px; font-weight: 800; padding: 1px 3px; border-radius: 2px;">#${pIdx+1}</span>
+      `;
+    }
+    const areaNameMap = { TSM: 'TASIKMALAYA', BDG: 'BANDUNG', BDU: 'BANDUNG UTARA', CRB: 'CIREBON', SKB: 'SUKABUMI', SBN: 'SUBANG' };
+    const hodsAreaTitle = `HODS ${areaNameMap[req.area] || req.area || ''}`;
+
+    pdfContainer.innerHTML = `
+      <div class="pdf-paper" style="min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; padding: 1mm 20px; color: #0f172a; background: #ffffff; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
+        <div>
+          <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 24px; margin-bottom: 20px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
+            PERMINTAAN TOKO
+          </div>
+
+          <table class="pdf-info-table" style="width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; font-size: 12px; background: transparent; border: none;">
+            <tr>
+              <td style="padding: 4px 0; width: 85px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">NO SURAT</td>
+              <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 20px 4px 0; width: 100%; font-weight: 800; color: #0284c7; border: none; letter-spacing: 0.2px;">${req.noSurat}-${partialId}</td>
+              
+              <td style="padding: 4px 0; width: 75px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">TANGGAL</td>
+              <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 0; width: 105px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">${(typeof formatDateDDMMYYYYString === 'function') ? formatDateDDMMYYYYString(req.tanggal) : (req.tanggal || '-')}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">TOKO</td>
+              <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 20px 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase;">${req.toko || req.createdBy || '-'}</td>
+              
+              <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">JENIS</td>
+              <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
+              <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase; white-space: nowrap; text-align: left;">${req.jenis || 'DEFAULT'}</td>
+            </tr>
+          </table>
+
+          <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px; color: #0f172a;">DETAIL PERMINTAAN:</div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #cbd5e1;">
+            <thead>
+              <tr style="background: #0284c7; color: #ffffff;">
+                <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">NO</th>
+                <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">TIPE BARANG</th>
+                <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI</th>
+                ${req.jenis === 'DUS' ? `<th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI DUS</th>` : ''}
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">PERMINTAAN BARANG</th>
+                <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">ALASAN PERMINTAAN</th>
+                <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">QTY</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemRowsHtml}
+            </tbody>
+          </table>
+
+          ${photoSection}
+        </div>
+
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 28px; text-align: center; font-size: 11px; page-break-inside: avoid;">
+            <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+              <div style="font-weight: 500; color: #0f172a; text-transform: uppercase;">PEMOHON</div>
+              <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+                ${typeof renderSafeTtdImageTag === 'function' ? renderSafeTtdImageTag(pemohonTTD, "max-height: 52px; max-width: 100%; object-fit: contain;") : ''}
+              </div>
+              <div>
+                <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${pemohonName}</div>
+                <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${pemohonRoleTitle}</div>
+              </div>
             </div>
-          `).join('')}
+
+            <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+              <div style="font-weight: 500; color: #0f172a; text-transform: uppercase;">DIPERIKSA</div>
+              <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+                ${typeof renderSafeTtdImageTag === 'function' ? renderSafeTtdImageTag(serviceTTD, "max-height: 52px; max-width: 100%; object-fit: contain;") : ''}
+              </div>
+              <div>
+                <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${serviceName}</div>
+                <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${hodsAreaTitle}</div>
+              </div>
+            </div>
+
+            <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
+              <div style="font-weight: 500; color: #0f172a; text-transform: uppercase;">DISETUJUI</div>
+              <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
+                ${typeof renderSafeTtdImageTag === 'function' ? renderSafeTtdImageTag(dmTTD, "max-height: 52px; max-width: 100%; object-fit: contain;") : ''}
+              </div>
+              <div>
+                <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${dmName}</div>
+                <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">DISTRICT MANAGER</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; display: flex; justify-content: flex-end; align-items: center; font-size: 8px; color: #64748b;">
+            <div style="font-style: italic; opacity: 0.85;">${timestampStr}</div>
+          </div>
         </div>
       </div>
     `;
-  }
-  const areaNameMap = { TSM: 'TASIKMALAYA', BDG: 'BANDUNG', BDU: 'BANDUNG UTARA', CRB: 'CIREBON', SKB: 'SUKABUMI', SBN: 'SUBANG' };
-  const hodsAreaTitle = `HODS ${areaNameMap[req.area] || req.area || ''}`;
 
-  pdfContainer.innerHTML = `
-    <div class="pdf-paper" style="min-height: 680px; display: flex; flex-direction: column; justify-content: space-between; padding: 1mm 20px; color: #0f172a; background: #ffffff; font-family: 'Poppins', sans-serif; box-sizing: border-box;">
-      <div>
-        <div style="text-align: center; font-size: 20px; font-weight: 800; border-bottom: 2.5px solid #0f172a; padding-bottom: 24px; margin-bottom: 20px; letter-spacing: 0.5px; color: #0f172a; text-transform: uppercase;">
-          PERMINTAAN TOKO
-        </div>
-
-        <table class="pdf-info-table" style="width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; font-size: 12px; background: transparent; border: none;">
-          <tr>
-            <td style="padding: 4px 0; width: 85px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">NO SURAT</td>
-            <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 20px 4px 0; width: 100%; font-weight: 800; color: #0284c7; border: none; letter-spacing: 0.2px;">${req.noSurat}-${partialId}</td>
-            
-            <td style="padding: 4px 0; width: 75px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">TANGGAL</td>
-            <td style="padding: 4px 12px 4px 8px; width: 14px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 0; width: 105px; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">${(typeof formatDateDDMMYYYYString === 'function') ? formatDateDDMMYYYYString(req.tanggal) : (req.tanggal || '-')}</td>
-          </tr>
-          <tr>
-            <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap;">TOKO</td>
-            <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 20px 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase;">${req.toko || req.createdBy || '-'}</td>
-            
-            <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; white-space: nowrap; text-align: left;">JENIS</td>
-            <td style="padding: 4px 12px 4px 8px; font-weight: 800; color: #0f172a; border: none; text-align: center;">:</td>
-            <td style="padding: 4px 0; font-weight: 800; color: #0f172a; border: none; text-transform: uppercase; white-space: nowrap; text-align: left;">${req.jenis || 'DEFAULT'}</td>
-          </tr>
-        </table>
-
-        <div style="font-size: 11px; font-weight: bold; margin-bottom: 6px; color: #0f172a;">DETAIL PERMINTAAN:</div>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 11.5px; border: 1px solid #cbd5e1;">
-          <thead>
-            <tr style="background: #0284c7; color: #ffffff;">
-              <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">NO</th>
-              <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">TIPE BARANG</th>
-              <th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI</th>
-              ${req.jenis === 'DUS' ? `<th style="width: 1%; padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: nowrap !important;">NO. SERI DUS</th>` : ''}
-              <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">PERMINTAAN BARANG</th>
-              <th style="padding:7px 8px; border:1px solid #cbd5e1; font-weight:700; text-align:center; white-space: normal !important;">ALASAN PERMINTAAN</th>
-              <th style="width: 1%; text-align:center; padding:7px 6px; border:1px solid #cbd5e1; font-weight:700; white-space: nowrap !important;">QTY</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemRowsHtml}
-          </tbody>
-        </table>
-
-        ${photoSection}
-      </div>
-
-      <div>
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-top: 28px; text-align: center; font-size: 11px; page-break-inside: avoid;">
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
-            <div style="font-weight: 500; color: #0f172a; text-transform: uppercase;">PEMOHON</div>
-            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
-              ${typeof renderSafeTtdImageTag === 'function' ? renderSafeTtdImageTag(pemohonTTD, "max-height: 52px; max-width: 100%; object-fit: contain;") : ''}
-            </div>
-            <div>
-              <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${pemohonName}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${pemohonRoleTitle}</div>
-            </div>
-          </div>
-
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
-            <div style="font-weight: 500; color: #0f172a; text-transform: uppercase;">DIPERIKSA</div>
-            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
-              ${typeof renderSafeTtdImageTag === 'function' ? renderSafeTtdImageTag(serviceTTD, "max-height: 52px; max-width: 100%; object-fit: contain;") : ''}
-            </div>
-            <div>
-              <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${serviceName}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">${hodsAreaTitle}</div>
-            </div>
-          </div>
-
-          <div style="width: 30%; display: flex; flex-direction: column; justify-content: space-between; height: 125px;">
-            <div style="font-weight: 500; color: #0f172a; text-transform: uppercase;">DISETUJUI</div>
-            <div style="height: 55px; display: flex; align-items: center; justify-content: center;">
-              ${typeof renderSafeTtdImageTag === 'function' ? renderSafeTtdImageTag(dmTTD, "max-height: 52px; max-width: 100%; object-fit: contain;") : ''}
-            </div>
-            <div>
-              <div style="font-weight: 500; color: #0f172a; font-size: 11.5px;">${dmName}</div>
-              <div style="font-size: 10px; color: #475569; margin-top: 2px; text-transform: uppercase;">DISTRICT MANAGER</div>
-            </div>
-          </div>
-        </div>
-
-        <div style="margin-top: 20px; display: flex; justify-content: flex-end; font-size: 8px; color: #64748b;">
-          <div style="font-style: italic; opacity: 0.85;">${timestampStr}</div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  if (typeof cetakDokumenPdf === 'function') {
-    cetakDokumenPdf();
-  } else {
-    window.print();
+    if (typeof cetakDokumenPdf === 'function') {
+      await cetakDokumenPdf();
+    } else {
+      if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+      window.print();
+    }
+  } catch(e) {
+    if (typeof tutupLoadingProses === 'function') tutupLoadingProses();
+    console.error('Parsial PDF error:', e);
+    if (typeof showNotif === 'function') showNotif('GAGAL MENYIAPKAN PDF PARSIAL!', 'error');
   }
 }
 window.cetakPdfSuratParsial = cetakPdfSuratParsial;
@@ -22341,10 +23335,11 @@ async function refreshDetailModalManual() {
   const btnRefresh = document.getElementById('btnRefreshDetailV2');
   if (btnRefresh) {
     btnRefresh.style.transition = 'transform 0.5s ease';
-    btnRefresh.style.transform = 'translateY(-50%) rotate(360deg)';
+    btnRefresh.style.transform = 'rotate(360deg)';
   }
 
   if (typeof showLoading === 'function') showLoading('MEMPERBARUI DATA DETAIL...');
+  let hasChanged = false;
   try {
     if (typeof supabase !== 'undefined' && supabase) {
       const { data, error } = await supabase.from('permintaan_toko').select('*').eq('no_surat', noSurat);
@@ -22354,8 +23349,21 @@ async function refreshDetailModalManual() {
           const currentReqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
           const idx = currentReqs.findIndex(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
           if (idx !== -1) {
+            const oldReq = currentReqs[idx];
+            const fieldsToCompare = [
+              'status', 'serviceApprove', 'items', 'photos', 'artemisPhotos',
+              'buktiPermintaan', 'catatan', 'serviceTTD', 'dmTTD', 'pemohonTTD',
+              'serviceUserName', 'dmUserName', 'log', 'tanggal', 'toko', 'area', 'jenis'
+            ];
+            for (const f of fieldsToCompare) {
+              if (JSON.stringify(oldReq[f]) !== JSON.stringify(formatted[f])) {
+                hasChanged = true;
+                break;
+              }
+            }
             currentReqs[idx] = { ...currentReqs[idx], ...formatted };
           } else {
+            hasChanged = true;
             currentReqs.unshift(formatted);
           }
           if (typeof appStorage !== 'undefined') appStorage.setItem(REQUESTS_DB_KEY, JSON.stringify(currentReqs));
@@ -22365,7 +23373,16 @@ async function refreshDetailModalManual() {
     if (typeof lihatDetail === 'function') {
       await lihatDetail(noSurat, true);
     }
-    if (typeof showNotif === 'function') showNotif('DATA DETAIL BERHASIL DIPERBARUI!', 'success');
+    if (btnRefresh) {
+      btnRefresh.style.setProperty('display', 'none', 'important');
+    }
+    if (typeof showNotif === 'function') {
+      if (hasChanged) {
+        showNotif('REFRESH DATA BERHASIL', 'success');
+      } else {
+        showNotif('TIDAK ADA PERUBAHAN DATA', 'info');
+      }
+    }
   } catch(e) {
     if (typeof showNotif === 'function') showNotif('GAGAL MEMPERBARUI DATA: ' + (e.message || e), 'warning');
   } finally {
@@ -22373,7 +23390,7 @@ async function refreshDetailModalManual() {
     if (btnRefresh) {
       setTimeout(() => {
         btnRefresh.style.transition = 'none';
-        btnRefresh.style.transform = 'translateY(-50%) rotate(0deg)';
+        btnRefresh.style.transform = 'rotate(0deg)';
       }, 500);
     }
   }
@@ -22381,15 +23398,25 @@ async function refreshDetailModalManual() {
 window.refreshDetailModalManual = refreshDetailModalManual;
 
 async function validatePreApprovalData(noSurat, expectedType) {
-  if (typeof supabase === 'undefined' || !supabase) return true;
+  const btnRefresh = document.getElementById('btnRefreshDetailV2');
+  if (typeof supabase === 'undefined' || !supabase) {
+    if (btnRefresh) btnRefresh.style.setProperty('display', 'none', 'important');
+    return true;
+  }
   try {
     const { data, error } = await supabase.from('permintaan_toko').select('*').eq('no_surat', noSurat);
-    if (error || !data || data.length === 0) return true;
+    if (error || !data || data.length === 0) {
+      if (btnRefresh) btnRefresh.style.setProperty('display', 'none', 'important');
+      return true;
+    }
     const serverRow = data[0];
     const localReqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
     const local = localReqs.find(r => r && String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase());
 
-    if (!local) return true;
+    if (!local) {
+      if (btnRefresh) btnRefresh.style.setProperty('display', 'none', 'important');
+      return true;
+    }
 
     let hasMismatch = false;
     let mismatchMsg = '';
@@ -22429,8 +23456,8 @@ async function validatePreApprovalData(noSurat, expectedType) {
       if (typeof showNotif === 'function') {
         showNotif('ADA PERUBAHAN DATA DI SURAT INI, REFRESH TERLEBIH DAHULU', 'warning');
       }
-      const btnRefresh = document.getElementById('btnRefreshDetailV2');
       if (btnRefresh) {
+        btnRefresh.style.setProperty('display', 'inline-flex', 'important');
         btnRefresh.style.border = '2px solid #ef4444';
         btnRefresh.style.background = '#ef4444';
         setTimeout(() => {
@@ -22440,8 +23467,13 @@ async function validatePreApprovalData(noSurat, expectedType) {
       }
       return false;
     }
+
+    if (btnRefresh) {
+      btnRefresh.style.setProperty('display', 'none', 'important');
+    }
     return true;
   } catch(e) {
+    if (btnRefresh) btnRefresh.style.setProperty('display', 'none', 'important');
     return true;
   }
 }
@@ -22899,7 +23931,7 @@ function kembaliKeOriginEdit() {
 }
 window.kembaliKeOriginEdit = kembaliKeOriginEdit;
 
-// SINKRONISASI OTOMATIS KREDENSIAL MASTER ADMIN (PASSWORD = 00, AREA = ALL)
+// SINKRONISASI OTOMATIS KREDENSIAL MASTER ADMIN (PASSWORD = 000, AREA = ALL)
 (function enforceAdminCredentials() {
   try {
     const rawUsers = appStorage.getItem(USERS_DB_KEY);
@@ -22908,8 +23940,8 @@ window.kembaliKeOriginEdit = kembaliKeOriginEdit;
 
     users = users.map(u => {
       if (u && String(u.username || '').trim().toUpperCase() === 'ADMIN') {
-        if (u.password !== '00' || u.area !== 'ALL' || u.category !== 'ADMIN') {
-          u.password = '00';
+        if (u.password !== '000' || u.area !== 'ALL' || u.category !== 'ADMIN') {
+          u.password = '000';
           u.area = 'ALL';
           u.category = 'ADMIN';
           updated = true;
@@ -22927,13 +23959,13 @@ window.kembaliKeOriginEdit = kembaliKeOriginEdit;
     if (rawSession) {
       const sess = JSON.parse(rawSession);
       if (sess && String(sess.username || '').trim().toUpperCase() === 'ADMIN') {
-        sess.password = '00';
+        sess.password = '000';
         sess.area = 'ALL';
         sess.category = 'ADMIN';
         appStorage.setItem(SESSION_KEY, JSON.stringify(sess));
         try { localStorage.setItem(SESSION_KEY, JSON.stringify(sess)); } catch(e) {}
         if (typeof currentUser !== 'undefined' && currentUser) {
-          currentUser.password = '00';
+          currentUser.password = '000';
           currentUser.area = 'ALL';
           currentUser.category = 'ADMIN';
         }
@@ -22941,3 +23973,210 @@ window.kembaliKeOriginEdit = kembaliKeOriginEdit;
     }
   } catch(e) {}
 })();
+
+// =============================================================================
+// STANDALONE UPLOAD BUKTI PERMINTAAN MODAL LOGIC FOR DETAIL POPUP
+// =============================================================================
+let currentUploadBuktiNoSurat = '';
+let tempBuktiPermintaanPhotos = [];
+
+function bukaModalUploadBuktiPermintaan(noSurat) {
+  if (!noSurat) return;
+  const userCatUpper = currentUser ? String(currentUser.category || currentUser.kategori || '').toUpperCase() : '';
+  const userRoleUpper = currentUser ? String(currentUser.role || '').toUpperCase() : '';
+  const isDM = currentUser && (userCatUpper.includes('DM') || userRoleUpper.includes('DM'));
+  if (isDM) {
+    if (typeof showNotif === 'function') showNotif('User DM tidak diperkenankan mengunggah bukti permintaan!', 'warning');
+    return;
+  }
+  currentUploadBuktiNoSurat = noSurat;
+  
+  const reqs = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+  const req = reqs.find(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
+  if (!req) {
+    if (typeof showNotif === 'function') showNotif('DATA PERMINTAAN TIDAK DITEMUKAN!', 'warning');
+    return;
+  }
+
+  const existingBukti = Array.isArray(req.bukti_permintaan || req.buktiPermintaan) ? (req.bukti_permintaan || req.buktiPermintaan) : [];
+  tempBuktiPermintaanPhotos = [...existingBukti];
+
+  const modal = document.getElementById('uploadBuktiPermintaanOverlay');
+  const inputNoSurat = document.getElementById('uploadBuktiNoSurat');
+  const titleEl = document.getElementById('uploadBuktiTitle');
+  
+  if (inputNoSurat) inputNoSurat.value = noSurat;
+  if (titleEl) titleEl.textContent = `UPLOAD BUKTI PERMINTAAN (#${noSurat})`;
+
+  renderBuktiPermintaanModalGrid();
+
+  if (modal) {
+    modal.style.display = 'flex';
+    if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+  }
+}
+window.bukaModalUploadBuktiPermintaan = bukaModalUploadBuktiPermintaan;
+
+function tutupModalUploadBuktiPermintaan() {
+  const modal = document.getElementById('uploadBuktiPermintaanOverlay');
+  if (modal) modal.style.display = 'none';
+  tempBuktiPermintaanPhotos = [];
+  currentUploadBuktiNoSurat = '';
+}
+window.tutupModalUploadBuktiPermintaan = tutupModalUploadBuktiPermintaan;
+
+function renderBuktiPermintaanModalGrid() {
+  const container = document.getElementById('uploadBuktiPreviewGrid');
+  if (!container) return;
+
+  if (tempBuktiPermintaanPhotos.length === 0) {
+    container.innerHTML = `
+      <div style="width: 100%; text-align: center; color: var(--text-muted); font-size: 11.5px; font-weight: 600; padding: 12px 0;">
+        BELUM ADA FOTO BUKTI PERMINTAAN DIUNGGAH.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = tempBuktiPermintaanPhotos.map((p, idx) => `
+    <div style="position: relative; display: inline-block; margin: 2px;">
+      <img src="${p}" style="width: 75px; height: 75px; object-fit: cover; border-radius: 6px; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer;" onclick="openImageViewerSingle('${p}')" title="KLIK UNTUK MEMPERBESAR / UNDUH">
+      <button type="button" onclick="hapusFotoBuktiModal(${idx})" style="position: absolute; top: -6px; right: -6px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 11px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.2); z-index: 10;" title="HAPUS FOTO INI">×</button>
+    </div>
+  `).join('');
+}
+window.renderBuktiPermintaanModalGrid = renderBuktiPermintaanModalGrid;
+
+function hapusFotoBuktiModal(idx) {
+  tempBuktiPermintaanPhotos.splice(idx, 1);
+  renderBuktiPermintaanModalGrid();
+}
+window.hapusFotoBuktiModal = hapusFotoBuktiModal;
+
+function openImageViewerSingle(imgUrl) {
+  if (!imgUrl) return;
+  if (typeof bukaViewGambar === 'function') {
+    bukaViewGambar([imgUrl], 0);
+  } else if (typeof showImageViewer === 'function') {
+    showImageViewer([imgUrl], 0);
+  }
+}
+window.openImageViewerSingle = openImageViewerSingle;
+
+function handleBuktiPermintaanSelect(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+
+  const readPromises = Array.from(files).map(file => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(file);
+    });
+  });
+
+  Promise.all(readPromises).then(results => {
+    const valid = results.filter(Boolean);
+    tempBuktiPermintaanPhotos.push(...valid);
+    renderBuktiPermintaanModalGrid();
+    event.target.value = '';
+  });
+}
+window.handleBuktiPermintaanSelect = handleBuktiPermintaanSelect;
+
+async function simpanBuktiPermintaanUploaded() {
+  if (!currentUploadBuktiNoSurat) return;
+  const userCatUpper = currentUser ? String(currentUser.category || currentUser.kategori || '').toUpperCase() : '';
+  const userRoleUpper = currentUser ? String(currentUser.role || '').toUpperCase() : '';
+  const isDM = currentUser && (userCatUpper.includes('DM') || userRoleUpper.includes('DM'));
+  if (isDM) {
+    if (typeof showNotif === 'function') showNotif('User DM tidak diperkenankan mengunggah bukti permintaan!', 'warning');
+    return;
+  }
+  
+  const noSurat = currentUploadBuktiNoSurat;
+  const requests = typeof getRequestsFromDB === 'function' ? getRequestsFromDB() : [];
+  const idx = requests.findIndex(r => r && (r.noSurat === noSurat || String(r.noSurat).trim().toUpperCase() === String(noSurat).trim().toUpperCase()));
+  
+  if (idx === -1) {
+    if (typeof showNotif === 'function') showNotif('PERMINTAAN TIDAK DITEMUKAN!', 'danger');
+    return;
+  }
+
+  // VALIDASI FOTO BUKTI: Jika belum ada foto yang dipilih / diunggah
+  const validPhotosToUpload = Array.isArray(tempBuktiPermintaanPhotos) ? tempBuktiPermintaanPhotos.filter(Boolean) : [];
+  if (validPhotosToUpload.length === 0) {
+    if (typeof pushPopupHistoryState === 'function') pushPopupHistoryState();
+    if (typeof showNotif === 'function') {
+      showNotif('BELUM ADA FOTO BUKTI DIPILIH! HARAP TAP / PILIH FOTO BUKTI PERMINTAAN DULU SEBELUM MENYIMPAN.', 'warning');
+    }
+    return;
+  }
+
+  if (typeof tampilkanLoadingProses === 'function') {
+    tampilkanLoadingProses('MENGUNGGAH FOTO BUKTI KE SUPABASE CLOUD STORAGE...');
+  } else if (typeof showLoading === 'function') {
+    showLoading('MENGUNGGAH FOTO BUKTI KE SUPABASE CLOUD STORAGE...');
+  }
+
+  try {
+    const rawPhotos = [...tempBuktiPermintaanPhotos];
+    const uploadedPhotoUrls = [];
+
+    // Unggah semua foto bukti ke Supabase Storage (dikompresi JPEG + dikirim sebagai Berkas Foto/URL HTTP)
+    for (let i = 0; i < rawPhotos.length; i++) {
+      const p = rawPhotos[i];
+      if (!p) continue;
+      if (typeof p === 'string' && (p.startsWith('http://') || p.startsWith('https://'))) {
+        uploadedPhotoUrls.push(p);
+      } else if (typeof uploadPhotoToSupabaseStorage === 'function') {
+        const url = await uploadPhotoToSupabaseStorage(p);
+        if (url) uploadedPhotoUrls.push(url);
+      } else {
+        uploadedPhotoUrls.push(p);
+      }
+    }
+
+    requests[idx].bukti_permintaan = uploadedPhotoUrls;
+    requests[idx].buktiPermintaan = uploadedPhotoUrls;
+
+    if (!requests[idx].log) requests[idx].log = [];
+    requests[idx].log.push({
+      action: 'UPLOAD_BUKTI_PERMINTAAN',
+      user: currentUser ? (currentUser.fullName || currentUser.username) : 'USER',
+      notes: `MENGUNGGAH ${uploadedPhotoUrls.length} FOTO BUKTI PERMINTAAN KE SUPABASE STORAGE`,
+      time: `${getFormattedDateDDMMYYYY()} ${new Date().toLocaleTimeString('id-ID')}`
+    });
+
+    // Save to Local DB & Supabase Cloud
+    saveRequestsToDB(requests, requests[idx], 'UPDATE');
+    
+    if (typeof safeSupabaseUpsertPermintaan === 'function') {
+      await safeSupabaseUpsertPermintaan(requests[idx]);
+    }
+
+    tutupModalUploadBuktiPermintaan();
+    if (typeof showNotif === 'function') {
+      showNotif(`BERHASIL MENGUNGGAH FOTO BUKTI PERMINTAAN #${noSurat} KE SUPABASE STORAGE!`, 'success');
+    }
+
+    // Refresh Detail Modal if open and update tables
+    if (typeof lihatDetail === 'function') {
+      lihatDetail(noSurat, true);
+    }
+    if (typeof loadRiwayat === 'function') loadRiwayat();
+    if (typeof loadDashboard === 'function') loadDashboard();
+  } catch(err) {
+    console.error('[SIMPAN BUKTI PERMINTAAN ERROR]:', err);
+    if (typeof showNotif === 'function') showNotif('GAGAL MENYIMPAN BUKTI: ' + (err.message || err), 'danger');
+  } finally {
+    if (typeof tutupLoadingProses === 'function') {
+      tutupLoadingProses();
+    } else if (typeof hideLoading === 'function') {
+      hideLoading();
+    }
+  }
+}
+window.simpanBuktiPermintaanUploaded = simpanBuktiPermintaanUploaded;
+
