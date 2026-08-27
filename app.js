@@ -3440,9 +3440,9 @@ async function initSupabaseRealtimeEngine() {
         (event) => {
           if (currentUser) {
             const myUname = String(currentUser.username || '').trim().toUpperCase();
-            const except = event && event.payload && event.payload.exceptAdmin ? String(event.payload.exceptAdmin).trim().toUpperCase() : 'ADMIN';
-            const isMyUserAdmin = (myUname === 'ADMIN' || String(currentUser.category || '').toUpperCase() === 'ADMIN');
-            if (myUname !== except && !isMyUserAdmin) {
+            const myCat = String(currentUser.category || currentUser.role || currentUser.kategori || '').trim().toUpperCase();
+            const isMyUserAdmin = (myUname === 'ADMIN' || myCat === 'ADMIN');
+            if (!isMyUserAdmin) {
               console.warn('⚠️ [FORCE LOGOUT ALL BROADCAST DETECTED]: Logging out this device...');
               if (typeof forceLogoutThisDevice === 'function') {
                 forceLogoutThisDevice(event.payload.reason || 'AKUN DI LOGOUT OLEH ADMIN, SILAHKAN LOGIN KEMBALI');
@@ -7032,9 +7032,9 @@ async function startSessionTokenRealtimeListener(isFreshLogin = false) {
   const isDMOrService = (catUpper === 'DM' || catUpper === 'SERVICE');
 
   // ATURAN BATASAN LOGIN PERANGKAT (DEVICE LIMITS):
-  // 1. ADMIN: Maksimal 1 Perangkat (1 Login) - Hanya 1 HP/Laptop aktif untuk akun ADMIN
-  // 2. SELAIN ADMIN (Toko, Service, DM, Sales, dll): Tidak ada batasan (Bebas login di perangkat mana saja)
-  const maxAllowedLogins = isAdmin ? 1 : 999999;
+  // 1. SERVICE & DM: Maksimal 4 Perangkat (4 Logins)
+  // 2. SALES, TOKO, ADMIN, & LAINNYA: Maksimal 1 Perangkat (1 Login)
+  const maxAllowedLogins = isDMOrService ? 4 : 1;
 
   const usernameKey = String(currentUser.username).replace(/[\/\.#$\[\]]/g, '_');
   const rtdb = typeof getDbRealtime === 'function' ? getDbRealtime() : null;
@@ -8096,81 +8096,17 @@ if (typeof window !== 'undefined') {
 }
 
 function isSoundEnabled() {
-  const pref = localStorage.getItem('app_sound_enabled');
-  return pref === null || pref === 'true';
+  return false;
 }
 
 function toggleAppSound() {
-  const current = isSoundEnabled();
-  const nextState = !current;
-  localStorage.setItem('app_sound_enabled', String(nextState));
-  if (nextState) {
-    playNotificationSound('pending_alert');
-    if (typeof showPopupNotif === 'function') showPopupNotif('🔊 SUARA NOTIFIKASI DIAKTIFKAN');
-  } else {
-    if (typeof showPopupNotif === 'function') showPopupNotif('🔇 SUARA NOTIFIKASI DIMATIKAN');
-  }
+  if (typeof showPopupNotif === 'function') showPopupNotif('🔇 SUARA NOTIFIKASI DIMATIKAN');
 }
 window.toggleAppSound = toggleAppSound;
 
 function playNotificationSound(type = 'pending_alert') {
-  if (!isSoundEnabled()) return;
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    const now = ctx.currentTime;
-
-    if (type === 'pending_alert' || type === 'alert' || type === 'notif') {
-      // Pleasant 2-tone chime: D5 (587.33Hz) -> A5 (880.00Hz)
-      const osc1 = ctx.createOscillator();
-      const gain1 = ctx.createGain();
-      osc1.type = 'sine';
-      osc1.frequency.setValueAtTime(587.33, now);
-      gain1.gain.setValueAtTime(0, now);
-      gain1.gain.linearRampToValueAtTime(0.18, now + 0.03);
-      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-      osc1.connect(gain1);
-      gain1.connect(ctx.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.35);
-
-      const osc2 = ctx.createOscillator();
-      const gain2 = ctx.createGain();
-      osc2.type = 'sine';
-      osc2.frequency.setValueAtTime(880.00, now + 0.15);
-      gain2.gain.setValueAtTime(0, now + 0.15);
-      gain2.gain.linearRampToValueAtTime(0.22, now + 0.18);
-      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
-      osc2.connect(gain2);
-      gain2.connect(ctx.destination);
-      osc2.start(now + 0.15);
-      osc2.stop(now + 0.65);
-
-    } else if (type === 'success' || type === 'done') {
-      // Ascending 3-note melody: C5 (523.25) -> E5 (659.25) -> G5 (783.99)
-      const notes = [523.25, 659.25, 783.99];
-      notes.forEach((freq, idx) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        const startTime = now + idx * 0.1;
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.linearRampToValueAtTime(0.18, startTime + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.3);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(startTime);
-        osc.stop(startTime + 0.3);
-      });
-    }
-  } catch (e) {
-    console.warn('[SOUND WARN]: Audio context error:', e);
-  }
+  // Suara dihilangkan sepenuhnya pada semua login sesuai permintaan user
+  return;
 }
 window.playNotificationSound = playNotificationSound;
 
@@ -8178,40 +8114,9 @@ let pendingAlarmInterval = null;
 let pendingAlertAudio = null;
 
 function playPendingSoundAlert() {
-  if (typeof isAudioMuted === 'function' && isAudioMuted()) {
-    stopPendingSoundAlert();
-    return;
-  }
-
-  if (window._isPendingAlarmActive) return;
-  window._isPendingAlarmActive = true;
-
-  if (!pendingAlarmInterval) {
-    const playBeep = () => {
-      if (!window._isPendingAlarmActive) return;
-      try {
-        const ctx = getAudioContext();
-        if (ctx) {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(880, ctx.currentTime);
-          osc.frequency.exponentialRampToValueAtTime(440, ctx.currentTime + 0.25);
-          gain.gain.setValueAtTime(0.35, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(ctx.currentTime);
-          osc.stop(ctx.currentTime + 0.25);
-        }
-      } catch (e) {
-        console.warn('[PENDING ALARM SOUND WARN]:', e);
-      }
-    };
-
-    playBeep();
-    pendingAlarmInterval = setInterval(playBeep, 1200);
-  }
+  // Suara dihilangkan sepenuhnya pada semua login sesuai permintaan user
+  stopPendingSoundAlert();
+  return;
 }
 
 function stopPendingSoundAlert() {
@@ -8229,39 +8134,9 @@ function stopPendingSoundAlert() {
 }
 
 function checkAndPlayPendingSoundAlert(dataList) {
-  if (!currentUser) {
-    stopPendingSoundAlert();
-    return;
-  }
-
-  const cat = String(currentUser.category || currentUser.kategori || currentUser.role || '').trim().toUpperCase();
-  const username = String(currentUser.username || '').trim().toUpperCase();
-  const isAdm = cat === 'ADMIN' || username === 'ADMIN';
-
-  // Suara notifikasi pada login ADMIN dihilangkan sepenuhnya sesuai permintaan user
-  if (isAdm) {
-    stopPendingSoundAlert();
-    return;
-  }
-
-  if (!Array.isArray(dataList)) {
-    dataList = typeof getAccessibleRequests === 'function' ? getAccessibleRequests() : [];
-  }
-
-  let hasPending = false;
-  if (cat === 'SERVICE' || cat === 'IT' || cat === 'HODS' || cat === 'GBJ') {
-    hasPending = dataList.some(r => r && r.status === 'PENDING' && !r.serviceApprove);
-  } else if (cat === 'DM' || cat === 'MANAGER') {
-    hasPending = dataList.some(r => r && (r.status === 'APPROVE' || (r.status === 'PENDING' && r.serviceApprove)));
-  } else {
-    hasPending = false;
-  }
-
-  if (hasPending) {
-    playPendingSoundAlert();
-  } else {
-    stopPendingSoundAlert();
-  }
+  // Suara notifikasi pada SEMUA login dihilangkan sepenuhnya sesuai permintaan user
+  stopPendingSoundAlert();
+  return;
 }
 window.checkAndPlayPendingSoundAlert = checkAndPlayPendingSoundAlert;
 window.playPendingSoundAlert = playPendingSoundAlert;
@@ -15898,8 +15773,11 @@ async function logoutSemuaPerangkatUserByAdmin() {
           if (!u || !u.username) continue;
           
           const uNameUpper = String(u.username).trim().toUpperCase();
-          // JANGAN LOGOUT AKUN ADMIN YANG SEDANG LOGIN SAAT INI
-          if (myUnameUpper && uNameUpper === myUnameUpper) {
+          const uCatUpper = String(u.category || u.role || u.kategori || '').trim().toUpperCase();
+          const isUserAdmin = (uCatUpper === 'ADMIN' || uNameUpper === 'ADMIN');
+
+          // JANGAN LOGOUT SELURUH AKUN ADMIN (SEMUA AKUN ADMIN TETAP AKTIF LOGGED IN)
+          if (isUserAdmin) {
             continue;
           }
 
